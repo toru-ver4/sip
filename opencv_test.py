@@ -42,8 +42,17 @@ def view_superwhite(img):
 
 if __name__ == '__main__':
 
-    # dpx形式のファイルをtiff(16bit)に変換
-    tiff_image_name = conv_dpx10_to_tiff16(File_name)
+    # 拡張子チェック
+    root, ext = os.path.splitext(File_name)
+    print(root, ext)
+    if ext == ".dpx":
+        # dpx形式のファイルをtiff(16bit)に変換
+        tiff_image_name = conv_dpx10_to_tiff16(File_name)
+    elif ext == ".tif" or ext == ".tiff":
+        tiff_image_name = File_name
+    else:
+        print("please set tiff or dpx image.")
+        sys.exit(1)
 
     # tiffのデータをread
     img = cv2.imread(tiff_image_name, cv2.IMREAD_ANYCOLOR|cv2.IMREAD_ANYDEPTH)
@@ -68,8 +77,6 @@ if __name__ == '__main__':
     img_hcat  = cv2.hconcat([img_vcat1, img_vcat2])
 
     # 画像のプレビュー
-    cv2.namedWindow("fullscreen", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty("fullscreen", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     cv2.imshow('bbb.tif', img_hcat)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
