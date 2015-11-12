@@ -2,15 +2,14 @@
 #-*- coding: utf-8 -*-
  
 """
-helloqt.py
-PyQt5 で Hello, world!
+OpenCV のテスト。
+3種類の画像処理を行い、最後に各画像を結合して１つにまとめた。
 """
 
 import os
 import sys
 import cv2
 import numpy as np
-from pgmagick import Image
 
 File_name='bbb.dpx' 
 normalized_val_uint16 = 65535
@@ -35,7 +34,7 @@ def view_limited_black(img):
     return img
 
 def view_superwhite(img):
-    threshold = 512/1023 
+    threshold = 940/1023 
     img = img * (img > threshold)
 
     return img
