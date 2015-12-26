@@ -25,8 +25,10 @@ if __name__ == '__main__':
         ret, img_org = capture.read()
         if(ret != True):
             break
-        img_edit = img_org.copy()
-        img_edit = np.uint8(img_org * 0.5)
+        edge_info = cv2.Canny(img_org, 40.0, 200.0)
+        img_edit = cv2.cvtColor(edge_info, cv2.COLOR_GRAY2RGB)
+#        img_edit = cv2.cvtColor(img_org, cv2.COLOR_RGB2YUV)
+
         img_view = cv2.hconcat([img_org, img_edit])
         cv2.imshow("cam view", img_view)
 #        if cv2.waitKey(wait_time) >= 0:
