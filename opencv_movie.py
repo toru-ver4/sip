@@ -22,22 +22,16 @@ if __name__ == '__main__':
     wait_time = int(1/29.97 * 1000)
 
     while True:
-        ret, img = capture.read()
-        cv2.imshow("cam view", img)
-        if cv2.waitKey(wait_time) >= 0:
+        ret, img_org = capture.read()
+        if(ret != True):
+            break
+        img_edit = img_org.copy()
+        img_edit = np.uint8(img_org * 0.5)
+        img_view = cv2.hconcat([img_org, img_edit])
+        cv2.imshow("cam view", img_view)
+#        if cv2.waitKey(wait_time) >= 0:
+        if cv2.waitKey(20) >= 0:
             break
 
     cv2.destroyAllWindows()
-    sys.exit(1)
-    # 画像のプレビュー
-    cv2.imshow('bbb.tif', img_hcat)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-    # 出力用に 0..1 → 0..65535 の変換を実施
-    out_img = img_hcat * normalized_val_uint16
-    out_img = np.uint16(out_img)
-
-    # 保存
-    cv2.imwrite('out.tiff', out_img)
     
