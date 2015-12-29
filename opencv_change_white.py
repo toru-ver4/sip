@@ -84,19 +84,44 @@ def calc_XYZ_to_XYZ(MA, MA_inv, LMS):
 
     return ret
 
-def multiply_3x3_mat(r, g, b, mat):
+def normalize_RGB_to_RGB_mat(mat):
+    """そもそもオーバーフローしないように正規化を行う"""
+    sum_array = [ np.sum(row) for row in mat ]
+    ret_mat = mat / np.max(sum_array)
+
+    return ret_mat
+
+def multiply_3x3_mat(src, mat):
     """RGBの各ピクセルに対して3x3の行列演算を行う"""
+
+    # 正規化用の係数を調査
+    normalize_val = (2 ** (8 * src.itemsize)) - 1
+
+    # 0 .. 1 に正規化して RGB分離
+    b, g, r = np.dsplit(src / normalize_val, 3)
+
+    # 行列計算
     ret_r = r * mat[0][0] + g * mat[0][1] + b * mat[0][2]
     ret_g = r * mat[1][0] + g * mat[1][1] + b * mat[1][2]
     ret_b = r * mat[2][0] + g * mat[2][1] + b * mat[2][2]
-    
+
+    # オーバーフロー確認(実は Matrixの係数を調整しているので不要)
+    ret_r = cv2.min(ret_r, 1.0)
+    ret_g = cv2.min(ret_g, 1.0)
+    ret_b = cv2.min(ret_b, 1.0)
+
+    # アンダーフロー確認(実は Matrixの係数を調整しているので不要)
+    ret_r = cv2.max(ret_r, 0.0)
+    ret_g = cv2.max(ret_g, 0.0)
+    ret_b = cv2.max(ret_b, 0.0)
+
+    # RGB結合
     ret_mat = np.dstack( (ret_b, ret_g, ret_r) )
 
-    # オーバーフローの処理。めっちゃ重い。高速化を考えて！
-    over_flow_mask = (ret_mat > 1.0)
-    ret_mat = ret_mat - (ret_mat * over_flow_mask - (1 * over_flow_mask ))
+    # 0 .. 255 に正規化
+    ret_mat *= normalize_val
 
-    return ret_mat
+    return np.uint8(ret_mat)
 
 if __name__ == '__main__':
     
@@ -108,6 +133,7 @@ if __name__ == '__main__':
     LMS_MAT = calc_LMS_MAT(src_LMS, dst_LMS)
     XYZ_to_XYZ_mat = calc_XYZ_to_XYZ(XYZ_to_LMS_mat, LMS_to_XYZ_mat, LMS_MAT)
     RGB_to_RGB_mat = np.dot( XYZ_to_RGB_mat, np.dot(XYZ_to_XYZ_mat, RGB_to_XYZ_mat) )
+    RGB_to_RGB_mat = normalize_RGB_to_RGB_mat(RGB_to_RGB_mat)
     print(XYZ_to_XYZ_mat)
     print(RGB_to_RGB_mat)
 
@@ -121,13 +147,10 @@ if __name__ == '__main__':
             break
 
         # 1.0 に正規化して RGB に分離(BGRの順序なことに注意)
-        b_array, g_array, r_array = np.dsplit(img_src / 255.0, 3)
+        b_array, g_array, r_array = np.dsplit(img_src, 3)
 
         # 色温度変換
-        img_dst = multiply_3x3_mat(r_array, g_array, b_array, RGB_to_RGB_mat)
-
-        # 255 に正規化
-        img_dst = np.uint8(img_dst * 255.0)
+        img_dst = multiply_3x3_mat(img_src, RGB_to_RGB_mat)
 
         # src と dst を１つにまとめる
         img_view = cv2.hconcat([img_src, img_dst])
