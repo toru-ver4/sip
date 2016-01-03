@@ -17,10 +17,82 @@ from numpy.random import randn
 #Picture_file_name='tabako.jpg' 
 Picture_file_name='hiasshuku.tiff' 
 
+Rec_709_area  = [[0.640, 0.300, 0.150, 0.640], [0.330, 0.660, 0.060, 0.330]]
+Rec_2020_area = [[0.708, 0.170, 0.131, 0.708], [0.292, 0.797, 0.046, 0.292]]
+
+def RGB_to_XYZ(img, mat=None):
+    """RGBをXYZに変換する。mat が None の場合は cvtColor で XYZ変換する。
+       その場合、色域は Rec.709、色温度は D65 に固定となる。"""
+    if mat != None:
+        b, g, r = np.dsplit(img, 3)
+
+        # 行列計算
+        ret_X = r * mat[0][0] + g * mat[0][1] + b * mat[0][2]
+        ret_Y = r * mat[1][0] + g * mat[1][1] + b * mat[1][2]
+        ret_Z = r * mat[2][0] + g * mat[2][1] + b * mat[2][2]
+
+        # XYZ結合
+        ret_img = np.dstack( (ret_X, ret_Y, ret_Z) )
+        
+    else:
+        ret_img = cv2.cvtColor(img, cv2.COLOR_RGB2XYZ)
+
+    return ret_img
+
+def RGB_to_xy(img, mat=None):
+    """RGB から xy色度を算出。戻り値は x, y の配列"""
+    # 正規化
+    normalize_val = (2 ** (8 * img.itemsize)) - 1
+    img = np.float32(img / normalize_val)
+    
+    img_XYZ = RGB_to_XYZ(img, mat)
+    X, Y, Z = np.dsplit(img_XYZ, 3)
+    x = X / (X + Y + Z)
+    y = Y / (X + Y + Z)
+    
+    return x, y    
+
 if __name__ == '__main__':
+
+    # 動画ファイルを開く
+    capture = cv2.VideoCapture("nichijo_op.mp4")
+    ret, img_RGB = capture.read()
+#    img_RGB = cv2.imread(Picture_file_name)
+    
+    # 処理負荷軽減のためにResize
+    img_RGB = cv2.resize(img_RGB, (640, 360))
+
+    # xy に変換
+    img_x, img_y = RGB_to_xy(img_RGB)
 
     # 描画用のWindow？を準備
     fig = plt.figure()
+    ax1 = fig.add_axes( (0.05, 0.05, 0.9, 0.9) )
+    ax1.set_xlim(0, 0.8)
+    ax1.set_ylim(0, 0.9)
+    lines, = ax1.plot(img_x.flatten(), img_y.flatten(), '.')
+    ax1.plot(Rec_709_area[0], Rec_709_area[1], '-', color='k', )
+    ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '-', color='k', )
+
+    plt.pause(.01)
+
+    while True:
+        # 1フレーム取得
+        ret, img_RGB = capture.read()
+        
+        # 処理負荷軽減のためにResize
+        img_RGB = cv2.resize(img_RGB, (320, 180))
+        img_x, img_y = RGB_to_xy(img_RGB)
+
+        lines.set_data(img_x.flatten(), img_y.flatten())
+
+        plt.pause(.01)
+
+        cv2.imshow("cam view", cv2.resize(img_RGB, (640, 360)))
+        cv2.waitKey(1)
+    
+    sys.exit(1)
+
 
     # fig の中に複数のグラフを定義
     # rgb_hist = fig.add_subplot(4,1,1) # 引数はそれぞれ 横数、縦数、index 
