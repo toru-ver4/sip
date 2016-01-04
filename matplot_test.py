@@ -17,8 +17,10 @@ from numpy.random import randn
 #Picture_file_name='tabako.jpg' 
 Picture_file_name='hiasshuku.tiff' 
 
-Rec_709_area  = [[0.640, 0.300, 0.150, 0.640], [0.330, 0.660, 0.060, 0.330]]
+Rec_709_area  = [[0.640, 0.300, 0.150, 0.640], [0.330, 0.600, 0.060, 0.330]]
 Rec_2020_area = [[0.708, 0.170, 0.131, 0.708], [0.292, 0.797, 0.046, 0.292]]
+
+Resize_resolution = (320, 180)
 
 def RGB_to_XYZ(img, mat=None):
     """RGBをXYZに変換する。mat が None の場合は cvtColor で XYZ変換する。
@@ -60,10 +62,10 @@ if __name__ == '__main__':
 #    img_RGB = cv2.imread(Picture_file_name)
     
     # 処理負荷軽減のためにResize
-    img_RGB = cv2.resize(img_RGB, (640, 360))
+    img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
 
     # xy に変換
-    img_x, img_y = RGB_to_xy(img_RGB)
+    img_x, img_y = RGB_to_xy(img_RGB_resize)
 
     # 描画用のWindow？を準備
     fig = plt.figure()
@@ -71,24 +73,27 @@ if __name__ == '__main__':
     ax1.set_xlim(0, 0.8)
     ax1.set_ylim(0, 0.9)
     lines, = ax1.plot(img_x.flatten(), img_y.flatten(), '.')
-    ax1.plot(Rec_709_area[0], Rec_709_area[1], '-', color='k', )
-    ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '-', color='k', )
+    ax1.plot(Rec_709_area[0], Rec_709_area[1], '-', color='r', label="Rec709")
+    ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '-', color='c', label="Rec2020" )
 
-    plt.pause(.01)
+    # 判例の描画
+    plt.legend() 
+
+    plt.pause(.001)
 
     while True:
         # 1フレーム取得
         ret, img_RGB = capture.read()
         
         # 処理負荷軽減のためにResize
-        img_RGB = cv2.resize(img_RGB, (320, 180))
-        img_x, img_y = RGB_to_xy(img_RGB)
+        img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+        img_x, img_y = RGB_to_xy(img_RGB_resize)
 
         lines.set_data(img_x.flatten(), img_y.flatten())
 
         plt.pause(.01)
 
-        cv2.imshow("cam view", cv2.resize(img_RGB, (640, 360)))
+        cv2.imshow("cam view", img_RGB)
         cv2.waitKey(1)
     
     sys.exit(1)
