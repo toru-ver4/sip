@@ -8,6 +8,7 @@ Matplotの動作テスト
 import os
 import sys
 import time
+import pandas
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,12 +16,34 @@ from matplotlib import font_manager
 from numpy.random import randn
 
 #Picture_file_name='tabako.jpg' 
-Picture_file_name='hiasshuku.tiff' 
+Picture_file_name = 'hiasshuku.tiff' 
+Csv_file_name = 'xyz_list.csv'
 
 Rec_709_area  = [[0.640, 0.300, 0.150, 0.640], [0.330, 0.600, 0.060, 0.330]]
 Rec_2020_area = [[0.708, 0.170, 0.131, 0.708], [0.292, 0.797, 0.046, 0.292]]
 
 Resize_resolution = (320, 180)
+
+def Get_xyz_Color_Matching_func(csv_file):
+    """csv形式で書かれた xyz等色関数を readする"""
+    csv = np.array(pandas.read_csv(csv_file, header=None)).transpose()
+    # ret_mtx = [0] * 4
+    # ret_mtx = [ [] for x in ret_mtx ]
+    # ret_mtx[0] = csv['wlen'])
+    # ret_mtx[1] = np.csv['val_x']
+    # ret_mtx[2] = csv['val_y']
+    # ret_mtx[3] = csv['val_z']
+
+    return csv
+
+
+def Calc_Spectrum_xy_Chromaticity(xyz_mtx):
+    """xyzの等色関数からxy色度を覓める
+       xyz_mtx[0] : 波長、xyz_mtx[1] : x、xyz_mtx[2] : y、xyz_mtx[2] : z 
+    """
+    pass
+
+    return None
 
 def RGB_to_XYZ(img, mat=None):
     """RGBをXYZに変換する。mat が None の場合は cvtColor で XYZ変換する。
@@ -55,6 +78,12 @@ def RGB_to_xy(img, mat=None):
     return x, y    
 
 if __name__ == '__main__':
+
+    
+    xyz_mtx = Get_xyz_Color_Matching_func(Csv_file_name)
+    Calc_Spectrum_xy_Chromaticity(xyz_mtx)
+
+    sys.exit()
 
     # 動画ファイルを開く
     capture = cv2.VideoCapture("nichijo_op.mp4")
