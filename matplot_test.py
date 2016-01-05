@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # 動画ファイルを開く
     capture = cv2.VideoCapture("nichijo_op.mp4")
     ret, img_RGB = capture.read()
-#    img_RGB = cv2.imread(Picture_file_name)
+    img_RGB = cv2.imread(Picture_file_name)
     
     # 処理負荷軽減のためにResize
     img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
@@ -68,18 +68,26 @@ if __name__ == '__main__':
     img_x, img_y = RGB_to_xy(img_RGB_resize)
 
     # 描画用のWindow？を準備
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10,10)) # fgsize は inch で指定
+    fig.patch.set_facecolor('white')
     ax1 = fig.add_axes( (0.05, 0.05, 0.9, 0.9) )
     ax1.set_xlim(0, 0.8)
     ax1.set_ylim(0, 0.9)
+    ax1.patch.set_facecolor('black')
+    ax1.patch.set_alpha(0.15)
     lines, = ax1.plot(img_x.flatten(), img_y.flatten(), '.')
-    ax1.plot(Rec_709_area[0], Rec_709_area[1], '-', color='r', label="Rec709")
-    ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '-', color='c', label="Rec2020" )
+    ax1.plot(Rec_709_area[0], Rec_709_area[1], '--', color='r', label="Rec709")
+    ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '--', color='g', label="Rec2020" )
 
     # 判例の描画
     plt.legend() 
 
-    plt.pause(.001)
+    # 補助線の描画
+    plt.grid()
+
+#    plt.pause(.001)
+    plt.pause(60)
+    sys.exit(1)
 
     while True:
         # 1フレーム取得
