@@ -90,14 +90,14 @@ def RGB_to_xy(img, mat=None):
 
 if __name__ == '__main__':
 
-    
+    print("kidou")
     xyz_mtx = Get_xyz_Color_Matching_func(Csv_file_name)
     wave_len, chroma_x, chroma_y = Calc_Spectrum_xy_Chromaticity(xyz_mtx)
 
     # 動画ファイルを開く
     capture = cv2.VideoCapture("nichijo_op.mp4")
     ret, img_RGB = capture.read()
-    img_RGB = cv2.imread(Picture_file_name)
+#    img_RGB = cv2.imread(Picture_file_name)
     
     # 処理負荷軽減のためにResize
     img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
@@ -105,6 +105,7 @@ if __name__ == '__main__':
     # xy に変換
     img_x, img_y = RGB_to_xy(img_RGB_resize)
 
+    print("kidou2")
     # 描画用のWindow？を準備
     fig = plt.figure(figsize=(10,10)) # fgsize は inch で指定
     fig.patch.set_facecolor('white')
@@ -128,6 +129,7 @@ if __name__ == '__main__':
 
     plt.pause(.001)
 
+    print("kidou3")
     while True:
         # 1フレーム取得
         ret, img_RGB = capture.read()
@@ -142,6 +144,7 @@ if __name__ == '__main__':
 
         cv2.imshow("cam view", img_RGB)
         cv2.waitKey(1)
+        print("kidou4")
     
     sys.exit(1)
 
