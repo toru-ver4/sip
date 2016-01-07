@@ -49,7 +49,7 @@ def Calc_Spectrum_xy_Chromaticity(xyz_mtx):
     x = xyz_mtx[1] / sum_xyz
     y = xyz_mtx[2] / sum_xyz
 
-    # 最後に先頭データを付加して、プロット時に最初に戻るようにする。
+    # 先頭に右端のデータ付加して、プロットがグルっと一周するようにする。
     max_idx = np.argmax(x)
     x = np.append(np.array(x[max_idx]), x)
     y = np.append(np.array(y[max_idx]), y)
@@ -93,8 +93,6 @@ if __name__ == '__main__':
     
     xyz_mtx = Get_xyz_Color_Matching_func(Csv_file_name)
     wave_len, chroma_x, chroma_y = Calc_Spectrum_xy_Chromaticity(xyz_mtx)
-    print(chroma_x)
-    print(chroma_y)
 
     # 動画ファイルを開く
     capture = cv2.VideoCapture("nichijo_op.mp4")
@@ -115,7 +113,9 @@ if __name__ == '__main__':
     ax1.set_ylim(0, 0.9)
     ax1.patch.set_facecolor('black')
     ax1.patch.set_alpha(0.15)
-    lines = ax1.scatter(img_x.flatten(), img_y.flatten())
+
+    lines, = ax1.plot(img_x.flatten(), img_y.flatten(), '.')
+
     ax1.plot(chroma_x, chroma_y, '-', color='k', label="CIE1931")
     ax1.plot(Rec_709_area[0], Rec_709_area[1], '--', color='r', label="Rec709")
     ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '--', color='g', label="Rec2020" )
@@ -126,9 +126,7 @@ if __name__ == '__main__':
     # 補助線の描画
     plt.grid()
 
-#    plt.pause(.001)
-    plt.pause(60)
-    sys.exit(1)
+    plt.pause(.001)
 
     while True:
         # 1フレーム取得
