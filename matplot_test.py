@@ -38,12 +38,23 @@ def Get_xyz_Color_Matching_func(csv_file):
 
 
 def Calc_Spectrum_xy_Chromaticity(xyz_mtx):
-    """xyzの等色関数からxy色度を覓める
-       xyz_mtx[0] : 波長、xyz_mtx[1] : x、xyz_mtx[2] : y、xyz_mtx[2] : z 
     """
-    pass
+    xyzの等色関数からxy色度を覓める
+      xyz_mtx[0] : 波長
+      xyz_mtx[1] : x
+      xyz_mtx[2] : y
+      xyz_mtx[2] : z
+    """
+    sum_xyz = (xyz_mtx[1] + xyz_mtx[2] + xyz_mtx[3])
+    x = xyz_mtx[1] / sum_xyz
+    y = xyz_mtx[2] / sum_xyz
 
-    return None
+    # 最後に先頭データを付加して、プロット時に最初に戻るようにする。
+    max_idx = np.argmax(x)
+    x = np.append(np.array(x[max_idx]), x)
+    y = np.append(np.array(y[max_idx]), y)
+
+    return xyz_mtx[0], x, y
 
 def RGB_to_XYZ(img, mat=None):
     """RGBをXYZに変換する。mat が None の場合は cvtColor で XYZ変換する。
@@ -81,9 +92,9 @@ if __name__ == '__main__':
 
     
     xyz_mtx = Get_xyz_Color_Matching_func(Csv_file_name)
-    Calc_Spectrum_xy_Chromaticity(xyz_mtx)
-
-    sys.exit()
+    wave_len, chroma_x, chroma_y = Calc_Spectrum_xy_Chromaticity(xyz_mtx)
+    print(chroma_x)
+    print(chroma_y)
 
     # 動画ファイルを開く
     capture = cv2.VideoCapture("nichijo_op.mp4")
@@ -104,7 +115,8 @@ if __name__ == '__main__':
     ax1.set_ylim(0, 0.9)
     ax1.patch.set_facecolor('black')
     ax1.patch.set_alpha(0.15)
-    lines, = ax1.plot(img_x.flatten(), img_y.flatten(), '.')
+    lines = ax1.scatter(img_x.flatten(), img_y.flatten())
+    ax1.plot(chroma_x, chroma_y, '-', color='k', label="CIE1931")
     ax1.plot(Rec_709_area[0], Rec_709_area[1], '--', color='r', label="Rec709")
     ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '--', color='g', label="Rec2020" )
 
