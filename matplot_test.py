@@ -60,7 +60,7 @@ def RGB_to_XYZ(img, mat=None):
         ret_img = np.dstack( (ret_X, ret_Y, ret_Z) )
         
     else:
-        ret_img = cv2.cvtColor(img, cv2.COLOR_RGB2XYZ)
+        ret_img = cv2.cvtColor(img, cv2.COLOR_BGR2XYZ)
 
     return ret_img
 
