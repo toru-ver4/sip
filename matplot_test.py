@@ -109,12 +109,24 @@ if __name__ == '__main__':
     # 描画用のWindow？を準備
     fig = plt.figure(figsize=(10,10)) # fgsize は inch で指定
     fig.patch.set_facecolor('white')
-    ax1 = fig.add_axes( (0.05, 0.05, 0.9, 0.9) )
+
+    # 描画領域の設定
+    ax1 = fig.add_axes( (0.1, 0.1, 0.85, 0.85) )
+    ax1.tick_params(axis='both', which='major', labelsize=20)
+
+    # 軸の範囲を設定
     ax1.set_xlim(0, 0.8)
     ax1.set_ylim(0, 0.9)
+
+    # 軸ラベルの設定
+    plt.xlabel("$x$", fontsize=25)
+    plt.ylabel("$y$", fontsize=25)
+
+    # 描画領域の色を設定
     ax1.patch.set_facecolor('black')
     ax1.patch.set_alpha(0.15)
 
+    # 描画
     lines, = ax1.plot(img_x.flatten(), img_y.flatten(), '.')
 
     ax1.plot(chroma_x, chroma_y, '-', color='k', label="CIE1931")
