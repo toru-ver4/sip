@@ -68,10 +68,13 @@ class ScatterPlot():
 
     
     def set_data(self, x_data, y_data, color_data=None):
-        self.ax1.scatter(x_data, y_data, marker='o', c=color_data, s=50, alpha=0.2)
+        self.ax1.scatter(x_data, y_data, marker='o', c=color_data, s=50, alpha=0.2, edgecolors='face')
 
     def show(self):
         plt.show()
+
+    def save(self, name="hoge.png"):
+        plt.savefig(name, bbox_inches='tight')
 
 
 def RGB_to_Scatter_RGB(img_RGB):
@@ -178,7 +181,7 @@ if __name__ == '__main__':
     img_vcat  = cv2.vconcat([img_RGB_resize, hsv_img])
 
     cv2.imshow("get HS", img_vcat)
-    cv2.waitKey(0)
+    cv2.waitKey(1)
 
 
     # ScatterPlotインスタンス作成
@@ -188,7 +191,9 @@ if __name__ == '__main__':
     my_plt_obj.set_data(img_x, img_y, color_data=scatter_color)
 
     # 描画
+    my_plt_obj.save("edge_none_alpha_0.2.png")
     my_plt_obj.show()
+
     
     
     sys.exit(1)
