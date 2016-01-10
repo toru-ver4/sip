@@ -16,7 +16,7 @@ from matplotlib import font_manager
 from numpy.random import randn
 
 #Picture_file_name='tabako.jpg' 
-Picture_file_name = 'hiasshuku.tiff' 
+Picture_file_name2 = 'hiasshuku.tiff' 
 Picture_file_name = '20141004232349bf4.jpg'
 Csv_file_name = 'xyz_list.csv'
 
@@ -60,6 +60,12 @@ class ScatterPlot():
         self.ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '--', color='g', label="Rec2020" )
         self.ax1.plot(DCI_P3_area[0],   DCI_P3_area[1],   '--', color='c', label="DCI-P3" )
 
+        # プロット用変数の初期化
+        self.alpha = 0.5
+        self.marker = 'o'
+        self.marker_size = 50
+        self.edgecolors = 'face'
+
         # 判例の描画
         plt.legend() 
         
@@ -68,8 +74,20 @@ class ScatterPlot():
 
     
     def set_data(self, x_data, y_data, color_data=None):
-        self.ax1.scatter(x_data, y_data, marker='o', c=color_data, s=50, alpha=0.2, edgecolors='face')
+        self.point_obj = self.ax1.scatter(x_data, 
+                                          y_data, 
+                                          marker=self.marker, 
+                                          c=color_data, 
+                                          s=self.marker_size, 
+                                          alpha=self.alpha, 
+                                          edgecolors=self.edgecolors)
 
+    def update_data(self, x_data, y_data, color_data=None):
+        set_data = np.dstack((x_data, y_data))
+        self.point_obj.set_offsets(set_data)
+        self.point_obj.set_color(color_data)
+
+        
     def show(self):
         t0 = time.time()
         
@@ -77,6 +95,10 @@ class ScatterPlot():
 
         t1 = time.time()
         print(t1-t0)
+
+    def show_seq(self, delay=0.01):
+        plt.pause(delay)
+
     def save(self, name="hoge.png"):
         plt.savefig(name, bbox_inches='tight')
 
@@ -96,16 +118,8 @@ def RGB_to_Scatter_RGB(img_RGB):
     t0 = time.time()
     color_array = img_bright.reshape(img_bright.shape[0] * img_bright.shape[1], 3)
     t1 = time.time()
-    print(t1-t0)
-    # RGB値を #XXXXXX 形式で出力
-    # color_array = []
-    # width = img_bright.shape[1]
-    # for v_idx, h_val in enumerate(img_bright):
-    #     for h_idx, v_val in enumerate(h_val):
-    #         color_str = "#%02x%02x%02x" % (v_val[0], v_val[1], v_val[2])
-    #         color_array.append(color_str)
 
-    return color_array, img_bright
+    return color_array
 
 def Get_xyz_Color_Matching_func(csv_file):
     """csv形式で書かれた xyz等色関数を readする"""
@@ -177,20 +191,13 @@ if __name__ == '__main__':
     img_RGB = cv2.imread(Picture_file_name)
     
     # 処理負荷軽減のためにResize
-#    img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
-    img_RGB_resize = cv2.resize(img_RGB, (img_RGB.shape[1]//2, img_RGB.shape[0]//2))
+    img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
 
     # xy に変換
     img_x, img_y = RGB_to_xy(img_RGB_resize)
 
     # 散布図の色指定用の配列を作成
-    scatter_color, hsv_img = RGB_to_Scatter_RGB(img_RGB_resize)
-
-    img_vcat  = cv2.vconcat([img_RGB_resize, np.uint8(hsv_img * 255)])
-
-    cv2.imshow("get HS", img_vcat)
-    cv2.waitKey(1)
-
+    scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
 
     # ScatterPlotインスタンス作成
     my_plt_obj = ScatterPlot()
@@ -199,9 +206,25 @@ if __name__ == '__main__':
     my_plt_obj.set_data(img_x, img_y, color_data=scatter_color)
 
     # 描画
-    my_plt_obj.show()
+#    my_plt_obj.show()
+    my_plt_obj.show_seq()
 
+    # 動画ファイルを開く
+    img_RGB = cv2.imread(Picture_file_name2)
     
+    # 処理負荷軽減のためにResize
+    img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+
+    # xy に変換
+    img_x, img_y = RGB_to_xy(img_RGB_resize)
+
+    # 散布図の色指定用の配列を作成
+    scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
+
+    # データを更新
+    my_plt_obj.update_data(img_x, img_y, color_data=scatter_color)
+    my_plt_obj.show_seq(60)
+
     
     sys.exit(1)
 
