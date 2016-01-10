@@ -71,8 +71,12 @@ class ScatterPlot():
         self.ax1.scatter(x_data, y_data, marker='o', c=color_data, s=50, alpha=0.2, edgecolors='face')
 
     def show(self):
+        t0 = time.time()
+        
         plt.show()
 
+        t1 = time.time()
+        print(t1-t0)
     def save(self, name="hoge.png"):
         plt.savefig(name, bbox_inches='tight')
 
@@ -87,15 +91,19 @@ def RGB_to_Scatter_RGB(img_RGB):
     img_HSV = cv2.cvtColor(img_RGB_normalized, cv2.COLOR_BGR2HSV)
     img_HSV[:,:,2] = 1.0
     img_bright = cv2.cvtColor(img_HSV, cv2.COLOR_HSV2BGR)
-    img_bright = np.uint8(img_bright * 255) # 0x00-0xFFで表現するので、0-255に正規化
 
+    # RGB値を(R,G,B)のタプルで表現
+    t0 = time.time()
+    color_array = img_bright.reshape(img_bright.shape[0] * img_bright.shape[1], 3)
+    t1 = time.time()
+    print(t1-t0)
     # RGB値を #XXXXXX 形式で出力
-    color_array = []
-    width = img_bright.shape[1]
-    for v_idx, h_val in enumerate(img_bright):
-        for h_idx, v_val in enumerate(h_val):
-            color_str = "#%02x%02x%02x" % (v_val[0], v_val[1], v_val[2])
-            color_array.append(color_str)
+    # color_array = []
+    # width = img_bright.shape[1]
+    # for v_idx, h_val in enumerate(img_bright):
+    #     for h_idx, v_val in enumerate(h_val):
+    #         color_str = "#%02x%02x%02x" % (v_val[0], v_val[1], v_val[2])
+    #         color_array.append(color_str)
 
     return color_array, img_bright
 
@@ -178,7 +186,7 @@ if __name__ == '__main__':
     # 散布図の色指定用の配列を作成
     scatter_color, hsv_img = RGB_to_Scatter_RGB(img_RGB_resize)
 
-    img_vcat  = cv2.vconcat([img_RGB_resize, hsv_img])
+    img_vcat  = cv2.vconcat([img_RGB_resize, np.uint8(hsv_img * 255)])
 
     cv2.imshow("get HS", img_vcat)
     cv2.waitKey(1)
@@ -191,7 +199,6 @@ if __name__ == '__main__':
     my_plt_obj.set_data(img_x, img_y, color_data=scatter_color)
 
     # 描画
-    my_plt_obj.save("edge_none_alpha_0.2.png")
     my_plt_obj.show()
 
     
