@@ -155,7 +155,7 @@ def RGB_to_Scatter_RGB(img_RGB):
     # 明度を固定したいので、HSV空間でVの値を強制的に変える
     img_HSV = cv2.cvtColor(img_RGB_normalized, cv2.COLOR_BGR2HSV)
     img_HSV[:,:,2] = 1.0
-    img_bright = cv2.cvtColor(img_HSV, cv2.COLOR_HSV2BGR)
+    img_bright = cv2.cvtColor(img_HSV, cv2.COLOR_HSV2RGB)
 
     # RGB値を(R,G,B)のタプルで表現
     t0 = time.time()
