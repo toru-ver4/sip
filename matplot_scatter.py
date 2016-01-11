@@ -8,6 +8,7 @@ Matplotの動作テスト
 import os
 import sys
 import time
+import datetime
 import pandas
 import cv2
 import numpy as np
@@ -15,10 +16,10 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from numpy.random import randn
 
-#Picture_file_name='tabako.jpg' 
-Picture_file_name2 = 'hiasshuku.tiff' 
-Picture_file_name = '20141004232349bf4.jpg'
+Picture_file_name = 'hiasshuku.tiff' 
+Movie_file_name = 'nichijo_op.mp4'
 Csv_file_name = 'xyz_list.csv'
+Plot_mode = 'movie' # picture or movie
 
 Rec_709_area  = [[0.640, 0.300, 0.150, 0.640], [0.330, 0.600, 0.060, 0.330]]
 Rec_2020_area = [[0.708, 0.170, 0.131, 0.708], [0.292, 0.797, 0.046, 0.292]]
@@ -32,7 +33,6 @@ class ScatterPlot():
         # CIE1931のxy色度を算出
         xyz_mtx = Get_xyz_Color_Matching_func(Csv_file_name)
         wave_len, chroma_x, chroma_y = Calc_Spectrum_xy_Chromaticity(xyz_mtx)
-
         
         # 描画用のWindow？を準備
         self.fig = plt.figure(figsize=(10,10)) # fgsize は inch で指定
@@ -89,17 +89,14 @@ class ScatterPlot():
 
         
     def show(self):
-        t0 = time.time()
-        
         plt.show()
-
-        t1 = time.time()
-        print(t1-t0)
 
     def show_seq(self, delay=0.01):
         plt.pause(delay)
 
-    def save(self, name="hoge.png"):
+    def save(self, name=None):
+        if name == None:
+            name = 'scatter_' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '.png'
         plt.savefig(name, bbox_inches='tight')
 
 
@@ -187,45 +184,93 @@ def RGB_to_xy(img, mat=None):
 
 if __name__ == '__main__':
 
-    # 動画ファイルを開く
-    img_RGB = cv2.imread(Picture_file_name)
+    if Plot_mode == 'picture':
+        
+        # 静止画ファイルを開く
+        img_RGB = cv2.imread(Picture_file_name)
+        
+        # 静止画を表示
+        cv2.imshow(Picture_file_name, img_RGB)
+        cv2.waitKey(1)
     
-    # 処理負荷軽減のためにResize
-    img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+        # 処理負荷軽減のためにResize
+        img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+        
+        # xy に変換
+        img_x, img_y = RGB_to_xy(img_RGB_resize)
 
-    # xy に変換
-    img_x, img_y = RGB_to_xy(img_RGB_resize)
+        # 散布図の色指定用の配列を作成
+        scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
 
-    # 散布図の色指定用の配列を作成
-    scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
+        # ScatterPlotインスタンス作成
+        my_plt_obj = ScatterPlot()
 
-    # ScatterPlotインスタンス作成
-    my_plt_obj = ScatterPlot()
+        # データを設定
+        my_plt_obj.set_data(img_x, img_y, color_data=scatter_color)
 
-    # データを設定
-    my_plt_obj.set_data(img_x, img_y, color_data=scatter_color)
+        # 描画 & 保存
+        my_plt_obj.save()
+        my_plt_obj.show()
 
-    # 描画
-#    my_plt_obj.show()
-    my_plt_obj.show_seq()
-
-    # 動画ファイルを開く
-    img_RGB = cv2.imread(Picture_file_name2)
+    else:
+        # 動画ファイルを開く
+        capture = cv2.VideoCapture(Movie_file_name)
+        ret, img_RGB = capture.read()
     
-    # 処理負荷軽減のためにResize
-    img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+        # ------------+
+        # 1回目の処理 |
+        # ------------+
 
-    # xy に変換
-    img_x, img_y = RGB_to_xy(img_RGB_resize)
+        # 静止画を表示
+        cv2.imshow(Movie_file_name, img_RGB)
+        cv2.waitKey(1)
 
-    # 散布図の色指定用の配列を作成
-    scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
+        # 処理負荷軽減のためにResize
+        # =====================================================
+        # Resize のアルゴリズムを変えられる？間引き的なヤツにしたい
+        # =====================================================
+        img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
 
-    # データを更新
-    my_plt_obj.update_data(img_x, img_y, color_data=scatter_color)
-    my_plt_obj.show_seq(60)
+        # xy に変換
+        img_x, img_y = RGB_to_xy(img_RGB_resize)
 
-    
-    sys.exit(1)
+        # 散布図の色指定用の配列を作成
+        scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
+
+        # ScatterPlotインスタンス作成
+        my_plt_obj = ScatterPlot()
+
+        # データを設定
+        my_plt_obj.set_data(img_x, img_y, color_data=scatter_color)
+        my_plt_obj.show_seq(0.01)
+
+        # ----------------+
+        # 2回目移行の処理 |
+        # ----------------+
+        while True:
+            ret, img_RGB = capture.read()
+            if ret != True:
+                break
+
+            # 静止画を表示
+            cv2.imshow(Movie_file_name, img_RGB)
+            cv2.waitKey(1)
+
+            img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+            
+            # xy に変換
+            img_x, img_y = RGB_to_xy(img_RGB_resize)
+            
+            # 散布図の色指定用の配列を作成
+            scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
+
+            
+            # データを更新
+            my_plt_obj.update_data(img_x, img_y, color_data=scatter_color)
+            my_plt_obj.show_seq(0.01)
+
+    # exit
+    cv2.destroyAllWindows()
+
 
 
