@@ -2,7 +2,7 @@
 #-*- coding: utf-8 -*-
  
 """
-Matplotの動作テスト
+Matplotlib で xy色度図を書くぜ！
 """
 
 import os
@@ -313,7 +313,6 @@ if __name__ == '__main__':
             # 散布図の色指定用の配列を作成
             scatter_color = rgb_to_scatter_rgb(img_RGB_resize)
 
-            
             # データを更新
             my_plt_obj.update_data(img_x, img_y, color_data=scatter_color)
             my_plt_obj.show_seq(0.01)
@@ -323,6 +322,4 @@ if __name__ == '__main__':
 
     # exit
     cv2.destroyAllWindows()
-
-
 
