@@ -36,7 +36,7 @@ class ScatterPlot():
     """
     
     def __init__(self):
-        """判例やラベルの設定はinitで済ませておく。"""
+        """凡例やラベルの設定はinitで済ませておく。"""
 
         # CIE1931のxy色度を算出
         xyz_mtx = Get_xyz_Color_Matching_func(Csv_file_name)
