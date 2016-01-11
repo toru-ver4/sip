@@ -17,9 +17,11 @@ from matplotlib import font_manager
 from numpy.random import randn
 
 Picture_file_name = 'hiasshuku.tiff' 
-Movie_file_name = 'nichijo_op.mp4'
-Csv_file_name = 'xyz_list.csv'
-Plot_mode = 'movie' # picture or movie
+Movie_file_name   = 'nichijo_op.mp4'
+Csv_file_name     = 'xyz_list.csv'
+Picture_mode_str  = '-p'
+Movie_mode_str    = '-m'
+Plot_mode = Picture_mode_str
 
 Rec_709_area  = [[0.640, 0.300, 0.150, 0.640], [0.330, 0.600, 0.060, 0.330]]
 Rec_2020_area = [[0.708, 0.170, 0.131, 0.708], [0.292, 0.797, 0.046, 0.292]]
@@ -28,7 +30,13 @@ DCI_P3_area   = [[0.680, 0.265, 0.150, 0.680], [0.320, 0.690, 0.060, 0.320]]
 Resize_resolution = (360, 180)
 
 class ScatterPlot():
+    """
+    xy色度図の描画に特化したクラス。
+    汎用性は欠片も考慮してないので、このクラスを継承することは推奨しない。
+    """
+    
     def __init__(self):
+        """判例やラベルの設定はinitで済ませておく。"""
 
         # CIE1931のxy色度を算出
         xyz_mtx = Get_xyz_Color_Matching_func(Csv_file_name)
@@ -71,9 +79,9 @@ class ScatterPlot():
         
         # 補助線の描画
         plt.grid()
-
     
     def set_data(self, x_data, y_data, color_data=None):
+        """散布図のデータの描画。戻り値の point_obj はアニメーション時に使う"""
         self.point_obj = self.ax1.scatter(x_data, 
                                           y_data, 
                                           marker=self.marker, 
@@ -83,24 +91,62 @@ class ScatterPlot():
                                           edgecolors=self.edgecolors)
 
     def update_data(self, x_data, y_data, color_data=None):
+        """散布図のデータの再描画。set_offsets() に合わせてデータの並べ替えをしている"""
         set_data = np.dstack((x_data, y_data))
         self.point_obj.set_offsets(set_data)
         self.point_obj.set_color(color_data)
-
         
     def show(self):
         plt.show()
 
     def show_seq(self, delay=0.01):
+        """アニメーション用の表示"""
         plt.pause(delay)
 
     def save(self, name=None):
+        """グラフの保存。上書きしないようにファイル名に日付情報を入れている"""
         if name == None:
             name = 'scatter_' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '.png'
         plt.savefig(name, bbox_inches='tight')
 
+def usage():
+    print('Usage: %s [options [filename]]' % sys.argv[0])
+    print('  -h, --help   show this help message and exit')
+    print('  -p,          plot the pictire file')
+    print('  -m,          plot the movie file')
+    print('  filename    a filename')
+    print('Example:')
+    print('$ %s -m fate_op.mp4' % sys.argv[0])
+    print('$ %s -p gochiusa_img.tiff' % sys.argv[0])
 
+def Get_Args():
+    # グローバル変数を書き換えるので global 宣言しとく
+    global Plot_mode
+    global Picture_file_name
+    global Movie_file_name
+
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '-h' or sys.argv[1] == '--help':
+            usage()
+        Plot_mode = sys.argv[1]
+
+    if len(sys.argv) > 2:
+        if sys.argv[1] == Picture_mode_str:
+            Picture_file_name = sys.argv[2]
+        elif sys.argv[1] == Movie_mode_str:
+            Movie_file_name = sys.argv[2]
+        else:
+            pass
+    print(Picture_file_name)
+    print(Movie_file_name)
+    print(Plot_mode)
+        
 def RGB_to_Scatter_RGB(img_RGB):
+    """
+    散布図の各点の着色用データを算出する
+    元画像のRGB値をそのまま使うと明度の低い部分が暗くなってしまうので、
+    HSV空間で V=1.0 としてから逆変換した RGB値を着色用のデータとして使う。
+    """
 
     # 1.0で正規化
     normalize_val = (2 ** (8 * img_RGB.itemsize)) - 1
@@ -183,8 +229,10 @@ def RGB_to_xy(img, mat=None):
     return x, y    
 
 if __name__ == '__main__':
-
-    if Plot_mode == 'picture':
+    
+    Get_Args()
+    
+    if Plot_mode == Picture_mode_str:
         
         # 静止画ファイルを開く
         img_RGB = cv2.imread(Picture_file_name)
@@ -212,7 +260,7 @@ if __name__ == '__main__':
         my_plt_obj.save()
         my_plt_obj.show()
 
-    else:
+    elif Plot_mode == Movie_mode_str:
         # 動画ファイルを開く
         capture = cv2.VideoCapture(Movie_file_name)
         ret, img_RGB = capture.read()
@@ -268,6 +316,9 @@ if __name__ == '__main__':
             # データを更新
             my_plt_obj.update_data(img_x, img_y, color_data=scatter_color)
             my_plt_obj.show_seq(0.01)
+
+    else:
+        print('invalid mode select')
 
     # exit
     cv2.destroyAllWindows()
