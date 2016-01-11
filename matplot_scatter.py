@@ -16,18 +16,18 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from numpy.random import randn
 
-Picture_file_name = 'hiasshuku.tiff' 
-Movie_file_name   = 'nichijo_op.mp4'
-Csv_file_name     = 'xyz_list.csv'
-Picture_mode_str  = '-p'
-Movie_mode_str    = '-m'
-Plot_mode = Picture_mode_str
+picture_file_name = 'hiasshuku.tiff' 
+movie_file_name   = 'nichijo_op.mp4'
+csv_file_name     = 'xyz_list.csv'
+PICTURE_MODE_STR  = '-p'
+MOVIE_MODE_STR    = '-m'
+plot_mode = PICTURE_MODE_STR
 
-Rec_709_area  = [[0.640, 0.300, 0.150, 0.640], [0.330, 0.600, 0.060, 0.330]]
-Rec_2020_area = [[0.708, 0.170, 0.131, 0.708], [0.292, 0.797, 0.046, 0.292]]
-DCI_P3_area   = [[0.680, 0.265, 0.150, 0.680], [0.320, 0.690, 0.060, 0.320]]
+rec_709_area  = [[0.640, 0.300, 0.150, 0.640], [0.330, 0.600, 0.060, 0.330]]
+rec_2020_area = [[0.708, 0.170, 0.131, 0.708], [0.292, 0.797, 0.046, 0.292]]
+dci_p3_area   = [[0.680, 0.265, 0.150, 0.680], [0.320, 0.690, 0.060, 0.320]]
 
-Resize_resolution = (360, 180)
+resize_resolution = (360, 180)
 
 class ScatterPlot():
     """
@@ -39,8 +39,8 @@ class ScatterPlot():
         """凡例やラベルの設定はinitで済ませておく。"""
 
         # CIE1931のxy色度を算出
-        xyz_mtx = Get_xyz_Color_Matching_func(Csv_file_name)
-        wave_len, chroma_x, chroma_y = Calc_Spectrum_xy_Chromaticity(xyz_mtx)
+        xyz_mtx = get_xyz_color_matching_func(csv_file_name)
+        wave_len, chroma_x, chroma_y = calc_spectrum_xy_chromaticity(xyz_mtx)
         
         # 描画用のWindow？を準備
         self.fig = plt.figure(figsize=(10,10)) # fgsize は inch で指定
@@ -64,9 +64,9 @@ class ScatterPlot():
 
         # 各領域をプロット
         self.ax1.plot(chroma_x, chroma_y, '-', color='k', label="CIE1931")
-        self.ax1.plot(Rec_709_area[0],  Rec_709_area[1],  '--', color='r', label="Rec709")
-        self.ax1.plot(Rec_2020_area[0], Rec_2020_area[1], '--', color='g', label="Rec2020" )
-        self.ax1.plot(DCI_P3_area[0],   DCI_P3_area[1],   '--', color='c', label="DCI-P3" )
+        self.ax1.plot(rec_709_area[0],  rec_709_area[1],  '--', color='r', label="Rec709")
+        self.ax1.plot(rec_2020_area[0], rec_2020_area[1], '--', color='g', label="Rec2020" )
+        self.ax1.plot(dci_p3_area[0],   dci_p3_area[1],   '--', color='c', label="DCI-P3" )
 
         # プロット用変数の初期化
         self.alpha = 0.5
@@ -105,9 +105,10 @@ class ScatterPlot():
 
     def save(self, name=None):
         """グラフの保存。上書きしないようにファイル名に日付情報を入れている"""
-        if name == None:
+        if name is None:
             name = 'scatter_' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '.png'
         plt.savefig(name, bbox_inches='tight')
+
 
 def usage():
     print('Usage: %s [options [filename]]' % sys.argv[0])
@@ -119,29 +120,31 @@ def usage():
     print('$ %s -m fate_op.mp4' % sys.argv[0])
     print('$ %s -p gochiusa_img.tiff' % sys.argv[0])
 
-def Get_Args():
+
+def get_args():
     # グローバル変数を書き換えるので global 宣言しとく
-    global Plot_mode
-    global Picture_file_name
-    global Movie_file_name
+    global plot_mode
+    global picture_file_name
+    global movie_file_name
 
     if len(sys.argv) > 1:
         if sys.argv[1] == '-h' or sys.argv[1] == '--help':
             usage()
-        Plot_mode = sys.argv[1]
+        plot_mode = sys.argv[1]
 
     if len(sys.argv) > 2:
-        if sys.argv[1] == Picture_mode_str:
-            Picture_file_name = sys.argv[2]
-        elif sys.argv[1] == Movie_mode_str:
-            Movie_file_name = sys.argv[2]
+        if sys.argv[1] == PICTURE_MODE_STR:
+            picture_file_name = sys.argv[2]
+        elif sys.argv[1] == MOVIE_MODE_STR:
+            movie_file_name = sys.argv[2]
         else:
             pass
-    print(Picture_file_name)
-    print(Movie_file_name)
-    print(Plot_mode)
+    print(picture_file_name)
+    print(movie_file_name)
+    print(plot_mode)
+
         
-def RGB_to_Scatter_RGB(img_RGB):
+def rgb_to_scatter_rgb(img_RGB):
     """
     散布図の各点の着色用データを算出する
     元画像のRGB値をそのまま使うと明度の低い部分が暗くなってしまうので、
@@ -164,20 +167,15 @@ def RGB_to_Scatter_RGB(img_RGB):
 
     return color_array
 
-def Get_xyz_Color_Matching_func(csv_file):
+
+def get_xyz_color_matching_func(csv_file):
     """csv形式で書かれた xyz等色関数を readする"""
     csv = np.array(pandas.read_csv(csv_file, header=None)).transpose()
-    # ret_mtx = [0] * 4
-    # ret_mtx = [ [] for x in ret_mtx ]
-    # ret_mtx[0] = csv['wlen'])
-    # ret_mtx[1] = np.csv['val_x']
-    # ret_mtx[2] = csv['val_y']
-    # ret_mtx[3] = csv['val_z']
 
     return csv
 
 
-def Calc_Spectrum_xy_Chromaticity(xyz_mtx):
+def calc_spectrum_xy_chromaticity(xyz_mtx):
     """
     xyzの等色関数からxy色度を覓める
       xyz_mtx[0] : 波長
@@ -196,10 +194,11 @@ def Calc_Spectrum_xy_Chromaticity(xyz_mtx):
 
     return xyz_mtx[0], x, y
 
-def RGB_to_XYZ(img, mat=None):
+
+def rgb_to_XYZ(img, mat=None):
     """RGBをXYZに変換する。mat が None の場合は cvtColor で XYZ変換する。
        その場合、色域は Rec.709、色温度は D65 に固定となる。"""
-    if mat != None:
+    if mat is not None:
         b, g, r = np.dsplit(img, 3)
 
         # 行列計算
@@ -215,40 +214,42 @@ def RGB_to_XYZ(img, mat=None):
 
     return ret_img
 
-def RGB_to_xy(img, mat=None):
+
+def rgb_to_xy(img, mat=None):
     """RGB から xy色度を算出。戻り値は x, y の配列"""
     # 正規化
     normalize_val = (2 ** (8 * img.itemsize)) - 1
     img = np.float32(img / normalize_val)
     
-    img_XYZ = RGB_to_XYZ(img, mat)
+    img_XYZ = rgb_to_XYZ(img, mat)
     X, Y, Z = np.dsplit(img_XYZ, 3)
     x = X / (X + Y + Z)
     y = Y / (X + Y + Z)
     
     return x, y    
 
+
 if __name__ == '__main__':
     
-    Get_Args()
+    get_args()
     
-    if Plot_mode == Picture_mode_str:
+    if plot_mode == PICTURE_MODE_STR:
         
         # 静止画ファイルを開く
-        img_RGB = cv2.imread(Picture_file_name)
+        img_RGB = cv2.imread(picture_file_name)
         
         # 静止画を表示
-        cv2.imshow(Picture_file_name, img_RGB)
+        cv2.imshow(picture_file_name, img_RGB)
         cv2.waitKey(1)
     
         # 処理負荷軽減のためにResize
-        img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+        img_RGB_resize = cv2.resize(img_RGB, resize_resolution)
         
         # xy に変換
-        img_x, img_y = RGB_to_xy(img_RGB_resize)
+        img_x, img_y = rgb_to_xy(img_RGB_resize)
 
         # 散布図の色指定用の配列を作成
-        scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
+        scatter_color = rgb_to_scatter_rgb(img_RGB_resize)
 
         # ScatterPlotインスタンス作成
         my_plt_obj = ScatterPlot()
@@ -260,9 +261,9 @@ if __name__ == '__main__':
         my_plt_obj.save()
         my_plt_obj.show()
 
-    elif Plot_mode == Movie_mode_str:
+    elif plot_mode == MOVIE_MODE_STR:
         # 動画ファイルを開く
-        capture = cv2.VideoCapture(Movie_file_name)
+        capture = cv2.VideoCapture(movie_file_name)
         ret, img_RGB = capture.read()
     
         # ------------+
@@ -270,20 +271,20 @@ if __name__ == '__main__':
         # ------------+
 
         # 静止画を表示
-        cv2.imshow(Movie_file_name, img_RGB)
+        cv2.imshow(movie_file_name, img_RGB)
         cv2.waitKey(1)
 
         # 処理負荷軽減のためにResize
         # =====================================================
         # Resize のアルゴリズムを変えられる？間引き的なヤツにしたい
         # =====================================================
-        img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+        img_RGB_resize = cv2.resize(img_RGB, resize_resolution)
 
         # xy に変換
-        img_x, img_y = RGB_to_xy(img_RGB_resize)
+        img_x, img_y = rgb_to_xy(img_RGB_resize)
 
         # 散布図の色指定用の配列を作成
-        scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
+        scatter_color = rgb_to_scatter_rgb(img_RGB_resize)
 
         # ScatterPlotインスタンス作成
         my_plt_obj = ScatterPlot()
@@ -301,16 +302,16 @@ if __name__ == '__main__':
                 break
 
             # 静止画を表示
-            cv2.imshow(Movie_file_name, img_RGB)
+            cv2.imshow(movie_file_name, img_RGB)
             cv2.waitKey(1)
 
-            img_RGB_resize = cv2.resize(img_RGB, Resize_resolution)
+            img_RGB_resize = cv2.resize(img_RGB, resize_resolution)
             
             # xy に変換
-            img_x, img_y = RGB_to_xy(img_RGB_resize)
+            img_x, img_y = rgb_to_xy(img_RGB_resize)
             
             # 散布図の色指定用の配列を作成
-            scatter_color = RGB_to_Scatter_RGB(img_RGB_resize)
+            scatter_color = rgb_to_scatter_rgb(img_RGB_resize)
 
             
             # データを更新
