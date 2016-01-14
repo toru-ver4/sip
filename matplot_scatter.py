@@ -139,11 +139,8 @@ def get_args():
             movie_file_name = sys.argv[2]
         else:
             pass
-    print(picture_file_name)
-    print(movie_file_name)
-    print(plot_mode)
 
-        
+
 def rgb_to_scatter_rgb(img_RGB):
     """
     散布図の各点の着色用データを算出する
@@ -158,12 +155,10 @@ def rgb_to_scatter_rgb(img_RGB):
     # 明度を固定したいので、HSV空間でVの値を強制的に変える
     img_HSV = cv2.cvtColor(img_RGB_normalized, cv2.COLOR_BGR2HSV)
     img_HSV[:,:,2] = 1.0
-    img_bright = cv2.cvtColor(img_HSV, cv2.COLOR_HSV2RGB)
+    img_bright = cv2.cvtColor(img_HSV, cv2.COLOR_HSV2BGR)
 
     # RGB値を(R,G,B)のタプルで表現
-    t0 = time.time()
     color_array = img_bright.reshape(img_bright.shape[0] * img_bright.shape[1], 3)
-    t1 = time.time()
 
     return color_array
 
@@ -217,6 +212,7 @@ def rgb_to_XYZ(img, mat=None):
 
 def rgb_to_xy(img, mat=None):
     """RGB から xy色度を算出。戻り値は x, y の配列"""
+
     # 正規化
     normalize_val = (2 ** (8 * img.itemsize)) - 1
     img = np.float32(img / normalize_val)
@@ -225,8 +221,13 @@ def rgb_to_xy(img, mat=None):
     X, Y, Z = np.dsplit(img_XYZ, 3)
     x = X / (X + Y + Z)
     y = Y / (X + Y + Z)
+
+    # (0,0,0) の画素は nan で帰ってくるのでとりあえず(0,0,0) へ。
+    # ってかこの修正ダサい…。
+    x = cv2.max(x, 0.0)
+    y = cv2.max(y, 0.0)
     
-    return x, y    
+    return x.flatten(), y.flatten()
 
 
 if __name__ == '__main__':
