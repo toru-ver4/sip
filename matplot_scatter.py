@@ -69,7 +69,7 @@ class ScatterPlot():
         self.ax1.plot(dci_p3_area[0],   dci_p3_area[1],   '--', color='c', label="DCI-P3" )
 
         # プロット用変数の初期化
-        self.alpha = 0.5
+        self.alpha = 0.4
         self.marker = 'o'
         self.marker_size = 50
         self.edgecolors = 'face'
@@ -213,6 +213,11 @@ def rgb_to_XYZ(img, mat=None):
 def rgb_to_xy(img, mat=None):
     """RGB から xy色度を算出。戻り値は x, y の配列"""
 
+    # ゼロ割りを防ぐため、(0,0,0) のピクセルは (1,1,1) に変更する
+    zero_px = (img[:,:,0] == 0) & (img[:,:,1] == 0) & (img[:,:,2] == 0) 
+    zero_cancel_filter = np.dstack((np.dstack((zero_px, zero_px)), zero_px))
+    img = img + zero_cancel_filter
+ 
     # 正規化
     normalize_val = (2 ** (8 * img.itemsize)) - 1
     img = np.float32(img / normalize_val)
@@ -222,11 +227,6 @@ def rgb_to_xy(img, mat=None):
     x = X / (X + Y + Z)
     y = Y / (X + Y + Z)
 
-    # (0,0,0) の画素は nan で帰ってくるのでとりあえず(0,0,0) へ。
-    # ってかこの修正ダサい…。
-    x = cv2.max(x, 0.0)
-    y = cv2.max(y, 0.0)
-    
     return x.flatten(), y.flatten()
 
 
