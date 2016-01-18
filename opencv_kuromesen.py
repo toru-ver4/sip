@@ -33,8 +33,8 @@ def detect(filename, cascade_file = "./cascade_classifier/lbpcascade_animeface.x
     cv2.imwrite("out.png", image)
 
 def detect_face(img, cascade):
-
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img_gray = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
+    img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2GRAY)
     img_gray = cv2.equalizeHist(img_gray)
     
     faces = cascade.detectMultiScale(img_gray,
@@ -44,10 +44,11 @@ def detect_face(img, cascade):
                                      minSize = (24, 24))
 
     for (x, y, w, h) in faces:
-        try:
-            cv2.rectangle(img (x, y), (x + w, y + h), (0, 255, 0), 4)
-        except TypeError:
-            print(faces)
+        x = x * 2
+        y = y * 2
+        w = w * 2
+        h = h * 2
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 4)
 
     return img
     
@@ -63,11 +64,10 @@ if __name__ == '__main__':
     capture = cv2.VideoCapture(sys.argv[1])
     
     while True:
-#        ret, img_org = capture.read()
-        img_org = cv2.imread('hiasshuku.tiff')
+        ret, img_org = capture.read()
         img_detected = detect_face(img_org, cascade)
         cv2.imshow("AnimeFaceDetect", img_detected)
-        if cv2.waitKey(10) >= 0:
+        if cv2.waitKey(20) >= 0:
             break
 
     cv2.destroyAllWindows()
