@@ -14,3 +14,14 @@ Exec the installer. Please select the default settings in the installer.
 > conda create -n default python=3.5 anaconda
 > activate default # if in the Linux Environment, please type "source activate default"
 ```
+
+
+## setup jupyter 
+
+```
+> jupyter notebook --generate-congif
+```
+
+change the modify the 'notebook_dir' parameters from ' ' to 'C:\home'.
+
+
