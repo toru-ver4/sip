@@ -2,28 +2,15 @@
 sample code for SIgnal Processing.
 
 ## requirements
- - Python 3.4.2_64bit 
- - ImageMagick 6.9.2.5_64bit
- - scipy-0.16.1
- - numpy-1.9.3
- - opencv_python-3.0.0
+ - Anaconda(Python 3.5>)
 
 ## install 
-### Python
-Get pre-build binary from https://www.python.org/ftp/python/3.4.2/python-3.4.2.amd64.msi 
-Install Python 3.4.2.
-Add **C:\Python34** and **C:\Python34\Scripts** to PATH of the environment-variable.
+Get the Anaconda installer from https://www.continuum.io/downloads .
+Exec the installer. Please select the default settings in the installer.
 
-### ImageMagick
-Get pre-build binary from http://www.imagemagick.org/download/binaries/ImageMagick-6.9.2-5-Q16-x64-dll.exe
-Install ImageMagick 6.9.2.5.
+## make virtual environment.
 
-### Python-Packages
-Get pre-build windows binary from http://www.lfd.uci.edu/~gohlke/pythonlibs/ .
-After downloads, install packages using following command.
-```bat
-> pip install numpy-1.9.3+vanilla-cp34-none-win_amd64.whl
-> pip install opencv_python-3.0.0-cp34-none-win_amd64.whl
-> pip install scipy-0.16.1-cp34-none-win_amd64.whl
 ```
-
+> conda create -n default python=3.5 anaconda
+> activate default # if in the Linux Environment, please type "source activate default"
+```
