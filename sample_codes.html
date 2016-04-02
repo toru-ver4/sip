@@ -3712,7 +3712,7 @@ RK5CYII=
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[31]:</div>
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -3730,12 +3730,12 @@ RK5CYII=
     <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dsplit</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
     
     <span class="c1"># 行列計算</span>
-    <span class="n">ret_X</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
-    <span class="n">ret_Y</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
-    <span class="n">ret_Z</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">ret_r</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">ret_g</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">ret_b</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">mat</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
     
     <span class="c1"># RGB結合</span>
-    <span class="n">ret_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">(</span> <span class="p">(</span><span class="n">ret_X</span><span class="p">,</span> <span class="n">ret_Y</span><span class="p">,</span> <span class="n">ret_Z</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">ret_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">(</span> <span class="p">(</span><span class="n">ret_r</span><span class="p">,</span> <span class="n">ret_g</span><span class="p">,</span> <span class="n">ret_b</span><span class="p">)</span> <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">(</span><span class="n">ret_img</span><span class="p">)</span>
   
@@ -3760,11 +3760,11 @@ RK5CYII=
 <div class="output">
 
 
-<div class="output_area"><div class="prompt output_prompt">Out[31]:</div>
+<div class="output_area"><div class="prompt output_prompt">Out[1]:</div>
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>&lt;matplotlib.image.AxesImage at 0x1bbdcc802b0&gt;</pre>
+<pre>&lt;matplotlib.image.AxesImage at 0x1d2c2a23fd0&gt;</pre>
 </div>
 
 </div>
@@ -9952,7 +9952,7 @@ CSp4IiJSElTwRESkJKjgiYhISVDBExGRkvB/BhNgtKyz9voAAAAASUVORK5CYII=
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[55]:</div>
+<div class="prompt input_prompt">In&nbsp;[60]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -9973,10 +9973,15 @@ CSp4IiJSElTwRESkJKjgiYhISVDBExGRkvB/BhNgtKyz9voAAAAASUVORK5CYII=
 <span class="n">img</span> <span class="o">=</span> <span class="n">mpimg</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s1">&#39;sample.jpg&#39;</span><span class="p">)</span>
 
 <span class="n">picture_shape</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span>
+<span class="c1"># LUTを当てる場合は、1次元配列にする必要があるので flatten() を適用</span>
 <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">dsplit</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span>
+
+<span class="c1"># 以下のコードでLUTが当たるんですけど、意味わかります？</span>
 <span class="n">r_out</span> <span class="o">=</span> <span class="n">y_modify</span><span class="p">[</span><span class="n">r</span><span class="p">]</span>
 <span class="n">g_out</span> <span class="o">=</span> <span class="n">y_modify</span><span class="p">[</span><span class="n">g</span><span class="p">]</span>
 <span class="n">b_out</span> <span class="o">=</span> <span class="n">y_modify</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+
+<span class="c1"># RGBの各データを再結合＆shapeを戻す</span>
 <span class="n">out_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">(</span> <span class="p">(</span><span class="n">r_out</span><span class="p">,</span> <span class="n">g_out</span><span class="p">,</span> <span class="n">b_out</span><span class="p">)</span> <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">picture_shape</span><span class="p">)</span>
 
 <span class="c1"># オリジナルと加工後の画像を比較表示</span>
@@ -9995,11 +10000,11 @@ CSp4IiJSElTwRESkJKjgiYhISVDBExGRkvB/BhNgtKyz9voAAAAASUVORK5CYII=
 <div class="output">
 
 
-<div class="output_area"><div class="prompt output_prompt">Out[55]:</div>
+<div class="output_area"><div class="prompt output_prompt">Out[60]:</div>
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>&lt;matplotlib.image.AxesImage at 0x1bbdce1e240&gt;</pre>
+<pre>&lt;matplotlib.image.AxesImage at 0x1bbe39c8908&gt;</pre>
 </div>
 
 </div>
@@ -14874,6 +14879,18 @@ cJIlSZI0AidZkiRJI3CSJUmSNAInWZIkSSNwkiVJkjSC31aNxKYX1u4EAAAAAElFTkSuQmCC
 </div>
 </div>
 
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Appendix">Appendix<a class="anchor-link" href="#Appendix">&#182;</a></h1><p>本編とは関係ありません。</p>
+<h2 id="Jupyter-&#12363;&#12425;-PDF&#12434;&#29983;&#25104;&#12375;&#12383;&#22580;&#21512;&#12398;&#22259;&#12398;&#30906;&#35469;">Jupyter &#12363;&#12425; PDF&#12434;&#29983;&#25104;&#12375;&#12383;&#22580;&#21512;&#12398;&#22259;&#12398;&#30906;&#35469;<a class="anchor-link" href="#Jupyter-&#12363;&#12425;-PDF&#12434;&#29983;&#25104;&#12375;&#12383;&#22580;&#21512;&#12398;&#22259;&#12398;&#30906;&#35469;">&#182;</a></h2><h3 id="1920x1080-&#12398;&#22259;(Markdown)">1920x1080 &#12398;&#22259;(Markdown)<a class="anchor-link" href="#1920x1080-&#12398;&#22259;(Markdown)">&#182;</a></h3><p><img src="./1920x1080.jpg" alt="1920x1080"></p>
+<p><img src="./sample.jpg" alt="740x1049"></p>
+
+</div>
+</div>
 </div>
     </div>
   </div>
