@@ -35,6 +35,12 @@ change the modify the 'notebook_dir' parameters from '' to 'C:\home'.
 
 # Appendix
 
+## Install OpenCV
+
+```
+> conda install -c https://conda.anaconda.org/menpo opencv3 
+```
+
 ## convert from .ipynb to .html
 
 run the following commmand.
