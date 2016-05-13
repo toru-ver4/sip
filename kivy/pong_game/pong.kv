@@ -5,16 +5,16 @@
     canvas:
         Ellipse:
             pos: self.pos
-            size: self.size     
+            size: self.size          
 
-<PongGame>:    
+<PongGame>:
     ball: pong_ball
-
+    
     canvas:
         Rectangle:
-            pos: self.center_x - 5, 0
+            pos: self.center_x-5, 0
             size: 10, self.height
-            
+    
     Label:
         font_size: 70  
         center_x: root.width / 4
@@ -26,9 +26,8 @@
         center_x: root.width * 3 / 4
         top: root.top - 50
         text: "0"
-
+    
     PongBall:
-	id: pong_ball
+        id: pong_ball
         center: self.parent.center
 
-        
