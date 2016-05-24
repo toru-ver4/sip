@@ -35,7 +35,7 @@ class PongBall(Widget):
 
 
 class PongGame(Widget):
-    ball = ObjectProperty(None)
+    ball = ObjectProperty(None)player1
     player1 = ObjectProperty(None)
     player2 = ObjectProperty(None)
 
