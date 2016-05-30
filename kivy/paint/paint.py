@@ -24,8 +24,8 @@ class MyPaintWidget(Widget):
         with self.canvas:
             numpy.random.seed(self.seed)
             self.seed += 1
-            r_color, g_color, b_color = numpy.random.random(3) 
-            Color(r_color, g_color, b_color)
+            h_param = numpy.random.random(1) 
+            Color(h_param, 1, 1, mode='hsv')
             d = 30.
             Ellipse(pos=(touch.x - d / 2, touch.y - d / 2), size=(d, d))
             touch.ud['line'] = Line(points=(touch.x, touch.y))
