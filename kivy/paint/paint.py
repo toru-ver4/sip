@@ -19,11 +19,8 @@ from kivy.graphics import Color, Ellipse, Line
 
 class MyPaintWidget(Widget):
 
-    seed = 0
     def on_touch_down(self, touch):
         with self.canvas:
-            numpy.random.seed(self.seed)
-            self.seed += 1
             h_param = numpy.random.random(1) 
             Color(h_param, 1, 1, mode='hsv')
             d = 30.
