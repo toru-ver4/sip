@@ -5,24 +5,19 @@
 paint application.
 """
 
-import numpy.random
-
+from random import random
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.graphics import Color, Ellipse
-
-
-from kivy.app import App
-from kivy.uix.widget import Widget
+from kivy.uix.button import Button
 from kivy.graphics import Color, Ellipse, Line
 
 
 class MyPaintWidget(Widget):
 
     def on_touch_down(self, touch):
+        color = (random(), 1, 1)
         with self.canvas:
-            h_param = numpy.random.random(1) 
-            Color(h_param, 1, 1, mode='hsv')
+            Color(*color, mode='hsv')
             d = 30.
             Ellipse(pos=(touch.x - d / 2, touch.y - d / 2), size=(d, d))
             touch.ud['line'] = Line(points=(touch.x, touch.y))
@@ -34,7 +29,16 @@ class MyPaintWidget(Widget):
 class MyPaintApp(App):
 
     def build(self):
-        return MyPaintWidget()
+        parent = Widget()
+        self.painter = MyPaintWidget()
+        clearbtn = Button(text='Clear')
+        clearbtn.bind(on_release=self.clear_canvas)
+        parent.add_widget(self.painter)
+        parent.add_widget(clearbtn)
+        return parent
+
+    def clear_canvas(self, obj):
+        self.painter.canvas.clear()
 
 
 if __name__ == '__main__':
