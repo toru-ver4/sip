@@ -51,10 +51,10 @@ install LuaTeX. see [THIS PAGE](https://texwiki.texjp.org/?TeX%20Live).
 
 ### modify the latex configuration files
 1. search the 'article.tplx' in the Anaconda3 directory.
-2. open the article.tplx, s/{article}/{ltjsarticle}
+2. open the article.tplx, s/{article}/{ltjsarticle}/
 3. save this file on ** Another Name ** (ex. ltjsarticle.tplx).
 
-### convert
+### convert (command line)
 
 run the following commmand.
 
@@ -62,5 +62,10 @@ run the following commmand.
 > jupyter nbconvert --to latex --template ltjsarticle.tplx lualatex [jupyter_file].ipynb
 > lualatex sample_codes.tex
 ```
+
+### convert (Jupyter Notebook)
+
+1. change 'article.tplx', s/{article}/{ltjsarticle}/
+2. change 'pdf.py', s/u"pdflatex"/u"lualatex"/
 
 
