@@ -7,8 +7,9 @@ import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
 
 const_window_width = 400
-const_window_height = 800
-
+const_window_height = 400
+global_x0 = 0
+global_y0 = 0
 
 def display():
     gl.glClear(gl.GL_COLOR_BUFFER_BIT)
@@ -26,9 +27,34 @@ def resize(w, h):
     gl.glViewport(0, 0, w, h)
     gl.glLoadIdentity()
 
-    gl.glOrtho(-w/const_window_width, w/const_window_width,
-               -h/const_window_height, h/const_window_height,
+    # if False:
+    #     gl.glOrtho(-w/const_window_width, w/const_window_width,
+    #                -h/const_window_height, h/const_window_height,
+    #                -1.0, 1.0)
+    # スクリーン上の座標系をマウスの座標系に一致させる
+    gl.glOrtho(-0.5, w - 0.5,
+               h - 0.5, -0.5,
                -1.0, 1.0)
+
+
+def mouse(button, state, x, y):
+    global global_x0
+    global global_y0
+
+    if button == glut.GLUT_LEFT_BUTTON:
+        if state == glut.GLUT_UP:
+            gl.glColor3d(0.0, 0.0, 0.0)
+            gl.glBegin(gl.GL_LINES)
+            gl.glVertex2i(global_x0, global_y0)
+            gl.glVertex2i(x, y)
+            gl.glEnd()
+            gl.glFlush()
+            print("pass")
+        else:
+            global_x0 = x
+            global_y0 = y
+
+    print("x={}, y={}, x0={}, y0={}".format(x, y, global_x0, global_y0))
 
 
 def init():
@@ -42,6 +68,7 @@ if __name__ == '__main__':
     glut.glutCreateWindow(b"30bit demo")
     glut.glutDisplayFunc(display)
     glut.glutReshapeFunc(resize)
+    glut.glutMouseFunc(mouse)
     init()
     glut.glutMainLoop()
 
