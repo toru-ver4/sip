@@ -9,18 +9,21 @@ import OpenGL.GLUT as glut
 
 def display():
     gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+    gl.glBegin(gl.GL_POLYGON)
     gl.glColor3d(1.0, 0.0, 0.0)
-    gl.glBegin(gl.GL_LINE_LOOP)
     gl.glVertex2d(-0.9, -0.9)
+    gl.glColor3d(1.0, 1.0, 0.0)
     gl.glVertex2d(0.9, -0.9)
+    gl.glColor3d(0.0, 0.0, 1.0)
     gl.glVertex2d(0.9, 0.9)
+    gl.glColor3d(1.0, 1.0, 0.0)
     gl.glVertex2d(-0.9, 0.9)
     gl.glEnd()
     gl.glFlush()
 
 
 def init():
-    gl.glClearColor(0.0, 0.0, 1.0, 1.0)
+    gl.glClearColor(1.0, 1.0, 1.0, 1.0)
 
 
 if __name__ == '__main__':
