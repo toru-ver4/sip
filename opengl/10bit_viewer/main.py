@@ -9,6 +9,13 @@ import OpenGL.GLUT as glut
 
 def display():
     gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+    gl.glColor3d(1.0, 0.0, 0.0)
+    gl.glBegin(gl.GL_LINE_LOOP)
+    gl.glVertex2d(-0.9, -0.9)
+    gl.glVertex2d(0.9, -0.9)
+    gl.glVertex2d(0.9, 0.9)
+    gl.glVertex2d(-0.9, 0.9)
+    gl.glEnd()
     gl.glFlush()
 
 
