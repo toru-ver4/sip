@@ -65,7 +65,7 @@ def init():
 def drawQuads():
     # gl.glClear(gl.GL_COLOR_BUFFER_BIT)
     gl.glBegin(gl.GL_QUADS)
-    gl.glColor3f(0.0, 0.0, 0.0)
+    gl.glColor3f(0.0, 0.0, 0.0);
     gl.glVertex2f(-1.0, -1.0)
     gl.glColor3f(0.0, 0.0, 0.0)
     gl.glVertex2f(-1.0, 1.0)
@@ -81,8 +81,8 @@ if __name__ == '__main__':
     glut.glutInit(sys.argv)
     glut.glutInitWindowSize(const_window_width, const_window_height)
     glut.glutInitDisplayString(b"red=10 green=10 blue=10 alpha=2")
-    # glut.glutInitDisplayMode(glut.GLUT_RGB | glut.GLUT_DOUBLE | glut.GLUT_DEPTH)
-    glut.glutInitDisplayMode(glut.GLUT_RGBA)
+    glut.glutInitDisplayMode(glut.GLUT_RGB | glut.GLUT_DEPTH)
+    # glut.glutInitDisplayMode(glut.GLUT_RGBA)
     glut.glutCreateWindow(b"30bit demo")
     glut.glutDisplayFunc(drawQuads)
     # glut.glutReshapeFunc(resize)
