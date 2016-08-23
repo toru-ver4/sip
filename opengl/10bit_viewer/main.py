@@ -1,6 +1,8 @@
 import os
 import sys
 import time
+from PIL import Image
+import cv2
 
 import numpy as np
 import OpenGL.GL as gl
@@ -61,49 +63,67 @@ def resize(w, h):
 
 def init():
     gl.glClearColor(1.0, 1.0, 1.0, 1.0)
-    gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 2)
+    gl.glDepthFunc(gl.GL_LEQUAL)
+    gl.glEnable(gl.GL_DEPTH_TEST)
+    gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
     texture = gl.glGenTextures(1)
     gl.glBindTexture(gl.GL_TEXTURE_2D, texture)
-    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP)
-    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP)
-    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
     img = get_img()
-    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB16UI,
+    pi = Image.frombytes('RGB', (img.shape[0], img.shape[1]), img.tostring())
+    print(pi.tobytes('raw'))
+    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB8UI,
                     img.shape[0], img.shape[1], 0, gl.GL_RGB_INTEGER,
-                    gl.GL_UNSIGNED_SHORT, img)
+                    gl.GL_UNSIGNED_BYTE, pi.tobytes('raw'))
 
 
 def get_img():
-    x = np.arange(const_window_width*const_window_height * 3,
-                  dtype=np.uint32) % 1024
-    x = x * 64
-    img = np.uint16(np.reshape(x, (const_window_width,
-                                   const_window_height, 3)))
+    img = cv2.imread('./figure/10bit_src.tiff',
+                     cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
+    img = img >> 8
+    img = np.uint8(img)
+    # print(img)
     return img
 
 
 def drawQuads():
 
-    gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
     gl.glEnable(gl.GL_TEXTURE_2D)
+    # gl.glTranslatef(0.0, 0.0, -5.0)
+    # gl.glBegin(gl.GL_QUADS)
+    # gl.glColor3f(0.0, 0.0, 0.0)
+    # gl.glVertex2f(-1.0, -1.0)
+    # gl.glColor3f(0.0, 0.0, 0.0)
+    # gl.glVertex2f(-1.0, 1.0)
+    # gl.glColor3f(0.0, 1.0, 0.0)
+    # gl.glVertex2f(1.0, 1.0)
+    # gl.glColor3f(0.0, 1.0, 0.0)
+    # gl.glVertex2f(1.0, -1.0)
+    # gl.glEnd()
+
     gl.glBegin(gl.GL_QUADS)
-    gl.glColor3f(0.0, 0.0, 0.0);
-    gl.glVertex2f(-1.0, -1.0)
-    gl.glColor3f(0.0, 0.0, 0.0)
-    gl.glVertex2f(-1.0, 1.0)
-    gl.glColor3f(0.0, 1.0, 0.0)
-    gl.glVertex2f(1.0, 1.0)
-    gl.glColor3f(0.0, 1.0, 0.0)
-    gl.glVertex2f(1.0, -1.0)
+    gl.glTexCoord2f(0.0, 1.0)
+    gl.glVertex3f(-0.5, 0.5, 0.0)  # Bottom Left
+    gl.glTexCoord2f(0.0, 0.0)
+    gl.glVertex3f(-0.5, -0.5, 0.0)  # Top Left
+    gl.glTexCoord2f(1.0, 0.0)
+    gl.glVertex3f(0.5, -0.5, 0.0)  # Top Right
+    gl.glTexCoord2f(1.0, 1.0)
+    gl.glVertex3f(0.5, 0.5, 0.0)  # Bottom Right
     gl.glEnd()
-    gl.glFlush()
+    # gl.glDisable(gl.GL_TEXTURE_2D)
+    gl.glFinish()
+    # gl.glFlush()
 
 
 if __name__ == '__main__':
     glut.glutInit(sys.argv)
     glut.glutInitWindowSize(const_window_width, const_window_height)
-    glut.glutInitDisplayString(b"red=10 green=10 blue=10 alpha=2")
+    # glut.glutInitDisplayString(b"red=10 green=10 blue=10 alpha=2")
     glut.glutInitDisplayMode(glut.GLUT_RGB | glut.GLUT_DEPTH)
     # glut.glutInitDisplayMode(glut.GLUT_RGBA)
     glut.glutCreateWindow(b"30bit demo")
