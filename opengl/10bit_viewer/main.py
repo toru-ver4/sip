@@ -2,12 +2,13 @@ import os
 import sys
 import time
 
+import numpy as np
 import OpenGL.GL as gl
 import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
 
-const_window_width = 640
-const_window_height = 480
+const_window_width = 2048
+const_window_height = 1024
 global_x0 = 0
 global_y0 = 0
 
@@ -60,10 +61,32 @@ def resize(w, h):
 
 def init():
     gl.glClearColor(1.0, 1.0, 1.0, 1.0)
+    gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 2)
+    texture = gl.glGenTextures(1)
+    gl.glBindTexture(gl.GL_TEXTURE_2D, texture)
+    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP)
+    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP)
+    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+    gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+    img = get_img()
+    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB16UI,
+                    img.shape[0], img.shape[1], 0, gl.GL_RGB_INTEGER,
+                    gl.GL_UNSIGNED_SHORT, img)
+
+
+def get_img():
+    x = np.arange(const_window_width*const_window_height * 3,
+                  dtype=np.uint32) % 1024
+    x = x * 64
+    img = np.uint16(np.reshape(x, (const_window_width,
+                                   const_window_height, 3)))
+    return img
 
 
 def drawQuads():
-    # gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+    gl.glEnable(gl.GL_TEXTURE_2D)
     gl.glBegin(gl.GL_QUADS)
     gl.glColor3f(0.0, 0.0, 0.0);
     gl.glVertex2f(-1.0, -1.0)
