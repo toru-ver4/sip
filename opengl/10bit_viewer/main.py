@@ -13,6 +13,7 @@ const_window_width = 2048
 const_window_height = 1024
 global_x0 = 0
 global_y0 = 0
+texture = None
 
 
 def display():
@@ -29,16 +30,18 @@ def display():
 
 def resize(w, h):
     gl.glViewport(0, 0, w, h)
+    gl.glMatrixMode(gl.GL_PROJECTION)
     gl.glLoadIdentity()
+    gl.glMatrixMode(gl.GL_MODELVIEW)
 
     # if False:
     #     gl.glOrtho(-w/const_window_width, w/const_window_width,
     #                -h/const_window_height, h/const_window_height,
     #                -1.0, 1.0)
     # スクリーン上の座標系をマウスの座標系に一致させる
-    gl.glOrtho(-0.5, w - 0.5,
-               h - 0.5, -0.5,
-               -1.0, 1.0)
+    # gl.glOrtho(-0.5, w - 0.5,
+    #            h - 0.5, -0.5,
+    #            -1.0, 1.0)
 
 
 # def mouse(button, state, x, y):
@@ -62,30 +65,25 @@ def resize(w, h):
 
 
 def init():
+    global texture
     gl.glClearColor(1.0, 1.0, 1.0, 1.0)
     gl.glDepthFunc(gl.GL_LEQUAL)
-    gl.glEnable(gl.GL_DEPTH_TEST)
+    # gl.glEnable(gl.GL_DEPTH_TEST)
     gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
     texture = gl.glGenTextures(1)
     gl.glBindTexture(gl.GL_TEXTURE_2D, texture)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
     img = get_img()
-    img = img.reshape((img.shape[1], img.shape[0], img.shape[2]))
 
     # alpha channel データを作成＆結合！
     # ----------------------------------
     alpha = np.ones((img.shape[0], img.shape[1], 1), dtype=np.uint8) * 0xFF
-    r, g, b = [x for x in np.dsplit(img, 3)]
-    img = np.dstack((r, g, b, alpha))
+    r, g, b = cv2.split(img)
+    img = cv2.merge((r, g, b, alpha))
+    img = np.reshape(img, (img.shape[1], img.shape[0], img.shape[2]))
     print(img.shape)
-    pi = Image.frombytes('RGB', (img.shape[0], img.shape[1]), img.tostring())
-    # print(pi.tobytes('raw'))
-    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA8,
+    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA8UI,
                     img.shape[0], img.shape[1], 0, gl.GL_RGBA_INTEGER,
-                    gl.GL_UNSIGNED_BYTE, img.tobytes())
+                    gl.GL_UNSIGNED_BYTE, img.tostring())
 
 
 def get_img():
@@ -98,34 +96,28 @@ def get_img():
 
 
 def drawQuads():
-
+    global texture
     gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+    # gl.glClear(gl.GL_COLOR_BUFFER_BIT)
     gl.glEnable(gl.GL_TEXTURE_2D)
-    # gl.glTranslatef(0.0, 0.0, -5.0)
-    # gl.glBegin(gl.GL_QUADS)
-    # gl.glColor3f(0.0, 0.0, 0.0)
-    # gl.glVertex2f(-1.0, -1.0)
-    # gl.glColor3f(0.0, 0.0, 0.0)
-    # gl.glVertex2f(-1.0, 1.0)
-    # gl.glColor3f(0.0, 1.0, 0.0)
-    # gl.glVertex2f(1.0, 1.0)
-    # gl.glColor3f(0.0, 1.0, 0.0)
-    # gl.glVertex2f(1.0, -1.0)
-    # gl.glEnd()
-
+    gl.glBindTexture(gl.GL_TEXTURE_2D, texture)
+    # gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
+    # gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+    gl.glColor3f(0.0, 1.0, 0.0);
     gl.glBegin(gl.GL_QUADS)
     gl.glTexCoord2f(0.0, 1.0)
-    gl.glVertex3f(-0.5, 0.5, 0.0)  # Bottom Left
+    gl.glVertex2f(-1.0, 1.0)  # Bottom Left
     gl.glTexCoord2f(0.0, 0.0)
-    gl.glVertex3f(-0.5, -0.5, 0.0)  # Top Left
+    gl.glVertex2f(-1.0, -1.0)  # Top Left
     gl.glTexCoord2f(1.0, 0.0)
-    gl.glVertex3f(0.5, -0.5, 0.0)  # Top Right
+    gl.glVertex2f(1.0, -1.0)  # Top Right
     gl.glTexCoord2f(1.0, 1.0)
-    gl.glVertex3f(0.5, 0.5, 0.0)  # Bottom Right
+    gl.glVertex2f(1.0, 1.0)  # Bottom Right
     gl.glEnd()
-    # gl.glDisable(gl.GL_TEXTURE_2D)
-    gl.glFinish()
-    # gl.glFlush()
+    # gl.glFinish()
+    gl.glFlush()
 
 
 if __name__ == '__main__':
@@ -140,4 +132,3 @@ if __name__ == '__main__':
     # glut.glutMouseFunc(mouse)
     init()
     glut.glutMainLoop()
-
