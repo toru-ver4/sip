@@ -73,11 +73,19 @@ def init():
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
     img = get_img()
+    img = img.reshape((img.shape[1], img.shape[0], img.shape[2]))
+
+    # alpha channel データを作成＆結合！
+    # ----------------------------------
+    alpha = np.ones((img.shape[0], img.shape[1], 1), dtype=np.uint8) * 0xFF
+    r, g, b = [x for x in np.dsplit(img, 3)]
+    img = np.dstack((r, g, b, alpha))
+    print(img.shape)
     pi = Image.frombytes('RGB', (img.shape[0], img.shape[1]), img.tostring())
-    print(pi.tobytes('raw'))
-    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB8UI,
-                    img.shape[0], img.shape[1], 0, gl.GL_RGB_INTEGER,
-                    gl.GL_UNSIGNED_BYTE, pi.tobytes('raw'))
+    # print(pi.tobytes('raw'))
+    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA8,
+                    img.shape[0], img.shape[1], 0, gl.GL_RGBA_INTEGER,
+                    gl.GL_UNSIGNED_BYTE, img.tobytes())
 
 
 def get_img():
@@ -124,7 +132,7 @@ if __name__ == '__main__':
     glut.glutInit(sys.argv)
     glut.glutInitWindowSize(const_window_width, const_window_height)
     # glut.glutInitDisplayString(b"red=10 green=10 blue=10 alpha=2")
-    glut.glutInitDisplayMode(glut.GLUT_RGB | glut.GLUT_DEPTH)
+    glut.glutInitDisplayMode(glut.GLUT_RGBA | glut.GLUT_DEPTH)
     # glut.glutInitDisplayMode(glut.GLUT_RGBA)
     glut.glutCreateWindow(b"30bit demo")
     glut.glutDisplayFunc(drawQuads)
