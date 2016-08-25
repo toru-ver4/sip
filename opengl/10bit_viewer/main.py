@@ -44,7 +44,7 @@ def init():
 
     img = np.reshape(img, (img.shape[1], img.shape[0], img.shape[2]))
     print(img.shape)
-    img = np.float32(img/0xFF)
+    img = np.float32(img/0xFFFF)
     print(img.dtype)
     gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB32F,
                     img.shape[0], img.shape[1], 0, gl.GL_RGB,
@@ -56,8 +56,6 @@ def init():
 def get_img():
     img = cv2.imread('./figure/10bit_src.tiff',
                      cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
-    img = img >> 8
-    img = np.uint8(img)
     # print(img)
     return img[:, :, ::-1]
 
@@ -67,7 +65,7 @@ def display():
     # gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
     gl.glClear(gl.GL_COLOR_BUFFER_BIT)
     gl.glEnable(gl.GL_TEXTURE_2D)
-    gl.glColor3f(1.0, 1.0, 0.0)
+    gl.glColor3f(1.0, 1.0, 1.0)
     gl.glBegin(gl.GL_QUADS)
     gl.glTexCoord2f(0.0, 1.0)
     gl.glVertex3d(-1.0, -1.0, 0.0)  # Bottom Left
