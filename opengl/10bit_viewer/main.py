@@ -44,9 +44,11 @@ def init():
 
     img = np.reshape(img, (img.shape[1], img.shape[0], img.shape[2]))
     print(img.shape)
-    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB8UI,
-                    img.shape[0], img.shape[1], 0, gl.GL_RGB_INTEGER,
-                    gl.GL_UNSIGNED_BYTE, img.tostring())
+    img = np.float32(img/0xFF)
+    print(img.dtype)
+    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB32F,
+                    img.shape[0], img.shape[1], 0, gl.GL_RGB,
+                    gl.GL_FLOAT, img.tostring())
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
 
@@ -57,7 +59,7 @@ def get_img():
     img = img >> 8
     img = np.uint8(img)
     # print(img)
-    return img
+    return img[:, :, ::-1]
 
 
 def display():
@@ -68,13 +70,13 @@ def display():
     gl.glColor3f(1.0, 1.0, 0.0)
     gl.glBegin(gl.GL_QUADS)
     gl.glTexCoord2f(0.0, 1.0)
-    gl.glVertex3d(-0.5, -0.5, 0.0)  # Bottom Left
+    gl.glVertex3d(-1.0, -1.0, 0.0)  # Bottom Left
     gl.glTexCoord2f(1.0, 1.0)
-    gl.glVertex3d(0.5, -0.5, 0.0)  # Top Left
+    gl.glVertex3d(1.0, -1.0, 0.0)  # Top Left
     gl.glTexCoord2f(1.0, 0.0)
-    gl.glVertex3d(0.5, 0.5, 0.0)  # Top Right
+    gl.glVertex3d(1.0, 1.0, 0.0)  # Top Right
     gl.glTexCoord2f(0.0, 0.0)
-    gl.glVertex3d(-0.5, 0.5, 0.0)  # Bottom Right
+    gl.glVertex3d(-1.0, 1.0, 0.0)  # Bottom Right
     gl.glEnd()
     gl.glDisable(gl.GL_TEXTURE_2D)
     # gl.glFinish()
