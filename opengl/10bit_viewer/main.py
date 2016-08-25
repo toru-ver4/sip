@@ -105,16 +105,16 @@ def drawQuads():
     # gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-    gl.glColor3f(0.0, 1.0, 0.0);
+    gl.glColor3f(1.0, 1.0, 0.0)
     gl.glBegin(gl.GL_QUADS)
     gl.glTexCoord2f(0.0, 1.0)
-    gl.glVertex2f(-1.0, 1.0)  # Bottom Left
+    gl.glVertex3f(-0.5, 0.5, 0.0)  # Bottom Left
     gl.glTexCoord2f(0.0, 0.0)
-    gl.glVertex2f(-1.0, -1.0)  # Top Left
+    gl.glVertex3f(-0.5, -0.5, 0.0)  # Top Left
     gl.glTexCoord2f(1.0, 0.0)
-    gl.glVertex2f(1.0, -1.0)  # Top Right
+    gl.glVertex3f(0.5, -0.5, 0.0)  # Top Right
     gl.glTexCoord2f(1.0, 1.0)
-    gl.glVertex2f(1.0, 1.0)  # Bottom Right
+    gl.glVertex3f(0.5, 0.5, 0.0)  # Bottom Right
     gl.glEnd()
     # gl.glFinish()
     gl.glFlush()
