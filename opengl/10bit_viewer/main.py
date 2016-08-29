@@ -9,8 +9,8 @@ import OpenGL.GL as gl
 import OpenGL.GLU as glu
 import OpenGL.GLUT as glut
 
-const_window_width = 4096
-const_window_height = 2160
+g_window_width = 3840
+g_window_height = 2160
 global_x0 = 0
 global_y0 = 0
 texture = None
@@ -24,13 +24,18 @@ def resize(w, h):
     # gl.glMatrixMode(gl.GL_MODELVIEW)
 
     # if False:
-    #     gl.glOrtho(-w/const_window_width, w/const_window_width,
-    #                -h/const_window_height, h/const_window_height,
+    #     gl.glOrtho(-w/g_window_width, w/g_window_width,
+    #                -h/g_window_height, h/g_window_height,
     #                -1.0, 1.0)
     # スクリーン上の座標系をマウスの座標系に一致させる
     # gl.glOrtho(-0.5, w - 0.5,
     #            h - 0.5, -0.5,
     #            -1.0, 1.0)
+
+
+def keyboard(key, x, y):
+    if (key == b'q') or (key == b'\x1b'):
+        sys.exit()
 
 
 def init():
@@ -56,9 +61,20 @@ def get_img():
     # フルスクリーン用に黒枠作成 ＆ 合成
     # ------------------------------------
     color_num = img.shape[2]
-    full_img = np.zeros((const_window_height, const_window_width, color_num),
+
+    h_offset = int((g_window_width - img.shape[1]) / 2)
+    v_offset = int((g_window_height - img.shape[0]) / 2)
+
+    if (h_offset < 0) or (v_offset < 0):
+        print("===================================================")
+        print("==== Caution! Picture Size is too Big. ============")
+        print("===================================================")
+        h_offset = 0
+        v_offset = 0
+        img = img[0:g_window_height, 0:g_window_width, :]
+    full_img = np.zeros((g_window_height, g_window_width, color_num),
                         dtype=img.dtype)
-    full_img[0:img.shape[0], 0:img.shape[1], :] = img
+    full_img[v_offset:(img.shape[0]+v_offset), h_offset:img.shape[1] + h_offset, :] = img
     img = full_img
 
     # OpenCV は V --> H の並びなので、reshape して H --> V にする
@@ -106,13 +122,19 @@ def display():
 
 
 if __name__ == '__main__':
+    game_mode = True
     glut.glutInit(sys.argv)
-    glut.glutInitWindowSize(const_window_width, const_window_height)
+    glut.glutInitWindowSize(g_window_width, g_window_height)
     # glut.glutInitDisplayString(b"red=10 green=10 blue=10 alpha=2")
     # glut.glutInitDisplayMode(glut.GLUT_RGBA | glut.GLUT_DEPTH)
     glut.glutInitDisplayMode(glut.GLUT_RGBA)
-    glut.glutCreateWindow(b"30bit demo")
+    if game_mode:
+        glut.glutGameModeString(b"3840x2160:32@60")
+        glut.glutEnterGameMode()
+    else:
+        glut.glutCreateWindow(b"30bit demo")
     glut.glutDisplayFunc(display)
     glut.glutReshapeFunc(resize)
+    glut.glutKeyboardFunc(keyboard)
     init()
     glut.glutMainLoop()
