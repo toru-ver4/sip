@@ -137,6 +137,8 @@ def display():
 
 
 if __name__ == '__main__':
+    global g_window_height
+    global g_window_width
     game_mode = True
     glut.glutInit(sys.argv)
     g_window_width, g_window_height = get_winodw_resolution()
