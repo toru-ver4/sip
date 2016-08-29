@@ -74,7 +74,8 @@ def get_img():
         img = img[0:g_window_height, 0:g_window_width, :]
     full_img = np.zeros((g_window_height, g_window_width, color_num),
                         dtype=img.dtype)
-    full_img[v_offset:(img.shape[0]+v_offset), h_offset:img.shape[1] + h_offset, :] = img
+    full_img[v_offset:(img.shape[0] + v_offset),
+             h_offset:img.shape[1] + h_offset, :] = img
     img = full_img
 
     # OpenCV は V --> H の並びなので、reshape して H --> V にする
