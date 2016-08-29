@@ -3,6 +3,7 @@ import sys
 import time
 from PIL import Image
 import cv2
+import ctypes
 
 import numpy as np
 import OpenGL.GL as gl
@@ -38,6 +39,14 @@ def keyboard(key, x, y):
         sys.exit()
 
 
+def get_winodw_resolution():
+    user32 = ctypes.windll.user32
+    width = user32.GetSystemMetrics(0)
+    height = user32.GetSystemMetrics(1)
+
+    return width, height
+
+
 def init():
     global texture
     texture = gl.glGenTextures(1)
@@ -55,7 +64,12 @@ def init():
 
 
 def get_img():
-    img = cv2.imread('./figure/10bit_src.tiff',
+    filename = './figure/10bit_src.tiff'
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+    else:
+        filename = './figure/10bit_src.tiff'
+    img = cv2.imread(filename,
                      cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
 
     # フルスクリーン用に黒枠作成 ＆ 合成
@@ -125,12 +139,14 @@ def display():
 if __name__ == '__main__':
     game_mode = True
     glut.glutInit(sys.argv)
+    g_window_width, g_window_height = get_winodw_resolution()
     glut.glutInitWindowSize(g_window_width, g_window_height)
-    # glut.glutInitDisplayString(b"red=10 green=10 blue=10 alpha=2")
+    glut.glutInitDisplayString(b"red=10 green=10 blue=10 alpha=2")
     # glut.glutInitDisplayMode(glut.GLUT_RGBA | glut.GLUT_DEPTH)
     glut.glutInitDisplayMode(glut.GLUT_RGBA)
     if game_mode:
-        glut.glutGameModeString(b"3840x2160:32@60")
+        mode_string = "{}x{}:32@60".format(g_window_width, g_window_height)
+        glut.glutGameModeString(mode_string)
         glut.glutEnterGameMode()
     else:
         glut.glutCreateWindow(b"30bit demo")
