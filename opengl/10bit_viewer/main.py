@@ -4,6 +4,11 @@ import time
 from PIL import Image
 import cv2
 import ctypes
+import six
+import packaging
+import packaging.version
+import packaging.specifiers
+import packaging.requirements
 
 import numpy as np
 import OpenGL.GL as gl
