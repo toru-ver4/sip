@@ -13,6 +13,13 @@ const_sRGB_xyz = [[0.64, 0.33, 0.03],
                   [0.15, 0.06, 0.79],
                   [0.3127, 0.3290, 0.3583]]
 
+const_xyz_to_lms = [[0.8951000, 0.2664000, -0.1614000],
+                    [-0.7502000, 1.7135000, 0.0367000],
+                    [0.0389000, -0.0685000, 1.0296000]]
+
+const_d65_xy = [0.31271, 0.32902]
+const_d50_xy = [0.34567, 0.35850]
+
 
 def xy_to_xyz(xy):
     rz = 1 - (xy[0][0] + xy[0][1])
@@ -26,6 +33,43 @@ def xy_to_xyz(xy):
            [xy[3][0], xy[3][1], wz]]
 
     return xyz
+
+
+def get_white_point_conv_matrix(src=const_d65_xy, dst=const_d50_xy):
+    """
+    参考： http://w3.kcua.ac.jp/~fujiwara/infosci/colorspace/bradford.html
+    """
+    if len(src) == 2:
+        src = [src[0], src[1], 1 - (src[0] + src[1])]
+    if len(dst) == 2:
+        dst = [dst[0], dst[1], 1 - (dst[0] + dst[1])]
+
+    src = np.array(src)
+    dst = np.array(dst)
+
+    src = src / src[1]
+    dst = dst / dst[1]
+
+    # LMS値を求めよう
+    # --------------------------------------
+    ma = np.array(const_xyz_to_lms)
+    ma_inv = linalg.inv(ma)
+
+    src_LMS = ma.dot(src)
+    dst_LMS = ma.dot(dst)
+
+    print(src, dst)
+    print(src_LMS, dst_LMS)
+
+    # M行列を求めよう
+    # --------------------------------------
+    mtx = [[dst_LMS[0]/src_LMS[0], 0.0, 0.0],
+           [0.0, dst_LMS[1]/src_LMS[1], 0.0],
+           [0.0, 0.0, dst_LMS[2]/src_LMS[2]]]
+
+    m_mtx = ma_inv.dot(mtx).dot(ma)
+
+    print(m_mtx)
 
 
 def get_rgb_to_xyz_matrix(gamut=const_sRGB_xy):
@@ -77,4 +121,5 @@ def inv_test():
 
 
 if __name__ == '__main__':
-    get_rgb_to_xyz_matrix(gamut=const_sRGB_xy)
+    # get_rgb_to_xyz_matrix(gamut=const_sRGB_xy)
+    get_white_point_conv_matrix()
