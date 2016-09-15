@@ -1,7 +1,10 @@
 import os
 import sys
+import cv2
 import numpy as np
 from scipy import linalg
+import matplotlib.pyplot as plt
+
 
 const_sRGB_xy = [[0.64, 0.33],
                  [0.30, 0.60],
@@ -58,8 +61,8 @@ def get_white_point_conv_matrix(src=const_d65_xy, dst=const_d50_xy):
     src_LMS = ma.dot(src)
     dst_LMS = ma.dot(dst)
 
-    print(src, dst)
-    print(src_LMS, dst_LMS)
+    # print(src, dst)
+    # print(src_LMS, dst_LMS)
 
     # M行列を求めよう
     # --------------------------------------
@@ -69,7 +72,9 @@ def get_white_point_conv_matrix(src=const_d65_xy, dst=const_d50_xy):
 
     m_mtx = ma_inv.dot(mtx).dot(ma)
 
-    print(m_mtx)
+    # print(m_mtx)
+
+    return m_mtx
 
 
 def get_rgb_to_xyz_matrix(gamut=const_sRGB_xy):
@@ -120,6 +125,55 @@ def inv_test():
     print(inv_mtx)
 
 
+def change_img_white_point(filename='wp04_1920x1080.jpg'):
+    """
+    # 概要
+    色温度変換を行う。
+
+    # 注意事項
+    現状だと D65 --> D50 しか変換できない。
+    気が向いたら任意の色温度に変換できるように拡張しよう。
+    """
+    img = cv2.imread(filename, cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
+    mtx = get_white_point_conv_matrix()
+    img_out = color_cvt(img[:, :, ::-1], mtx)[:, :, ::-1]
+    img_out = np.round(img_out).astype(img.dtype)
+
+    img_max = np.iinfo(img.dtype).max
+    cv2.imshow('bbb.tif', img_out/img_max)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    root, ext = os.path.splitext(filename)
+    out_filename = root + "_modify" + ext
+    cv2.imwrite(out_filename, img_out)
+
+
+def color_cvt(img, mtx):
+    """
+    # 概要
+    img に対して mtx を適用する。
+    # 注意事項
+    例によって、RGBの並びを考えている。BGRの並びの場合は
+    img[:, :, ::-1] してから関数をコールすること。
+    """
+    img_max = np.iinfo(img.dtype).max
+    img_min = np.iinfo(img.dtype).min
+
+    r, g, b = np.dsplit(img, 3)
+    ro = r * mtx[0][0] + g * mtx[0][1] + b * mtx[0][2]
+    go = r * mtx[1][0] + g * mtx[1][1] + b * mtx[1][2]
+    bo = r * mtx[2][0] + g * mtx[2][1] + b * mtx[2][2]
+
+    out_img = np.dstack((ro, go, bo))
+
+    out_img[out_img < img_min] = img_min
+    out_img[out_img > img_max] = img_max
+
+    return out_img
+
+
 if __name__ == '__main__':
     # get_rgb_to_xyz_matrix(gamut=const_sRGB_xy)
-    get_white_point_conv_matrix()
+    # get_white_point_conv_matrix()
+    change_img_white_point()
