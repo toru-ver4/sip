@@ -135,7 +135,16 @@ def change_img_white_point(filename='wp04_1920x1080.jpg'):
     気が向いたら任意の色温度に変換できるように拡張しよう。
     """
     img = cv2.imread(filename, cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
-    mtx = get_white_point_conv_matrix()
+    m_mtx = get_white_point_conv_matrix()
+
+    # XYZ 変換 Matrix と組み合わせて RGB 空間用の mtx を求める
+    # ----------------------------------------------------
+    rgb2xyz_mtx = get_rgb_to_xyz_matrix(gamut=const_sRGB_xy)
+    xyz2rgb_mtx = linalg.inv(rgb2xyz_mtx)
+    mtx = xyz2rgb_mtx.dot(m_mtx).dot(rgb2xyz_mtx)
+
+    # 求めた mtx を使って画像を変換
+    # ----------------------------------------------------
     img_out = color_cvt(img[:, :, ::-1], mtx)[:, :, ::-1]
     img_out = np.round(img_out).astype(img.dtype)
 
@@ -144,6 +153,8 @@ def change_img_white_point(filename='wp04_1920x1080.jpg'):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+    # ファイルに保存
+    # ----------------------------------------------------
     root, ext = os.path.splitext(filename)
     out_filename = root + "_modify" + ext
     cv2.imwrite(out_filename, img_out)
