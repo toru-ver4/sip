@@ -1,6 +1,7 @@
 # sip
 sample code for SIgnal Processing.
 
+# Installation Guide for Winodws
 ## requirements
  - Anaconda(Python 3.5>)
 
@@ -31,6 +32,32 @@ change the modify the 'notebook_dir' parameters from '' to 'C:\home'.
 ## run jupyter
 ```
 > jupyter notebook
+```
+
+# Installation Guide for Linux
+
+## requirements
+ - [pyenv](https://github.com/yyuu/pyenv)
+ - [pyenv-virtualenv](https://github.com/yyuu/pyenv-virtualenv)
+
+## install pyenv
+see Readme.md of the [Github](https://github.com/yyuu/pyenv).
+
+## install pyenv-virtualenv
+see Readme.md of the [Github](https://github.com/yyuu/pyenv-virtualenv).
+
+## install libraries
+
+```bash:install.sh
+$ sudo apt-get update
+$ sudo apt-get install libssl-dev libbz2-dev libreadline-dev libsqlite3-dev -y 
+```
+
+## setup the virtual environment
+
+```bash:install.sh
+$ pyenv install -l
+$ pyenv install anaconda3-x.x.x
 ```
 
 # Appendix
