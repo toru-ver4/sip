@@ -58,6 +58,8 @@ $ sudo apt-get install libssl-dev libbz2-dev libreadline-dev libsqlite3-dev -y
 ```bash:install.sh
 $ pyenv install -l
 $ pyenv install anaconda3-x.x.x
+$ pyenv virtualenv anaconda3-x.x.x my-virtual-env-3-x.x.x
+$ pyenv local anaconda3-x.x.x/envs/my-virtual-env-3-x.x.x
 ```
 
 # Appendix
