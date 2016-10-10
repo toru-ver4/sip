@@ -79,6 +79,7 @@ def gen_saturation_color_bar():
     # cv2.destroyAllWindows()
 
     img = np.uint8(np.round(img * 0xFF))
+    img = img & 0xF0
     cv2.imwrite("./picture/saturation.png", img[:, :, ::-1])
 
 
@@ -102,13 +103,14 @@ def add_profile():
 
     dci_profile_name = "./picture/DCI-P3_modify.icc"
     dci_profile = ImageCms.getOpenProfile(dci_profile_name)
-    sRGB_profile_name = "./picture/sRGB_profile.icc"
-    sRGB_profile = ImageCms.getOpenProfile(sRGB_profile_name)
+    sRGB_profile = ImageCms.getOpenProfile(dci_profile_name)
+    sRGB_profile_ref = ImageCms.createProfile('sRGB')
+    sRGB_profile.profile = sRGB_profile_ref
 
     for idx, in_file in enumerate(in_file_list):
         img = Image.open(in_file)
         img.save(out_file_list[idx], icc_profile=dci_profile.tobytes())
-        # img.save(out_file_list2[idx], icc_profile=sRGB_profile.tobytes())
+        img.save(out_file_list2[idx], icc_profile=sRGB_profile.tobytes())
 
 
 if __name__ == '__main__':
