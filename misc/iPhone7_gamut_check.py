@@ -53,6 +53,35 @@ def gen_color_bar():
     cv2.imwrite("./picture/w.png", w_img)
 
 
+def gen_saturation_color_bar():
+    width = 1920
+    height = 1080 // 3
+
+    gradation = np.arange(width - 1, 0 - 1, -1) / (width - 1)
+    static = np.ones(width)
+
+    r = np.dstack((static, gradation, gradation))
+    g = np.dstack((gradation, static, gradation))
+    b = np.dstack((gradation, gradation, static))
+
+    r_array = [r] * height
+    g_array = [g] * height
+    b_array = [b] * height
+
+    r_img = np.vstack(r_array)
+    g_img = np.vstack(g_array)
+    b_img = np.vstack(b_array)
+
+    img = np.vstack([r_img, g_img, b_img])
+
+    # cv2.imshow('preview', img[:, :, ::-1])
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+    img = np.uint8(np.round(img * 0xFF))
+    cv2.imwrite("./picture/saturation.png", img[:, :, ::-1])
+
+
 def open_profile():
     filename = "./picture/DCI-P3.icc"
     profile = ImageCms.getOpenProfile(filename)
@@ -63,13 +92,13 @@ def open_profile():
 def add_profile():
     in_file_list = ["./picture/r.png", "./picture/o.png",
                     "./picture/g.png", "./picture/b.png",
-                    "./picture/w.png"]
+                    "./picture/w.png", "./picture/saturation.png"]
     out_file_list = ["./picture/r_dci.png", "./picture/o_dci.png",
                      "./picture/g_dci.png", "./picture/b_dci.png",
-                     "./picture/w_dci.png"]
+                     "./picture/w_dci.png", "./picture/saturation_dci.png"]
     out_file_list2 = ["./picture/r_sRGB.png", "./picture/o_sRGB.png",
                       "./picture/g_sRGB_png", "./picture/b_sRGB.png",
-                      "./picture/w_sRGB.png"]
+                      "./picture/w_sRGB.png", "./picture/saturation_sRGB.png"]
 
     dci_profile_name = "./picture/DCI-P3_modify.icc"
     dci_profile = ImageCms.getOpenProfile(dci_profile_name)
@@ -79,10 +108,11 @@ def add_profile():
     for idx, in_file in enumerate(in_file_list):
         img = Image.open(in_file)
         img.save(out_file_list[idx], icc_profile=dci_profile.tobytes())
-        img.save(out_file_list2[idx], icc_profile=sRGB_profile.tobytes())
+        # img.save(out_file_list2[idx], icc_profile=sRGB_profile.tobytes())
 
 
 if __name__ == '__main__':
     gen_color_bar()
     # open_profile()
+    gen_saturation_color_bar()
     add_profile()
