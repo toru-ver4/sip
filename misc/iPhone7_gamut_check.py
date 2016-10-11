@@ -113,8 +113,17 @@ def add_profile():
         img.save(out_file_list2[idx], icc_profile=sRGB_profile.tobytes())
 
 
+def extract_profile():
+    filename = './picture/Webkit-logo-P3.png'
+    img = Image.open(filename)
+    out_file_name = './picture/dci_profile.icc'
+
+    with open(out_file_name, 'wb') as f:
+        f.write(img.info['icc_profile'])
+
+
 if __name__ == '__main__':
-    gen_color_bar()
-    # open_profile()
-    gen_saturation_color_bar()
-    add_profile()
+    # gen_color_bar()
+    # gen_saturation_color_bar()
+    # add_profile()
+    extract_profile()
