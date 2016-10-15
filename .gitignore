@@ -44,3 +44,5 @@ misc/picture/o.png
 misc/picture/o_dci.png
 sh.exe.stackdump
 PyCuda/.ipynb_checkpoints/PyCuda-checkpoint.ipynb
+PyCuda/Tutorial/code/__pycache__/pycuda_tutorial.cpython-35.pyc
+PyCuda/Tutorial/.ipynb_checkpoints/Tutorial-checkpoint.ipynb
