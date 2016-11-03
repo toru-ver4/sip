@@ -70,6 +70,12 @@ $ pyenv local anaconda3-x.x.x/envs/my-virtual-env-3-x.x.x
 
 # Appendix
 
+## Install OpenCV
+
+```
+> conda install -c https://conda.anaconda.org/menpo opencv3 
+```
+
 ## convert from .ipynb to .html
 
 run the following commmand.
