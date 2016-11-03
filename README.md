@@ -1,6 +1,7 @@
 # sip
 sample code for SIgnal Processing.
 
+# Installation Guide for Winodws
 ## requirements
  - Anaconda(Python 3.5>)
 
@@ -33,6 +34,40 @@ change the modify the 'notebook_dir' parameters from '' to 'C:\home'.
 > jupyter notebook
 ```
 
+# Installation Guide for Linux
+
+## requirements
+ - [pyenv](https://github.com/yyuu/pyenv)
+ - [pyenv-virtualenv](https://github.com/yyuu/pyenv-virtualenv)
+
+## install pyenv
+see Readme.md of the [Github](https://github.com/yyuu/pyenv).
+
+## install pyenv-virtualenv
+see Readme.md of the [Github](https://github.com/yyuu/pyenv-virtualenv).
+
+## install libraries
+
+```bash:install.sh
+$ sudo apt-get update
+$ sudo apt-get install libssl-dev libbz2-dev libreadline-dev libsqlite3-dev -y 
+```
+## setup the virtual environment
+
+```bash:install.sh
+$ pyenv install -l
+$ pyenv install anaconda3-x.x.x
+$ pyenv virtualenv anaconda3-x.x.x my-virtual-env-3-x.x.x
+```
+
+## switch the environment
+
+```bash:change.sh
+$ pyenv virtualenvs  # check virtualenv
+$ pyenv local anaconda3-x.x.x/envs/my-virtual-env-3-x.x.x
+```
+
+
 # Appendix
 
 ## convert from .ipynb to .html
@@ -51,10 +86,10 @@ install LuaTeX. see [THIS PAGE](https://texwiki.texjp.org/?TeX%20Live).
 
 ### modify the latex configuration files
 1. search the 'article.tplx' in the Anaconda3 directory.
-2. open the article.tplx, s/{article}/{ltjsarticle}
+2. open the article.tplx, s/{article}/{ltjsarticle}/
 3. save this file on ** Another Name ** (ex. ltjsarticle.tplx).
 
-### convert
+### convert (command line)
 
 run the following commmand.
 
@@ -62,5 +97,10 @@ run the following commmand.
 > jupyter nbconvert --to latex --template ltjsarticle.tplx lualatex [jupyter_file].ipynb
 > lualatex sample_codes.tex
 ```
+
+### convert (Jupyter Notebook)
+
+1. change 'article.tplx', s/{article}/{ltjsarticle}/
+2. change 'pdf.py', s/u"pdflatex"/u"lualatex"/
 
 
