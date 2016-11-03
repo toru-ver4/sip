@@ -4,7 +4,6 @@ import pycuda.autoinit
 from pycuda.compiler import SourceModule
 import numpy as np
 import cv2
-import pandas as pd
 import re
 
 
@@ -12,7 +11,17 @@ const_matrix_param = np.array([0.2126, 0.7152, 0.0722])
 
 
 def load_3dlut_cube(filename):
-    # LU_3D_SIZE を確認しつつデータ開始行を探索
+    """
+    # 概要
+    CUBE形式の3DLUTデータ読み込み Numpy形式で返す。
+    CUBE形式については以下URLの「3DLUT の 読み込みと書き込み」を参照。
+        https://goo.gl/yJmZRH
+
+    # 注意事項
+    不正ファイルを読み込んだ場合の処理とか全く無いからね。
+    変なファイルを読み込ませないでね。
+    """
+    # LUT_3D_SIZE を確認しつつデータ開始行を探索
     # --------------------------------------
     max_header_size = 100
     pattern = re.compile('^\d')
@@ -25,10 +34,42 @@ def load_3dlut_cube(filename):
                     lut_size = line.rstrip().split(" ")[1]
             else:
                 if pattern.search(line) is not None:
-                    data_start_line = idx + 1
+                    skip_line = idx
+                    break
 
     print("lut_size = {}x{}x{}".format(lut_size, lut_size, lut_size))
-    print("start_line = {}".format(data_start_line))
+    print("data start line = {}".format(skip_line + 1))
+
+    # np.loadtxt で numpy形式にして読み込み
+    # --------------------------------------
+    lut_data = np.loadtxt(fname=filename,
+                          dtype=np.float32, delimiter=' ', skiprows=skip_line)
+
+    return lut_data
+
+
+def save_3dlut_cube(lut_data, filename):
+    """
+    # 概要
+    CUBE形式の3DLUTデータをファイルに書き出す。
+    CUBE形式については以下URLの「3DLUT の 読み込みと書き込み」を参照。
+        https://goo.gl/yJmZRH
+
+    # 注意事項
+    適当に作った関数なので、行数が＋１行されててもエラー出ないからね。
+    エラー処理を期待しないでね。
+    """
+    grid_num = np.uint8(np.round(np.power(lut_data.shape[0], 1/3)))
+
+    with open(filename, 'w') as fout:
+        fout.write("# THIS IS MADE BY TORU YOSHIHARA\n\n")
+        fout.write("DOMAIN_MIN {} {} {}\n".format(0, 0, 0))
+        fout.write("DOMAIN_MAX {} {} {}\n".format(1, 1, 1))
+        fout.write("LUT_3D_SIZE {}\n".format(grid_num))
+        fout.write("\n")
+        for data in lut_data:
+            fout.write("{:.11f} {:.11f} {:.11f}\n".format(
+                data[0], data[1], data[2]))
 
 
 def img_open_and_normalize(filename):
