@@ -4,9 +4,31 @@ import pycuda.autoinit
 from pycuda.compiler import SourceModule
 import numpy as np
 import cv2
+import pandas as pd
+import re
 
 
 const_matrix_param = np.array([0.2126, 0.7152, 0.0722])
+
+
+def load_3dlut_cube(filename):
+    # LU_3D_SIZE を確認しつつデータ開始行を探索
+    # --------------------------------------
+    max_header_size = 100
+    pattern = re.compile('^\d')
+    lut_size = None
+    with open(filename, 'r') as fin:
+        for idx in range(max_header_size):
+            line = fin.readline()
+            if lut_size is None:
+                if line.find("LUT_3D_SIZE") >= 0:
+                    lut_size = line.rstrip().split(" ")[1]
+            else:
+                if pattern.search(line) is not None:
+                    data_start_line = idx + 1
+
+    print("lut_size = {}x{}x{}".format(lut_size, lut_size, lut_size))
+    print("start_line = {}".format(data_start_line))
 
 
 def img_open_and_normalize(filename):
