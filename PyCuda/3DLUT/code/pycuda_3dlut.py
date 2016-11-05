@@ -7,7 +7,60 @@ import cv2
 import re
 
 
-const_matrix_param = np.array([0.2126, 0.7152, 0.0722])
+def make_3dlut_data(grid_num=17, func=None, **kwargs):
+    """
+    # 概要
+    3DLUTデータを作成する。
+
+    # 詳細
+    * func : 実際に処理をする関数を渡す
+    * kwargs : func に引数として渡すやつ
+
+    # 注意事項
+    例によってエラー処理は皆無。トリッキーな呼び方はしないでね。
+    """
+
+    # 入力データ作成
+    # -----------------
+    x_r = (np.arange(grid_num**3) // (grid_num**0)) % grid_num
+    x_g = (np.arange(grid_num**3) // (grid_num**1)) % grid_num
+    x_b = (np.arange(grid_num**3) // (grid_num**2)) % grid_num
+
+    x = (np.dstack((x_r, x_g, x_b)) / (grid_num - 1)).astype(np.float32)
+
+    # LUTデータ作成
+    # -----------------
+    lut = func(in_data=x, **kwargs)
+
+    return lut
+
+
+def rgb2yuv_for_3dlut(in_data, **kwargs):
+    """
+    # 概要
+    RGB2YUVの3DLUTデータを作る。
+
+    # 引数
+    kwargs['mtx'] に行列の係数を入れておくこと。
+    以下は例。
+
+    ```
+    matrix_param = np.array([[0.2126, 0.7152, 0.0722],
+                            [-0.114572, -0.385428, 0.5],
+                            [0.5, -0.454153, -0.045847]])
+    kwargs = {'mtx' : matrix_param}
+    ```
+
+    """
+    mtx = kwargs['mtx']
+    r_in, g_in, b_in = np.dsplit(in_data, 3)
+    y = r_in * mtx[0][0] + g_in * mtx[0][1] + b_in * mtx[0][2]
+    u = r_in * mtx[1][0] + g_in * mtx[1][1] + b_in * mtx[1][2] + 0.5
+    v = r_in * mtx[2][0] + g_in * mtx[2][1] + b_in * mtx[2][2] + 0.5
+
+    out_data = np.dstack((v, y, u))  # 並びが V, Y, U であることに注意
+
+    return out_data
 
 
 def load_3dlut_cube(filename):
@@ -132,7 +185,6 @@ def exec_3dlut():
 
     # 3DLUTの次元数を設定
     # ------------------------------------
-    
 
     # カーネルの作成
     # ------------------------------------
