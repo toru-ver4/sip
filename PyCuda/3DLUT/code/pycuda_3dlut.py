@@ -32,6 +32,11 @@ def make_3dlut_data(grid_num=17, func=None, **kwargs):
     # -----------------
     lut = func(in_data=x, **kwargs)
 
+    # LUTデータは画像データと区別して、1次元配列っぽくする
+    # ----------------------------------------------------
+    if len(lut.shape) == 3:
+        lut = lut.reshape((lut.shape[1], lut.shape[2]))
+
     return lut
 
 
