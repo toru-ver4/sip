@@ -5,6 +5,114 @@ from pycuda.compiler import SourceModule
 import numpy as np
 import cv2
 import re
+import numba
+
+
+@numba.jit
+def exec_3dlut_on_x86(img, lut):
+    """
+    # 概要
+    3DLUTを画像に適用する。
+
+    # 詳細
+    lut には Adobe CUBE 形式の順序で並んだ 3DLUTデータを
+    Numpy の np.float32 で入れておくこと。
+
+    # 備考
+    本関数は将来的にCUDAに移植することを考えて
+    forループを使って実装している。よってクソ遅い。
+    耐えられないようであれば numba.jit のデコレータを使うこと。
+    """
+
+    # grid_num を算出しつつ lut の shape を確認
+    # ------------------------------------------
+    grid_num = np.uint8(np.round(np.power(lut.shape[0], 1/3)))
+    total_index = grid_num**3
+    if lut.shape[0] != total_index:
+        print("error! 3DLUT size is invalid.")
+        return None
+
+    img = img * (grid_num - 1)
+    out_img = np.empty_like(img)
+
+    for w_idx in range(img.shape[1]):
+        for h_idx in range(img.shape[0]):
+            r = img[h_idx][w_idx][0]
+            g = img[h_idx][w_idx][1]
+            b = img[h_idx][w_idx][2]
+
+            # r, g, b の各 Index を求める
+            # ---------------------------
+            r_idx = np.uint32(np.floor(r))
+            g_idx = np.uint32(np.floor(g))
+            b_idx = np.uint32(np.floor(b))
+
+            # 体積算出のために r_0 ～ b_1 を求める
+            # ------------------------------------
+            r_0 = r - r_idx
+            r_1 = 1 - r_0
+            g_0 = g - g_idx
+            g_1 = 1 - g_0
+            b_0 = b - b_idx
+            b_1 = 1 - b_0
+
+            # 体積計算
+            # -------------------------------------
+            v_0 = (r_0 * g_0 * b_0)
+            v_1 = (r_0 * g_0 * b_1)
+            v_2 = (r_0 * g_1 * b_0)
+            v_3 = (r_0 * g_1 * b_1)
+            v_4 = (r_1 * g_0 * b_0)
+            v_5 = (r_1 * g_0 * b_1)
+            v_6 = (r_1 * g_1 * b_0)
+            v_7 = (r_1 * g_1 * b_1)
+
+            # l_0 ～ l_7 を事前に求めておく
+            # --------------------------------------
+            r_coef = grid_num ** 0
+            g_coef = grid_num ** 1
+            b_coef = grid_num ** 2
+
+            l0_idx = (r_idx + 0)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 0)*(b_coef)
+            l1_idx = (r_idx + 0)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 1)*(b_coef)
+            l2_idx = (r_idx + 0)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 0)*(b_coef)
+            l3_idx = (r_idx + 0)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 1)*(b_coef)
+            l4_idx = (r_idx + 1)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 0)*(b_coef)
+            l5_idx = (r_idx + 1)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 1)*(b_coef)
+            l6_idx = (r_idx + 1)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 0)*(b_coef)
+            l7_idx = (r_idx + 1)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 1)*(b_coef)
+
+            """
+            以下で `% total_index` をしているのは端点対策。
+            r, g, b のいずれかが 1.0 だと端点が足りなくなる。
+            なので適当なLUTを当てる。
+            最終的にそのLUT値は掛け算で 0.0 になるし。
+            """
+            l_0 = lut[l0_idx % total_index]
+            l_1 = lut[l1_idx % total_index]
+            l_2 = lut[l2_idx % total_index]
+            l_3 = lut[l3_idx % total_index]
+            l_4 = lut[l4_idx % total_index]
+            l_5 = lut[l5_idx % total_index]
+            l_6 = lut[l6_idx % total_index]
+            l_7 = lut[l7_idx % total_index]
+
+            # 線形補間処理実行
+            # -----------------------------------------
+            r_out = v_0*l_7[0] + v_1*l_6[0] + v_2*l_5[0] + v_3*l_4[0]\
+                + v_4*l_3[0] + v_5*l_2[0] + v_6*l_1[0] + v_7*l_0[0]
+            g_out = v_0*l_7[1] + v_1*l_6[1] + v_2*l_5[1] + v_3*l_4[1]\
+                + v_4*l_3[1] + v_5*l_2[1] + v_6*l_1[1] + v_7*l_0[1]
+            b_out = v_0*l_7[2] + v_1*l_6[2] + v_2*l_5[2] + v_3*l_4[2]\
+                + v_4*l_3[2] + v_5*l_2[2] + v_6*l_1[2] + v_7*l_0[2]
+
+            # 結果を out_img に詰める
+            # -----------------------------------------
+            out_img[h_idx][w_idx][0] = r_out
+            out_img[h_idx][w_idx][1] = g_out
+            out_img[h_idx][w_idx][2] = b_out
+
+    return out_img
 
 
 def make_3dlut_data(grid_num=17, func=None, **kwargs):
