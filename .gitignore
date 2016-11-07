@@ -49,4 +49,5 @@ PyCuda/Tutorial/.ipynb_checkpoints/Tutorial-checkpoint.ipynb
 **/.ipynb_checkpoints/
 **/__pycache__/
 **/save_test.cube
+**/.vscode/
 

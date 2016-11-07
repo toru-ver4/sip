@@ -8,6 +8,101 @@ import re
 import numba
 
 
+def exec_3dlut_on_gpu(img, lut):
+
+    # grid_num を算出しつつ lut の shape を確認
+    # ------------------------------------------
+    grid_num = np.uint8(np.round(np.power(lut.shape[0], 1/3)))
+    total_index = grid_num**3
+    if lut.shape[0] != total_index:
+        print("error! 3DLUT size is invalid.")
+        return None
+
+    img = img * (grid_num - 1)
+
+    # block数, thread数 の計算
+    # ------------------------------------
+    nx = img.shape[1]
+    ny = img.shape[0]
+    block, grid = calc_block_and_grid(nx=nx, ny=ny, dimx=32, dimy=32)
+
+    # GPUに画像データを転送
+    # ------------------------------------
+    img_gpu = cuda.mem_alloc(img.nbytes)
+    cuda.memcpy_htod(img_gpu, img[:, :, ::-1].tobytes())
+
+    # カーネルの作成
+    # ------------------------------------
+    mod = SourceModule("""
+        __global__ void exec_3dlut(float *img, int nx, int ny)
+        {
+            float r, g, b;
+            unsigned int r_idx, g_idx, b_idx;
+            unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
+            unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
+            unsigned int idx = iy * nx + ix;
+
+            if (ix < nx && iy < ny){
+
+                // get RGB value
+                int r_px_idx = idx * 3;
+                int g_px_idx = idx * 3 + 1;
+                int b_px_idx = idx * 3 + 2;
+                r = img[r_px_idx];
+                g = img[g_px_idx];
+                b = img[b_px_idx];
+
+                // get 3dlut index
+                r_idx = (unsigned int)(floor(r));
+                g_idx = (unsigned int)(floor(g));
+                b_idx = (unsigned int)(floor(b));
+
+                // calc volume
+                float r_0, r_1, g_0, g_1, b_0, b_1;
+                float v_0, v_1, v_2, v_3, v_4, v_5, v_6, v_7;
+                r_0 = r - r_idx;
+                r_1 = 1 - r_0;
+                g_0 = g - g_idx;
+                g_1 = 1 - g_0;
+                b_0 = b - b_idx;
+                b_1 = 1 - b_0;
+
+                v_0 = (r_0 * g_0 * b_0);
+                v_1 = (r_0 * g_0 * b_1);
+                v_2 = (r_0 * g_1 * b_0);
+                v_3 = (r_0 * g_1 * b_1);
+                v_4 = (r_1 * g_0 * b_0);
+                v_5 = (r_1 * g_0 * b_1);
+                v_6 = (r_1 * g_1 * b_0);
+                v_7 = (r_1 * g_1 * b_1);
+
+                // get lut value
+                float r_coef, g_coef, b_coef;
+
+                // set output value
+                img[r_px_idx] = r_idx;
+                img[g_px_idx] = g_idx;
+                img[b_px_idx] = b_idx;
+            }
+        }
+        """)
+
+    # カーネルの実行
+    # ------------------------------------
+    func = mod.get_function("exec_3dlut")
+    func(img_gpu, np.uint32(nx), np.uint32(ny), grid=grid, block=block)
+
+    # 結果の取得
+    # ------------------------------------
+    img_result = np.empty_like(img)
+    cuda.memcpy_dtoh(img_result, img_gpu)
+    img_result = img_result[:, :, ::-1]
+
+    print(img_result)
+
+    return img_result
+
+
 @numba.jit
 def exec_3dlut_on_x86(img, lut):
     """
