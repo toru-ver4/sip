@@ -26,21 +26,24 @@ def exec_3dlut_on_gpu(img, lut):
     ny = img.shape[0]
     block, grid = calc_block_and_grid(nx=nx, ny=ny, dimx=32, dimy=32)
 
-    # GPUに画像データを転送
+    # GPUに画像データと3DLUTを転送
     # ------------------------------------
     img_gpu = cuda.mem_alloc(img.nbytes)
     cuda.memcpy_htod(img_gpu, img[:, :, ::-1].tobytes())
+    lut_gpu = cuda.mem_alloc(lut.nbytes)
+    cuda.memcpy_htod(lut_gpu, lut.tobytes())
 
     # カーネルの作成
     # ------------------------------------
     mod = SourceModule("""
-        __global__ void exec_3dlut(float *img, int nx, int ny)
+        __global__ void exec_3dlut(float *img, float *lut, int grid_num, int nx, int ny)
         {
             float r, g, b;
             unsigned int r_idx, g_idx, b_idx;
             unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
             unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
             unsigned int idx = iy * nx + ix;
+            unsigned int total_index = (int)(pow((double)grid_num, 3.0));
 
             if (ix < nx && iy < ny){
 
@@ -77,12 +80,39 @@ def exec_3dlut_on_gpu(img, lut):
                 v_7 = (r_1 * g_1 * b_1);
 
                 // get lut value
-                float r_coef, g_coef, b_coef;
+                unsigned int r_coef, g_coef, b_coef;
+                int l0_idx, l1_idx, l2_idx, l3_idx, l4_idx, l5_idx, l6_idx, l7_idx;
+                float *l_0, *l_1, *l_2, *l_3, *l_4, *l_5, *l_6, *l_7;
 
-                // set output value
-                img[r_px_idx] = r_idx;
-                img[g_px_idx] = g_idx;
-                img[b_px_idx] = b_idx;
+                r_coef = (int)(pow((double)grid_num, 0.0));
+                g_coef = (int)(pow((double)grid_num, 1.0));
+                b_coef = (int)(pow((double)grid_num, 2.0));
+
+                l0_idx = ((r_idx + 0)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 0)*(b_coef)) * 3;
+                l1_idx = ((r_idx + 0)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 1)*(b_coef)) * 3;
+                l2_idx = ((r_idx + 0)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 0)*(b_coef)) * 3;
+                l3_idx = ((r_idx + 0)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 1)*(b_coef)) * 3;
+                l4_idx = ((r_idx + 1)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 0)*(b_coef)) * 3;
+                l5_idx = ((r_idx + 1)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 1)*(b_coef)) * 3;
+                l6_idx = ((r_idx + 1)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 0)*(b_coef)) * 3;
+                l7_idx = ((r_idx + 1)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 1)*(b_coef)) * 3;
+
+                l_0 = &lut[l0_idx % (total_index * 3)];
+                l_1 = &lut[l1_idx % (total_index * 3)];
+                l_2 = &lut[l2_idx % (total_index * 3)];
+                l_3 = &lut[l3_idx % (total_index * 3)];
+                l_4 = &lut[l4_idx % (total_index * 3)];
+                l_5 = &lut[l5_idx % (total_index * 3)];
+                l_6 = &lut[l6_idx % (total_index * 3)];
+                l_7 = &lut[l7_idx % (total_index * 3)];
+
+                // exec 3dlut linear interpolation
+                img[r_px_idx] = v_0*l_7[0] + v_1*l_6[0] + v_2*l_5[0] + v_3*l_4[0]
+                    + v_4*l_3[0] + v_5*l_2[0] + v_6*l_1[0] + v_7*l_0[0];
+                img[g_px_idx] = v_0*l_7[1] + v_1*l_6[1] + v_2*l_5[1] + v_3*l_4[1]
+                    + v_4*l_3[1] + v_5*l_2[1] + v_6*l_1[1] + v_7*l_0[1];
+                img[b_px_idx] = v_0*l_7[2] + v_1*l_6[2] + v_2*l_5[2] + v_3*l_4[2]
+                    + v_4*l_3[2] + v_5*l_2[2] + v_6*l_1[2] + v_7*l_0[2];
             }
         }
         """)
@@ -90,15 +120,14 @@ def exec_3dlut_on_gpu(img, lut):
     # カーネルの実行
     # ------------------------------------
     func = mod.get_function("exec_3dlut")
-    func(img_gpu, np.uint32(nx), np.uint32(ny), grid=grid, block=block)
+    func(img_gpu, lut_gpu, np.uint32(grid_num), np.uint32(nx),
+         np.uint32(ny), grid=grid, block=block)
 
     # 結果の取得
     # ------------------------------------
     img_result = np.empty_like(img)
     cuda.memcpy_dtoh(img_result, img_gpu)
     img_result = img_result[:, :, ::-1]
-
-    print(img_result)
 
     return img_result
 
