@@ -50,4 +50,4 @@ PyCuda/Tutorial/.ipynb_checkpoints/Tutorial-checkpoint.ipynb
 **/__pycache__/
 **/save_test.cube
 **/.vscode/
-
+**/profile_out.csv

@@ -24,7 +24,7 @@ def exec_3dlut_on_gpu(img, lut):
     # ------------------------------------
     nx = img.shape[1]
     ny = img.shape[0]
-    block, grid = calc_block_and_grid(nx=nx, ny=ny, dimx=32, dimy=32)
+    block, grid = calc_block_and_grid(nx=nx, ny=ny, dimx=16, dimy=8)
 
     # GPUに画像データと3DLUTを転送
     # ------------------------------------
@@ -402,131 +402,38 @@ def calc_block_and_grid(nx, ny, dimx, dimy):
     return block, grid
 
 
-def exec_3dlut():
+def check_time_3dlut(grid_num=17):
+    # profiler関連の設定
+    # ----------------------------------------
+    config_file = "./data/config.txt"
+    log_file = "./data/profile_out.csv"
+    output_mode = cuda.profiler_output_mode.KEY_VALUE_PAIR
+    cuda.initialize_profiler(config_file, log_file, output_mode)
 
-    # 加工元の画像データを準備
-    # -----------------------------------
-    filename = '../Matrix/figure/src_img.png'
-    img = img_open_and_normalize(filename=filename)
+    # 3DLUTデータの作成
+    # ----------------------------------------
+    matrix_param = np.array([[0.2126, 0.7152, 0.0722],
+                            [-0.114572, -0.385428, 0.5],
+                            [0.5, -0.454153, -0.045847]])
+    kwargs = {'mtx': matrix_param}
+    lut = make_3dlut_data(grid_num=17, func=rgb2yuv_for_3dlut, **kwargs)
 
-    # block数, thread数 の計算
-    # ------------------------------------
-    nx = img.shape[1]
-    ny = img.shape[0]
-    block, grid = calc_block_and_grid(nx=nx, ny=ny, dimx=32, dimy=32)
+    # 3DLUTの適用
+    # ----------------------------------------
+    img = img_open_and_normalize('../Matrix/figure/src_img.png')
+    img_x86 = exec_3dlut_on_x86(img=img, lut=lut)
+    cuda.start_profiler()
+    img_gpu = exec_3dlut_on_gpu(img=img, lut=lut)
+    cuda.stop_profiler()
 
-    # GPUに画像データを転送
-    # ------------------------------------
-    img_gpu = cuda.mem_alloc(img.nbytes)
-    cuda.memcpy_htod(img_gpu, img[:, :, ::-1].tobytes())
-
-    # 3DLUTの次元数を設定
-    # ------------------------------------
-
-    # カーネルの作成
-    # ------------------------------------
-    mod = SourceModule("""
-        __global__ void matrix_test(float *img, int nx, int ny)
-        {
-            float r, g, b;
-            unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
-            unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
-            unsigned int idx = iy * nx + ix;
-
-            if (ix < nx && iy < ny){
-                int r_idx = idx * 3;
-                int g_idx = idx * 3 + 1;
-                int b_idx = idx * 3 + 2;
-                r = img[r_idx];
-                g = img[g_idx];
-                b = img[b_idx];
-
-                img[r_idx] = r * 0.2126 + g * 0.7152 + b * 0.0722;
-                img[g_idx] = r * 0.2126 + g * 0.7152 + b * 0.0722;
-                img[b_idx] = r * 0.2126 + g * 0.7152 + b * 0.0722;
-            }
-        }
-        """)
-
-    # カーネルの実行
-    # ------------------------------------
-    func = mod.get_function("matrix_test")
-    func(img_gpu, np.uint32(nx), np.uint32(ny), grid=grid, block=block)
-
-    # 結果の取得
-    # ------------------------------------
-    img_result = np.empty_like(img)
-    cuda.memcpy_dtoh(img_result, img_gpu)
-    img_result = img_result[:, :, ::-1]
-
-    # 結果の表示
-    # ------------------------------------
-    cv2.imshow('preview', img_result)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
-def mono_conv_matrix():
-
-    # 加工元の画像データを準備
-    # -----------------------------------
-    filename = '../Matrix/figure/src_img.png'
-    img = img_open_and_normalize(filename=filename)
-
-    # block数, thread数 の計算
-    # ------------------------------------
-    nx = img.shape[1]
-    ny = img.shape[0]
-    block, grid = calc_block_and_grid(nx=nx, ny=ny, dimx=32, dimy=32)
-
-    # GPUに画像データを転送
-    # ------------------------------------
-    img_gpu = cuda.mem_alloc(img.nbytes)
-    cuda.memcpy_htod(img_gpu, img[:, :, ::-1].tobytes())
-
-    # カーネルの作成
-    # ------------------------------------
-    mod = SourceModule("""
-        __global__ void matrix_test(float *img, int nx, int ny)
-        {
-            float r, g, b;
-            unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
-            unsigned int iy = threadIdx.y + blockIdx.y * blockDim.y;
-            unsigned int idx = iy * nx + ix;
-
-            if (ix < nx && iy < ny){
-                int r_idx = idx * 3;
-                int g_idx = idx * 3 + 1;
-                int b_idx = idx * 3 + 2;
-                r = img[r_idx];
-                g = img[g_idx];
-                b = img[b_idx];
-
-                img[r_idx] = r * 0.2126 + g * 0.7152 + b * 0.0722;
-                img[g_idx] = r * 0.2126 + g * 0.7152 + b * 0.0722;
-                img[b_idx] = r * 0.2126 + g * 0.7152 + b * 0.0722;
-            }
-        }
-        """)
-
-    # カーネルの実行
-    # ------------------------------------
-    func = mod.get_function("matrix_test")
-    func(img_gpu, np.uint32(nx), np.uint32(ny), grid=grid, block=block)
-
-    # 結果の取得
-    # ------------------------------------
-    img_result = np.empty_like(img)
-    cuda.memcpy_dtoh(img_result, img_gpu)
-    img_result = img_result[:, :, ::-1]
-
-    # 結果の表示
-    # ------------------------------------
-    cv2.imshow('preview', img_result)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    return img_x86, img_gpu
 
 
 if __name__ == '__main__':
-    pass
+    if len(sys.argv) > 1:
+        grid_num = sys.argv[1]
+    else:
+        sys.exit(1)
+
+    check_time_3dlut(grid_num=grid_num)
 
