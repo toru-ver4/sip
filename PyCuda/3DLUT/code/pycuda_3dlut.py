@@ -29,7 +29,7 @@ def exec_3dlut_on_gpu(img, lut):
     # ------------------------------------
     nx = img.shape[1]
     ny = img.shape[0]
-    block, grid = calc_block_and_grid(nx=nx, ny=ny, dimx=16, dimy=8)
+    block, grid = calc_block_and_grid(nx=nx, ny=ny, dimx=8, dimy=8)
 
     # GPUに画像データと3DLUTを転送
     # ------------------------------------
@@ -531,7 +531,7 @@ def calc_block_and_grid(nx, ny, dimx, dimy):
     return block, grid
 
 
-def check_time_3dlut(grid_num=17):
+def check_time_3dlut(grid_num=17, img_file='../Matrix/figure/src_img.png'):
     # profiler関連の設定
     # ----------------------------------------
     config_file = "./data/config.txt"
@@ -549,7 +549,7 @@ def check_time_3dlut(grid_num=17):
 
     # 3DLUTの適用
     # ----------------------------------------
-    img = img_open_and_normalize('../Matrix/figure/src_img.png')
+    img = img_open_and_normalize(img_file)
     img_x86 = exec_3dlut_on_x86(img=img, lut=lut)
     cuda.start_profiler()
     img_gpu = exec_3dlut_on_gpu(img=img, lut=lut)
@@ -559,11 +559,16 @@ def check_time_3dlut(grid_num=17):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) > 2:
+        img_file = sys.argv[2]
     if len(sys.argv) > 1:
         grid_num = sys.argv[1]
     else:
         print('grid_num = 17 is set')
         grid_num = 17
 
-    check_time_3dlut(grid_num=grid_num)
+    img_x86, img_gpu = check_time_3dlut(grid_num=grid_num, img_file=img_file)
+    # cv2.imshow('preview', img_gpu)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
