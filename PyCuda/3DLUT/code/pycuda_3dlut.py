@@ -20,6 +20,11 @@ def exec_3dlut_on_gpu(img, lut):
 
     img = img * (grid_num - 1)
 
+    # % 演算子を使わないためのLUTを準備
+    # -------------------------------
+    slut = np.arange(grid_num + 1, dtype=np.uint32)
+    slut[-1] = grid_num - 1
+
     # block数, thread数 の計算
     # ------------------------------------
     nx = img.shape[1]
@@ -32,11 +37,13 @@ def exec_3dlut_on_gpu(img, lut):
     cuda.memcpy_htod(img_gpu, img[:, :, ::-1].tobytes())
     lut_gpu = cuda.mem_alloc(lut.nbytes)
     cuda.memcpy_htod(lut_gpu, lut.tobytes())
+    slut_gpu = cuda.mem_alloc(slut.nbytes)
+    cuda.memcpy_htod(slut_gpu, slut.tobytes())
 
     # カーネルの作成
     # ------------------------------------
     mod = SourceModule("""
-        __global__ void exec_3dlut(float *img, float *lut, int grid_num, int nx, int ny)
+        __global__ void exec_3dlut(float *img, float *lut, int *slut, int grid_num, int nx, int ny)
         {
             float r, g, b;
             unsigned int r_idx, g_idx, b_idx;
@@ -88,23 +95,23 @@ def exec_3dlut_on_gpu(img, lut):
                 g_coef = (int)(pow((double)grid_num, 1.0));
                 b_coef = (int)(pow((double)grid_num, 2.0));
 
-                l0_idx = ((r_idx + 0)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 0)*(b_coef)) * 3;
-                l1_idx = ((r_idx + 0)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 1)*(b_coef)) * 3;
-                l2_idx = ((r_idx + 0)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 0)*(b_coef)) * 3;
-                l3_idx = ((r_idx + 0)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 1)*(b_coef)) * 3;
-                l4_idx = ((r_idx + 1)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 0)*(b_coef)) * 3;
-                l5_idx = ((r_idx + 1)*(r_coef) + (g_idx + 0)*(g_coef) + (b_idx + 1)*(b_coef)) * 3;
-                l6_idx = ((r_idx + 1)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 0)*(b_coef)) * 3;
-                l7_idx = ((r_idx + 1)*(r_coef) + (g_idx + 1)*(g_coef) + (b_idx + 1)*(b_coef)) * 3;
+                l0_idx = (slut[(r_idx + 0)]*(r_coef) + (slut[g_idx + 0])*(g_coef) + (slut[b_idx + 0])*(b_coef)) * 3;
+                l1_idx = (slut[(r_idx + 0)]*(r_coef) + (slut[g_idx + 0])*(g_coef) + (slut[b_idx + 1])*(b_coef)) * 3;
+                l2_idx = (slut[(r_idx + 0)]*(r_coef) + (slut[g_idx + 1])*(g_coef) + (slut[b_idx + 0])*(b_coef)) * 3;
+                l3_idx = (slut[(r_idx + 0)]*(r_coef) + (slut[g_idx + 1])*(g_coef) + (slut[b_idx + 1])*(b_coef)) * 3;
+                l4_idx = (slut[(r_idx + 1)]*(r_coef) + (slut[g_idx + 0])*(g_coef) + (slut[b_idx + 0])*(b_coef)) * 3;
+                l5_idx = (slut[(r_idx + 1)]*(r_coef) + (slut[g_idx + 0])*(g_coef) + (slut[b_idx + 1])*(b_coef)) * 3;
+                l6_idx = (slut[(r_idx + 1)]*(r_coef) + (slut[g_idx + 1])*(g_coef) + (slut[b_idx + 0])*(b_coef)) * 3;
+                l7_idx = (slut[(r_idx + 1)]*(r_coef) + (slut[g_idx + 1])*(g_coef) + (slut[b_idx + 1])*(b_coef)) * 3;
 
-                l_0 = &lut[l0_idx % (total_index * 3)];
-                l_1 = &lut[l1_idx % (total_index * 3)];
-                l_2 = &lut[l2_idx % (total_index * 3)];
-                l_3 = &lut[l3_idx % (total_index * 3)];
-                l_4 = &lut[l4_idx % (total_index * 3)];
-                l_5 = &lut[l5_idx % (total_index * 3)];
-                l_6 = &lut[l6_idx % (total_index * 3)];
-                l_7 = &lut[l7_idx % (total_index * 3)];
+                l_0 = &lut[l0_idx];
+                l_1 = &lut[l1_idx];
+                l_2 = &lut[l2_idx];
+                l_3 = &lut[l3_idx];
+                l_4 = &lut[l4_idx];
+                l_5 = &lut[l5_idx];
+                l_6 = &lut[l6_idx];
+                l_7 = &lut[l7_idx];
 
                 // exec 3dlut linear interpolation
                 img[r_px_idx] = v_0*l_7[0] + v_1*l_6[0] + v_2*l_5[0] + v_3*l_4[0]
@@ -120,7 +127,7 @@ def exec_3dlut_on_gpu(img, lut):
     # カーネルの実行
     # ------------------------------------
     func = mod.get_function("exec_3dlut")
-    func(img_gpu, lut_gpu, np.uint32(grid_num), np.uint32(nx),
+    func(img_gpu, lut_gpu, slut_gpu, np.uint32(grid_num), np.uint32(nx),
          np.uint32(ny), grid=grid, block=block)
 
     # 結果の取得
@@ -240,15 +247,17 @@ def exec_3dlut_on_x86(img, lut):
 
 
 @numba.jit
-def exec_3dlut_on_x86_fast(img, lut):
+def exec_3dlut_on_x86_4dim_lut(img, lut):
     """
     # 概要
     3DLUTを画像に適用する。
     初代は処理速度が遅かったので計算量が減るように改善した
 
     # 詳細
-    lut には Adobe CUBE 形式の順序で並んだ 3DLUTデータを
-    Numpy の np.float32 で入れておくこと。
+    lut は LUT[r_idx][g_idx][b_idx][3] の形式にすること。
+    CUBE形式は非対応。
+    CUBE形式からの変換には、sort_cube_data_to_4dim_array() を
+    コールすれば良い。
 
     # 備考
     本関数は将来的にCUDAに移植することを考えて
