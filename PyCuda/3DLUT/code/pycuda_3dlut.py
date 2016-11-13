@@ -239,6 +239,97 @@ def exec_3dlut_on_x86(img, lut):
     return out_img
 
 
+@numba.jit
+def exec_3dlut_on_x86_fast(img, lut):
+    """
+    # 概要
+    3DLUTを画像に適用する。
+    初代は処理速度が遅かったので計算量が減るように改善した
+
+    # 詳細
+    lut には Adobe CUBE 形式の順序で並んだ 3DLUTデータを
+    Numpy の np.float32 で入れておくこと。
+
+    # 備考
+    本関数は将来的にCUDAに移植することを考えて
+    forループを使って実装している。よってクソ遅い。
+    耐えられないようであれば numba.jit のデコレータを使うこと。
+    """
+
+    # grid_num を算出しつつ lut の shape を確認
+    # ------------------------------------------
+    if (lut.shape[0] == lut.shape[1]) and (lut.shape[1] == lut.shape[2]):
+        grid_num = np.uint8(lut.shape[0])
+    else:
+        print('lut format error. please set 4-dimentional lut.')
+        return None
+
+    img = img * (grid_num - 1)
+    out_img = np.empty_like(img)
+    slut = np.arange(grid_num + 1, dtype=np.uint32)
+    slut[-1] = grid_num - 1  # あとでオーバーフロー回避で使う
+
+    for w_idx in range(img.shape[1]):
+        for h_idx in range(img.shape[0]):
+            r = img[h_idx][w_idx][0]
+            g = img[h_idx][w_idx][1]
+            b = img[h_idx][w_idx][2]
+
+            # r, g, b の各 Index を求める
+            # ---------------------------
+            r_idx = np.uint32(np.floor(r))
+            g_idx = np.uint32(np.floor(g))
+            b_idx = np.uint32(np.floor(b))
+
+            # 体積算出のために r_0 ～ b_1 を求める
+            # ------------------------------------
+            r_0 = r - r_idx
+            r_1 = 1 - r_0
+            g_0 = g - g_idx
+            g_1 = 1 - g_0
+            b_0 = b - b_idx
+            b_1 = 1 - b_0
+
+            # 体積計算
+            # -------------------------------------
+            v_0 = (r_0 * g_0 * b_0)
+            v_1 = (r_0 * g_0 * b_1)
+            v_2 = (r_0 * g_1 * b_0)
+            v_3 = (r_0 * g_1 * b_1)
+            v_4 = (r_1 * g_0 * b_0)
+            v_5 = (r_1 * g_0 * b_1)
+            v_6 = (r_1 * g_1 * b_0)
+            v_7 = (r_1 * g_1 * b_1)
+
+            # l_0 ～ l_7 を事前に求めておく
+            # --------------------------------------
+            l_0 = lut[slut[r_idx+0]][slut[g_idx+0]][slut[b_idx+0]]
+            l_1 = lut[slut[r_idx+0]][slut[g_idx+0]][slut[b_idx+1]]
+            l_2 = lut[slut[r_idx+0]][slut[g_idx+1]][slut[b_idx+0]]
+            l_3 = lut[slut[r_idx+0]][slut[g_idx+1]][slut[b_idx+1]]
+            l_4 = lut[slut[r_idx+1]][slut[g_idx+0]][slut[b_idx+0]]
+            l_5 = lut[slut[r_idx+1]][slut[g_idx+0]][slut[b_idx+1]]
+            l_6 = lut[slut[r_idx+1]][slut[g_idx+1]][slut[b_idx+0]]
+            l_7 = lut[slut[r_idx+1]][slut[g_idx+1]][slut[b_idx+1]]
+
+            # 線形補間処理実行
+            # -----------------------------------------
+            r_out = v_0*l_7[0] + v_1*l_6[0] + v_2*l_5[0] + v_3*l_4[0]\
+                + v_4*l_3[0] + v_5*l_2[0] + v_6*l_1[0] + v_7*l_0[0]
+            g_out = v_0*l_7[1] + v_1*l_6[1] + v_2*l_5[1] + v_3*l_4[1]\
+                + v_4*l_3[1] + v_5*l_2[1] + v_6*l_1[1] + v_7*l_0[1]
+            b_out = v_0*l_7[2] + v_1*l_6[2] + v_2*l_5[2] + v_3*l_4[2]\
+                + v_4*l_3[2] + v_5*l_2[2] + v_6*l_1[2] + v_7*l_0[2]
+
+            # 結果を out_img に詰める
+            # -----------------------------------------
+            out_img[h_idx][w_idx][0] = r_out
+            out_img[h_idx][w_idx][1] = g_out
+            out_img[h_idx][w_idx][2] = b_out
+
+    return out_img
+
+
 def make_3dlut_data(grid_num=17, func=None, **kwargs):
     """
     # 概要
@@ -289,7 +380,15 @@ def rgb2yuv_for_3dlut(in_data, **kwargs):
     ```
 
     """
-    mtx = kwargs['mtx']
+
+    if 'mtx' in kwargs:
+        print('sonzai')
+        mtx = kwargs['mtx']
+    else:
+        mtx = np.array([[0.2126, 0.7152, 0.0722],
+                        [-0.114572, -0.385428, 0.5],
+                        [0.5, -0.454153, -0.045847]])
+
     r_in, g_in, b_in = np.dsplit(in_data, 3)
     y = r_in * mtx[0][0] + g_in * mtx[0][1] + b_in * mtx[0][2]
     u = r_in * mtx[1][0] + g_in * mtx[1][1] + b_in * mtx[1][2] + 0.5
@@ -360,6 +459,27 @@ def save_3dlut_cube(lut_data, filename):
         for data in lut_data:
             fout.write("{:.11f} {:.11f} {:.11f}\n".format(
                 data[0], data[1], data[2]))
+
+
+def sort_cube_data_to_4dim_array(in_lut):
+    """
+    # 概要
+    [idx][3] の cube配列を
+    [r_idx][g_idx][b_idx][3] の 4次元配列に並び替える
+    """
+
+    grid_num = np.uint8(np.round(np.power(in_lut.shape[0], 1/3)))
+    out_lut = np.zeros((grid_num, grid_num, grid_num, 3), dtype=np.float32)
+
+    for global_idx in range(grid_num**3):
+        r_idx = (global_idx // (grid_num**0)) % grid_num
+        g_idx = (global_idx // (grid_num**1)) % grid_num
+        b_idx = (global_idx // (grid_num**2)) % grid_num
+        out_lut[r_idx][g_idx][b_idx][0] = in_lut[global_idx][0]
+        out_lut[r_idx][g_idx][b_idx][1] = in_lut[global_idx][1]
+        out_lut[r_idx][g_idx][b_idx][2] = in_lut[global_idx][2]
+
+    return out_lut
 
 
 def img_open_and_normalize(filename):
@@ -433,7 +553,8 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         grid_num = sys.argv[1]
     else:
-        sys.exit(1)
+        print('grid_num = 17 is set')
+        grid_num = 17
 
     check_time_3dlut(grid_num=grid_num)
 
