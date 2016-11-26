@@ -51,3 +51,9 @@ PyCuda/Tutorial/.ipynb_checkpoints/Tutorial-checkpoint.ipynb
 **/save_test.cube
 **/.vscode/
 **/profile_out.csv
+**/*-checkpoint.ipynb
+**/*.stackdump
+misc/picture/*.png
+**/*.pyc
+**/*.spec
+**/.python-version

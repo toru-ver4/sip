@@ -110,20 +110,21 @@ def add_profile():
     for idx, in_file in enumerate(in_file_list):
         img = Image.open(in_file)
         img.save(out_file_list[idx], icc_profile=dci_profile.tobytes())
-        img.save(out_file_list2[idx], icc_profile=sRGB_profile.tobytes())
+        # img.save(out_file_list2[idx], icc_profile=sRGB_profile.tobytes())
 
 
 def extract_profile():
-    filename = './picture/Webkit-logo-P3.png'
+    filename = './picture/saturation_test.png'
     img = Image.open(filename)
-    out_file_name = './picture/dci_profile.icc'
+    out_file_name = './picture/sRGB_profile.icc'
+    print(img.info.keys())
 
     with open(out_file_name, 'wb') as f:
         f.write(img.info['icc_profile'])
 
 
 if __name__ == '__main__':
-    # gen_color_bar()
-    # gen_saturation_color_bar()
-    # add_profile()
+    gen_color_bar()
+    gen_saturation_color_bar()
+    add_profile()
     extract_profile()
