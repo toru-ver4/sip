@@ -14,4 +14,9 @@ nichijo_op_.mp4
 out.png
 python3.4m.exe.stackdump
 .ipynb_checkpoints/sample_codes-checkpoint.ipynb
-kivy/paint/.ipynb_checkpoints/kivy_memo-checkpoint.ipynb
+**/*-checkpoint.ipynb
+**/*.stackdump
+misc/picture/*.png
+**/*.pyc
+**/*.spec
+**/.python-version
