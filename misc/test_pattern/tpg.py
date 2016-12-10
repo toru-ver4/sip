@@ -48,20 +48,20 @@ def gen_window_pattern(width=1920, height=1080,
     +----------------------------+      +---------------------------+
     """
 
-    base_img = np.zeros((height, width, 3))
+    window_img = np.zeros((height, width, 3))
     win_height = round(height * size)
     win_width = round(width * size)
     pt1 = (round((width - win_width) / 2.), round((height - win_height) / 2.))
     pt2 = (pt1[0] + win_width, pt1[1] + win_height)
 
-    cv2.rectangle(base_img, pt1, pt2, color, -1)
+    cv2.rectangle(window_img, pt1, pt2, color, -1)
 
     if debug:
-        cv2.imshow('preview', base_img[:, :, ::-1])
+        cv2.imshow('preview', window_img[:, :, ::-1])
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-    return base_img
+    return window_img
 
 
 def gen_gradation_bar(width=1920, height=1080,
@@ -74,6 +74,7 @@ def gen_gradation_bar(width=1920, height=1080,
     # 特徴
     offset=1.0 に指定すれば saturation のグラデーションにもなるよ！
     """
+
     slope = color - offset
     inv_color = 1 - color
     if direction == 'h':
@@ -112,8 +113,8 @@ def check_abl_pattern(width=1920, height=1080,
     # 概要
     例のアレの確認用パターンを作ってみます。
     """
-    # color bar をこしらえる
-    # -------------------------
+    # rgbcmy の color bar をこしらえる
+    # --------------------------------
     color_list = [const_red, const_green, const_blue,
                   const_cyan, const_majenta, const_yellow]
     color_bar_list = [gen_gradation_bar(width=color_bar_width,
@@ -121,22 +122,31 @@ def check_abl_pattern(width=1920, height=1080,
                                         direction='v',
                                         offset=color_bar_offset,
                                         color=c_val) for c_val in color_list]
+    # 目隠し用の黒領域をこしらえる
+    # ----------------------------
     black_bar_width = color_bar_width * 2
     black_bar = np.zeros((height, black_bar_width, 3))
-    print(black_bar.shape)
     color_bar_list.insert(0, black_bar)
+
+    # 白ベタ Window をこしらえる
+    # ----------------------------
     win_width = width - (color_bar_width * len(color_bar_list))\
         - black_bar_width
     win_height = height
     window_img = gen_window_pattern(width=win_width, height=win_height,
                                     color=const_white, size=window_size)
     color_bar_list.insert(0, window_img)
-    color_bar_img = cv2.hconcat(color_bar_list)
+
+    # 各パーツを結合
+    # ----------------------------
+    out_img = cv2.hconcat(color_bar_list)
 
     if debug:
-        cv2.imshow('preview', color_bar_img[:, :, ::-1])
+        cv2.imshow('preview', out_img[:, :, ::-1])
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+
+    return out_img
 
 
 if __name__ == '__main__':
