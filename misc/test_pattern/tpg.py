@@ -13,6 +13,14 @@ import cv2
 import numpy as np
 
 const_default_color = np.array([1.0, 1.0, 0.0])
+const_white = np.array([1.0, 1.0, 1.0])
+const_black = np.array([0.0, 0.0, 0.0])
+const_red = np.array([1.0, 0.0, 0.0])
+const_green = np.array([0.0, 1.0, 0.0])
+const_blue = np.array([0.0, 0.0, 1.0])
+const_cyan = np.array([0.0, 1.0, 1.0])
+const_majenta = np.array([1.0, 0.0, 1.0])
+const_yellow = np.array([1.0, 1.0, 0.0])
 
 
 def parameter_error_message(param_name):
@@ -20,7 +28,7 @@ def parameter_error_message(param_name):
 
 
 def gen_window_pattern(width=1920, height=1080,
-                       color=const_default_color, size=0.5, debug=True):
+                       color=const_default_color, size=0.5, debug=False):
     """
     # 概要
     Windowパターンを作成する。
@@ -46,14 +54,14 @@ def gen_window_pattern(width=1920, height=1080,
     pt1 = (round((width - win_width) / 2.), round((height - win_height) / 2.))
     pt2 = (pt1[0] + win_width, pt1[1] + win_height)
 
-    print(pt1, pt2)
-
     cv2.rectangle(base_img, pt1, pt2, color, -1)
 
     if debug:
         cv2.imshow('preview', base_img[:, :, ::-1])
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+
+    return base_img
 
 
 def gen_gradation_bar(width=1920, height=1080,
@@ -68,7 +76,6 @@ def gen_gradation_bar(width=1920, height=1080,
     """
     slope = color - offset
     inv_color = 1 - color
-    print(inv_color)
     if direction == 'h':
         x = np.arange(width) / (width - 1)
         r, g, b = [(x * s_val) + offset for s_val in slope]
@@ -98,9 +105,48 @@ def gen_gradation_bar(width=1920, height=1080,
     return gradation_bar
 
 
+def check_abl_pattern(width=1920, height=1080,
+                      color_bar_width=100, color_bar_offset=0.0,
+                      window_size=0.5, debug=False):
+    """
+    # 概要
+    例のアレの確認用パターンを作ってみます。
+    """
+    # color bar をこしらえる
+    # -------------------------
+    color_list = [const_red, const_green, const_blue,
+                  const_cyan, const_majenta, const_yellow]
+    color_bar_list = [gen_gradation_bar(width=color_bar_width,
+                                        height=height,
+                                        direction='v',
+                                        offset=color_bar_offset,
+                                        color=c_val) for c_val in color_list]
+    black_bar_width = color_bar_width * 2
+    black_bar = np.zeros((height, black_bar_width, 3))
+    print(black_bar.shape)
+    color_bar_list.insert(0, black_bar)
+    win_width = width - (color_bar_width * len(color_bar_list))\
+        - black_bar_width
+    win_height = height
+    window_img = gen_window_pattern(width=win_width, height=win_height,
+                                    color=const_white, size=window_size)
+    color_bar_list.insert(0, window_img)
+    color_bar_img = cv2.hconcat(color_bar_list)
+
+    if debug:
+        cv2.imshow('preview', color_bar_img[:, :, ::-1])
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+
 if __name__ == '__main__':
     gen_gradation_bar(width=1920, height=1080,
                       color=np.array([1.0, 0.7, 0.3]),
                       direction='v', offset=0.8, debug=False)
+
     gen_window_pattern(width=1920, height=1080,
-                       color=np.array([1.0, 1.0, 1.0]), size=0.9, debug=True)
+                       color=np.array([1.0, 1.0, 1.0]), size=0.9, debug=False)
+
+    check_abl_pattern(width=1920, height=1080,
+                      color_bar_width=50, color_bar_offset=0.5,
+                      window_size=1.0, debug=True)
