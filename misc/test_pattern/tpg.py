@@ -108,6 +108,7 @@ def gen_gradation_bar(width=1920, height=1080,
 
 def check_abl_pattern(width=1920, height=1080,
                       color_bar_width=100, color_bar_offset=0.0,
+                      color_bar_gain=0.5,
                       window_size=0.5, debug=False):
     """
     # 概要
@@ -117,6 +118,7 @@ def check_abl_pattern(width=1920, height=1080,
     # --------------------------------
     color_list = [const_red, const_green, const_blue,
                   const_cyan, const_majenta, const_yellow]
+    color_list = [x * color_bar_gain for x in color_list]
     color_bar_list = [gen_gradation_bar(width=color_bar_width,
                                         height=height,
                                         direction='v',
@@ -158,5 +160,6 @@ if __name__ == '__main__':
                        color=np.array([1.0, 1.0, 1.0]), size=0.9, debug=False)
 
     check_abl_pattern(width=1920, height=1080,
-                      color_bar_width=50, color_bar_offset=0.5,
-                      window_size=1.0, debug=True)
+                      color_bar_width=50, color_bar_offset=0.3,
+                      color_bar_gain=0.5,
+                      window_size=0.9, debug=True)
