@@ -116,9 +116,9 @@ def check_abl_pattern(width=1920, height=1080,
     """
     # rgbcmy の color bar をこしらえる
     # --------------------------------
-    color_list = [const_red, const_green, const_blue,
-                  const_cyan, const_majenta, const_yellow]
-    color_list = [x * color_bar_gain for x in color_list]
+    color_list_org = [const_red, const_green, const_blue,
+                      const_cyan, const_majenta, const_yellow]
+    color_list = [x * color_bar_gain for x in color_list_org]
     color_bar_list = [gen_gradation_bar(width=color_bar_width,
                                         height=height,
                                         direction='v',
@@ -132,7 +132,7 @@ def check_abl_pattern(width=1920, height=1080,
 
     # 白ベタ Window をこしらえる
     # ----------------------------
-    win_width = width - (color_bar_width * len(color_bar_list))\
+    win_width = width - (color_bar_width * len(color_list_org))\
         - black_bar_width
     win_height = height
     window_img = gen_window_pattern(width=win_width, height=win_height,
@@ -159,7 +159,12 @@ if __name__ == '__main__':
     gen_window_pattern(width=1920, height=1080,
                        color=np.array([1.0, 1.0, 1.0]), size=0.9, debug=False)
 
-    check_abl_pattern(width=1920, height=1080,
-                      color_bar_width=50, color_bar_offset=0.3,
-                      color_bar_gain=0.5,
-                      window_size=0.9, debug=True)
+    img = check_abl_pattern(width=1920, height=1080,
+                            color_bar_width=50, color_bar_offset=0.0,
+                            color_bar_gain=1.0,
+                            window_size=1.0, debug=True)
+    img *= 0xFFFF
+    img[img < 4096] = 4096
+    img[img > 60160] = 60160
+    img = np.uint16(np.round(img))
+    cv2.imwrite("hoge.tiff", img)
