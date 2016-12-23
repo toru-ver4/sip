@@ -11,6 +11,20 @@ const_sRGB_xy = [[0.64, 0.33],
                  [0.15, 0.06],
                  [0.3127, 0.3290]]
 
+const_ntsc_xy = [[0.67, 0.33],
+                 [0.21, 0.71],
+                 [0.14, 0.08],
+                 [0.310, 0.316]]
+
+const_rec601_xy = const_ntsc_xy
+
+const_rec709_xy = const_sRGB_xy
+
+const_rec2020_xy = [[0.708, 0.292],
+                    [0.170, 0.797],
+                    [0.131, 0.046],
+                    [0.3127, 0.3290]]
+
 const_sRGB_xyz = [[0.64, 0.33, 0.03],
                   [0.30, 0.60, 0.10],
                   [0.15, 0.06, 0.79],
@@ -23,8 +37,11 @@ const_xyz_to_lms = [[0.8951000, 0.2664000, -0.1614000],
 const_d65_xy = [0.31271, 0.32902]
 const_d50_xy = [0.34567, 0.35850]
 
+const_rec601_y_coef = [0.2990, 0.5870, 0.1140]
+const_rec709_y_coef = [0.2126, 0.7152, 0.0722]
 
-def xy_to_xyz(xy):
+
+def xy_to_xyz_internal(xy):
     rz = 1 - (xy[0][0] + xy[0][1])
     gz = 1 - (xy[1][0] + xy[1][1])
     bz = 1 - (xy[2][0] + xy[2][1])
@@ -82,7 +99,7 @@ def get_rgb_to_xyz_matrix(gamut=const_sRGB_xy):
     # まずは xyz 座標を準備
     # ------------------------------------------------
     if np.array(gamut).shape == (4, 2):
-        gamut = xy_to_xyz(gamut)
+        gamut = xy_to_xyz_internal(gamut)
     elif np.array(gamut).shape == (4, 3):
         pass
     else:
@@ -184,7 +201,43 @@ def color_cvt(img, mtx):
     return out_img
 
 
+def get_yuv_trans_coef(gamut=const_sRGB_xy):
+    """
+    # 概要
+    YUV変換の係数を色域から算出する
+    # 参考URL：http://www.ite.or.jp/study/musen/tips/tip07.html
+    """
+    gamut = np.array(xy_to_xyz(gamut))
+
+    # y=1 で正規化した行列を用意
+    # ------------------------------------------------
+    y_is_1_xyz_of_rgb = np.array([x / x[1] for x in gamut[0:3]]).T
+    y_is_1_xyz_of_w = gamut[3] / gamut[3][1]
+
+    y_coef = linalg.inv(y_is_1_xyz_of_rgb).dot(y_is_1_xyz_of_w)
+
+    return y_coef
+
+
+def xy_to_xyz(gamut):
+    """
+    # 概要
+    xy座標だった場合はxyzに変換して出力する。
+    """
+    if np.array(gamut).shape == (4, 2):
+        gamut = xy_to_xyz_internal(gamut)
+    elif np.array(gamut).shape == (4, 3):
+        pass
+    else:
+        raise ValueError
+
+    return gamut
+
+
 if __name__ == '__main__':
     # get_rgb_to_xyz_matrix(gamut=const_sRGB_xy)
     # get_white_point_conv_matrix()
-    change_img_white_point()
+    # change_img_white_point()
+    print(get_yuv_trans_coef(gamut=const_rec601_xy))
+    print(get_yuv_trans_coef(gamut=const_rec709_xy))
+    print(get_yuv_trans_coef(gamut=const_rec2020_xy))
