@@ -34,6 +34,10 @@ const_xyz_to_lms = [[0.8951000, 0.2664000, -0.1614000],
                     [-0.7502000, 1.7135000, 0.0367000],
                     [0.0389000, -0.0685000, 1.0296000]]
 
+const_rgb_to_large_xyz = [[2.7689, 1.7517, 1.1302],
+                          [1.0000, 4.5907, 0.0601],
+                          [0.0000, 0.0565, 5.5943]]
+
 const_d65_xy = [0.31271, 0.32902]
 const_d50_xy = [0.34567, 0.35850]
 
@@ -234,10 +238,51 @@ def xy_to_xyz(gamut):
     return gamut
 
 
+def large_xyz_to_small_xyz(x, y, z):
+
+    xyz_sum = x + y + z
+    small_x = x / xyz_sum
+    small_y = y / xyz_sum
+    small_z = z / xyz_sum
+
+    return small_x, small_y, small_z
+
+
+def kelvin_to_rgb(t=6500):
+    """
+    # 概要
+    色温度からRGB刺激値を算出する
+    # 参考URL
+    http://cafe.mis.ous.ac.jp/sawami/%E9%BB%92%E4%BD%93%E8%BC%BB%E5%B0%84.PDF
+    """
+
+    h = 6.6260755E-34
+    k = 1.380658E-23
+    c = 2.99792458E+08
+    bunbo = 8 * np.pi * h * c
+    r = bunbo / ((0.700E-06 ** 5) * (np.exp(h*c/(k*t*700E-09))-1))
+    g = bunbo / ((0.546E-06 ** 5) * (np.exp(h*c/(k*t*546E-09))-1))
+    b = bunbo / ((0.436E-06 ** 5) * (np.exp(h*c/(k*t*436E-09))-1))
+
+    return r, g, b
+
+
+def kelvin_to_xy_chromaticity(t=6500):
+    rgb = np.array(kelvin_to_rgb(t=t))
+    print(rgb)
+    large_xyz = np.array(const_rgb_to_large_xyz).dot(rgb)
+    print(large_xyz)
+    x, y, z = large_xyz_to_small_xyz(*large_xyz)
+    print(x, y, z)
+
+
 if __name__ == '__main__':
     # get_rgb_to_xyz_matrix(gamut=const_sRGB_xy)
     # get_white_point_conv_matrix()
     # change_img_white_point()
-    print(get_yuv_trans_coef(gamut=const_rec601_xy))
-    print(get_yuv_trans_coef(gamut=const_rec709_xy))
-    print(get_yuv_trans_coef(gamut=const_rec2020_xy))
+    # print(get_yuv_trans_coef(gamut=const_rec601_xy))
+    # print(get_yuv_trans_coef(gamut=const_rec709_xy))
+    # print(get_yuv_trans_coef(gamut=const_rec2020_xy))
+    kelvin_to_xy_chromaticity(t=10000)
+    kelvin_to_xy_chromaticity(t=6500)
+    kelvin_to_xy_chromaticity(t=3000)
