@@ -20,3 +20,8 @@ misc/picture/*.png
 **/*.pyc
 **/*.spec
 **/.python-version
+misc/ffmpeg_tiff/img
+misc/ffmpeg_tiff/*.exe
+misc/ffmpeg_tiff/*.wav
+misc/ffmpeg_tiff/*.mkv
+
