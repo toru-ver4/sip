@@ -24,13 +24,6 @@ def encode_hdr_movie():
     """YouTubeにアップ出来る形式で動画を作る"""
     os.chdir(os.path.dirname(__file__) + "/ffmpeg_tiff")
 
-    # 以下は H.264の設定。10bit のプロファイルが当たらずに断念
-    # ext_cmd = ['ffmpeg', '-r', '3', '-i', 'img/hdr_img_%8d.tiff',
-    #            '-i', 'bgm.wav', '-ar', '48000', '-ac', '2', '-c:a', 'aac',
-    #            '-b:a', '384k',
-    #            '-r', '24', '-c:v', 'libx264', '-profile', 'high10',
-    #            '-pix_fmt', 'yuv420p10le',
-    #            '-b:v', '50000k', '-shortest', '-y', 'out.mkv']
     ext_cmd = ['ffmpeg', '-r', '3', '-i', 'img/hdr_img_%8d.tiff',
                '-i', 'bgm.wav', '-ar', '48000', '-ac', '2', '-c:a', 'aac',
                '-b:a', '384k',

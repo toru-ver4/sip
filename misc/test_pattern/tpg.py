@@ -9,8 +9,10 @@
 
 """
 
+import os
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 const_default_color = np.array([1.0, 1.0, 0.0])
 const_white = np.array([1.0, 1.0, 1.0])
@@ -153,20 +155,71 @@ def check_abl_pattern(width=1920, height=1080,
     return out_img
 
 
-if __name__ == '__main__':
-    gen_gradation_bar(width=1920, height=1080,
-                      color=np.array([1.0, 0.7, 0.3]),
-                      direction='v', offset=0.8, debug=False)
+def get_bt2100_pq_curve(x, debug=False):
+    """
+    参考：ITU-R Recommendation BT.2100-0
+    """
+    m1 = 2610/16384
+    m2 = 2523/4096 * 128
+    c1 = 3424/4096
+    c2 = 2413/4096 * 32
+    c3 = 2392/4096 * 32
 
-    gen_window_pattern(width=1920, height=1080,
-                       color=np.array([1.0, 1.0, 1.0]), size=0.9, debug=False)
+    x = np.array(x)
+    bunsi = (x ** (1/m2)) - c1
+    bunsi[bunsi < 0] = 0
+    bunbo = c2 - (c3 * (x ** (1/m2)))
+    luminance = (bunsi / bunbo) ** (1/m1)
+
+    return luminance * 10000
+
+
+def gen_youtube_hdr_test_pattern(high_bit_num=5):
+
+    # calc mask bit
+    # -------------------------------
+    bit_shift = 16 - high_bit_num
+    bit_mask = (0xFFFF >> bit_shift) << bit_shift
+    text_num = 2 ** high_bit_num
+    coef = 0xFFFF / bit_mask
 
     img = check_abl_pattern(width=3840, height=2160,
                             color_bar_width=200, color_bar_offset=0.0,
                             color_bar_gain=1.0,
-                            window_size=0.1, debug=True)
-    img *= 0xFFFF
-    # img[img < 4096] = 4096
-    # img[img > 60160] = 60160
+                            window_size=0.1, debug=False)
+    img = img * 0xFFFF
+    img = np.uint32(np.round(img))
+    img = img & bit_mask
+    img = img * coef  # 上の階調が暗くならないための処置
+    img[img > 0xFFFF] = 0xFFFF
     img = np.uint16(np.round(img))
+
+    # ここで輝度情報を書き込む
+    # ---------------------------------
+    x = np.arange(text_num) / (text_num - 1)
+    x = (np.uint32(np.round(x * 0xFFFF)) & bit_mask) * coef / 0xFFFF
+    luminance = get_bt2100_pq_curve(x)
+
+    font = cv2.FONT_HERSHEY_PLAIN
+    font_color = (0xFFFF, 0xFFFF, 0)
+    text = "10000 nits"
+    cv2.putText(img, text, (0, 10), font, 2, font_color)
+
+    os.chdir(os.path.dirname(__file__))
     cv2.imwrite("hoge.tiff", img)
+
+
+if __name__ == '__main__':
+    # gen_gradation_bar(width=1920, height=1080,
+    #                   color=np.array([1.0, 0.7, 0.3]),
+    #                   direction='v', offset=0.8, debug=False)
+
+    # gen_window_pattern(width=1920, height=1080,
+    #                    color=np.array([1.0, 1.0, 1.0]), size=0.9, debug=False)
+
+    # check_abl_pattern(width=3840, height=2160,
+    #                   color_bar_width=200, color_bar_offset=0.0,
+    #                   color_bar_gain=1.0,
+    #                   window_size=0.1, debug=False)
+
+    gen_youtube_hdr_test_pattern(high_bit_num=5)
