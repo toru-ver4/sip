@@ -3,7 +3,7 @@ Windows PC で HDR動画を YouTube にアップロードする方法
 
 # この記事の目的
 Windows PC で HDR動画を YouTube に上げる際、
-公式のドキュメント通りに実行しても上手く行かなかったので情報を残しておく。
+[公式のドキュメント](https://support.google.com/youtube/answer/7126552?hl=ja)通りに実行しても上手く行かなかったので情報を残しておく。
 
 前提条件として以下の2点はクリアしているものとする。
 
