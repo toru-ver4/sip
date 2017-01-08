@@ -7,8 +7,17 @@
 """
 
 import os
+import sys
 import shutil
 import subprocess
+import matplotlib.pyplot as plt
+import cv2
+import numpy as np
+import imp
+sys.path.append("./")
+
+import test_pattern.tpg as tpg
+imp.reload(tpg)
 
 
 def copy_movie_seq_file():
@@ -20,16 +29,34 @@ def copy_movie_seq_file():
         shutil.copyfile(in_name, out_name)
 
 
+def brightness_limitter_test_pattern():
+    """TVのブライトネスリミットの掛かり具合を調べるパターンを作る"""
+    sec = 5
+    fps = 60
+    frame = sec * fps
+    x = np.arange(frame) / (frame - 1)
+    x = np.concatenate((x, x[::-1], x, x[::-1]))
+    x = x ** 2.0
+    counter = 0
+    os.chdir(os.path.dirname(__file__))
+    for size in x:
+        img = tpg.gen_youtube_hdr_test_pattern(high_bit_num=6,
+                                               window_size=float(size))
+        out_name = "./ffmpeg_tiff/img/hdr_img_{:08d}.tiff".format(counter)
+        cv2.imwrite(out_name, img)
+        counter += 1
+
+
 def encode_hdr_movie():
     """YouTubeにアップ出来る形式で動画を作る"""
     os.chdir(os.path.dirname(__file__) + "/ffmpeg_tiff")
 
-    ext_cmd = ['ffmpeg', '-r', '3', '-i', 'img/hdr_img_%8d.tiff',
+    ext_cmd = ['ffmpeg', '-r', '60', '-i', 'img/hdr_img_%8d.tiff',
                '-i', 'bgm.wav', '-ar', '48000', '-ac', '2', '-c:a', 'aac',
                '-b:a', '384k',
-               '-r', '24', '-vcodec', 'prores_ks', '-profile:v', '3',
+               '-r', '60', '-vcodec', 'prores_ks', '-profile:v', '3',
                '-pix_fmt', 'yuv422p10le',
-               '-b:v', '50000k', '-shortest', '-y', 'out.mkv']
+               '-b:v', '85000k', '-shortest', '-y', 'out.mkv']
     p = subprocess.Popen(ext_cmd, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT)
     # out, err = p.communicate()
@@ -62,5 +89,12 @@ def encode_hdr_movie():
 
 
 if __name__ == '__main__':
-    copy_movie_seq_file()
+    # 静止画のHDR確認動画を生成
+    # -------------------------
+    # copy_movie_seq_file()
+    # encode_hdr_movie()
+
+    # 白ベタWindow がサイズを変えるHDR確認動画を生成
+    # -------------------------------------------
+    brightness_limitter_test_pattern()
     encode_hdr_movie()

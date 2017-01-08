@@ -12,7 +12,6 @@
 import os
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 const_default_color = np.array([1.0, 1.0, 0.0])
 const_white = np.array([1.0, 1.0, 1.0])
@@ -120,7 +119,9 @@ def check_abl_pattern(width=1920, height=1080,
     # --------------------------------
     # color_list_org = [const_red, const_green, const_blue,
     #                   const_cyan, const_majenta, const_yellow]
-    color_list_org = [const_white, const_green, const_blue, const_red]
+    # color_list_org = [const_white, const_green, const_blue, const_red]
+    color_list_org = [const_white, const_red, const_green, const_blue,
+                      const_cyan, const_majenta, const_yellow]
     color_list = [x * color_bar_gain for x in color_list_org]
     color_bar_list = [gen_gradation_bar(width=color_bar_width,
                                         height=height,
@@ -173,7 +174,7 @@ def get_bt2100_pq_curve(x, debug=False):
     return luminance * 10000
 
 
-def gen_youtube_hdr_test_pattern(high_bit_num=5):
+def gen_youtube_hdr_test_pattern(high_bit_num=5, window_size=0.05):
     width = 3840
     height = 2160
 
@@ -185,9 +186,9 @@ def gen_youtube_hdr_test_pattern(high_bit_num=5):
     coef = 0xFFFF / bit_mask
 
     img = check_abl_pattern(width=width, height=height,
-                            color_bar_width=160, color_bar_offset=0.0,
+                            color_bar_width=60, color_bar_offset=0.0,
                             color_bar_gain=1.0,
-                            window_size=0.05, debug=False)
+                            window_size=window_size, debug=False)
     img = img * 0xFFFF
     img = np.uint32(np.round(img))
     img = img & bit_mask
@@ -200,7 +201,7 @@ def gen_youtube_hdr_test_pattern(high_bit_num=5):
     x = np.arange(text_num) / (text_num - 1)
     x = (np.uint32(np.round(x * 0xFFFF)) & bit_mask) * coef / 0xFFFF
     luminance = get_bt2100_pq_curve(x)
-    text_pos = [(2960, int(x * height / text_num) + 28)
+    text_pos = [(3180, int(x * height / text_num) + 28)
                 for x in range(text_num)]
     # font = cv2.FONT_HERSHEY_PLAIN
     font = cv2.FONT_HERSHEY_DUPLEX
@@ -210,8 +211,7 @@ def gen_youtube_hdr_test_pattern(high_bit_num=5):
         pos = text_pos[idx]
         cv2.putText(img, text, pos, font, 1, font_color)
 
-    os.chdir(os.path.dirname(__file__))
-    cv2.imwrite("source.tiff", img)
+    return img
 
 
 if __name__ == '__main__':
@@ -227,4 +227,6 @@ if __name__ == '__main__':
     #                   color_bar_gain=1.0,
     #                   window_size=0.1, debug=False)
 
-    gen_youtube_hdr_test_pattern(high_bit_num=6)
+    img = gen_youtube_hdr_test_pattern(high_bit_num=6, window_size=0.05)
+    # os.chdir(os.path.dirname(__file__))
+    cv2.imwrite("source.tiff", img)
