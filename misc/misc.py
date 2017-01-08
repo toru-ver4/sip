@@ -62,5 +62,5 @@ def encode_hdr_movie():
 
 
 if __name__ == '__main__':
-    # copy_movie_seq_file()
+    copy_movie_seq_file()
     encode_hdr_movie()
