@@ -1,0 +1,10 @@
+# CUDA_PROFILE_LOG_VERSION 2.0
+# CUDA_DEVICE 0 Quadro K620
+# CUDA_CONTEXT 1
+# TIMESTAMPFACTOR 1485fcdc992e59a6
+timestamp,method,gputime,cputime,occupancy
+timestamp=[ 754236.875 ] method=[ memcpyHtoD ] gputime=[ 60.128 ] cputime=[ 54.941 ] 
+timestamp=[ 754867.500 ] method=[ memcpyHtoD ] gputime=[ 8.576 ] cputime=[ 19.622 ] 
+timestamp=[ 755186.250 ] method=[ memcpyHtoD ] gputime=[ 0.896 ] cputime=[ 10.264 ] 
+timestamp=[ 1075547.750 ] method=[ exec_3dlut ] gputime=[ 435.168 ] cputime=[ 19.924 ] occupancy=[ 1.000 ] 
+timestamp=[ 1075600.000 ] method=[ memcpyDtoH ] gputime=[ 60.096 ] cputime=[ 615.822 ] 
