@@ -14,15 +14,13 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 import imp
-sys.path.append("./")
-
-import test_pattern.tpg as tpg
+import test_pattern_generator as tpg
 imp.reload(tpg)
 
 
 def copy_movie_seq_file():
     """ffmpegに静止画を食わせるために連番ファイルを作る"""
-    os.chdir(os.path.dirname(__file__))
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     in_name = "./ffmpeg_tiff/source.tiff"
     for idx in range(60):
         out_name = "./ffmpeg_tiff/img/hdr_img_{:08d}.tiff".format(idx)
@@ -38,7 +36,7 @@ def brightness_limitter_test_pattern():
     x = np.concatenate((x, x[::-1], x, x[::-1]))
     x = x ** 2.0
     counter = 0
-    os.chdir(os.path.dirname(__file__))
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     for size in x:
         img = tpg.gen_youtube_hdr_test_pattern(high_bit_num=6,
                                                window_size=float(size))
@@ -49,19 +47,23 @@ def brightness_limitter_test_pattern():
 
 def encode_hdr_movie():
     """YouTubeにアップ出来る形式で動画を作る"""
-    os.chdir(os.path.dirname(__file__) + "/ffmpeg_tiff")
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/ffmpeg_tiff")
 
-    ext_cmd = ['ffmpeg', '-r', '60', '-i', 'img/hdr_img_%8d.tiff',
+    ext_cmd = ['ffmpeg', '-r', '24', '-i', 'img/hdr_img_%8d.tiff',
                '-i', 'bgm.wav', '-ar', '48000', '-ac', '2', '-c:a', 'aac',
                '-b:a', '384k',
-               '-r', '60', '-vcodec', 'prores_ks', '-profile:v', '3',
+               '-r', '24', '-vcodec', 'prores_ks', '-profile:v', '3',
                '-pix_fmt', 'yuv422p10le',
                '-b:v', '85000k', '-shortest', '-y', 'out.mkv']
     p = subprocess.Popen(ext_cmd, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT)
-    # out, err = p.communicate()
+                         stderr=subprocess.STDOUT, universal_newlines=True)
+    # while True:
+    #     line = p.stdout.readline().rstrip()
+    #     if not line:
+    #         break
+    #     print(line.decode())
     for line in p.stdout:
-        print(line.decode())
+        print(line.rstrip())
 
     p.wait()
 
@@ -80,10 +82,10 @@ def encode_hdr_movie():
                '--white-colour-coordinates', '0:0.3127,0.3290',
                'out.mkv']
     p = subprocess.Popen(ext_cmd, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT)
+                         stderr=subprocess.STDOUT, universal_newlines=True)
 
     for line in p.stdout:
-        print(line.decode())
+        print(line.rstrip())
 
     p.wait()
 
@@ -91,10 +93,10 @@ def encode_hdr_movie():
 if __name__ == '__main__':
     # 静止画のHDR確認動画を生成
     # -------------------------
-    # copy_movie_seq_file()
-    # encode_hdr_movie()
+    copy_movie_seq_file()
+    encode_hdr_movie()
 
     # 白ベタWindow がサイズを変えるHDR確認動画を生成
     # -------------------------------------------
-    brightness_limitter_test_pattern()
-    encode_hdr_movie()
+    # brightness_limitter_test_pattern()
+    # encode_hdr_movie()
