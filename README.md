@@ -9,6 +9,9 @@ sample code for SIgnal Processing.
 Get the Anaconda installer from https://www.continuum.io/downloads .
 Exec the installer. Please select the default settings in the installer.
 
+## add PYTHONPATH
+set `./lib` to the PYTHONPATH
+
 ## make virtual environment.
 
 ```
@@ -67,6 +70,10 @@ $ pyenv virtualenvs  # check virtualenv
 $ pyenv local anaconda3-x.x.x/envs/my-virtual-env-3-x.x.x
 ```
 
+## add PYTHONPATH
+```
+export PYTHONPATH="./lib:$PYTHONPATH"
+```
 
 # Appendix
 
