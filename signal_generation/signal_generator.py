@@ -90,13 +90,46 @@ def encode_hdr_movie():
     p.wait()
 
 
+def encode_hevc_10bit_movie():
+    """
+    ffmpeg : https://ffmpeg.zeranoe.com/forum/viewtopic.php?t=3691
+    """
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/ffmpeg_tiff")
+
+    # ext_cmd = ['ffmpeg', '-r', '24', '-i', 'img/hdr_img_%8d.tiff',
+    #            '-i', 'bgm.wav', '-ar', '48000', '-ac', '2', '-c:a', 'aac',
+    #            '-b:a', '384k',
+    #            '-r', '24', '-c:v', 'libx265', '-x265-params',
+    #            'crf=0:profile=main444-10',
+    #            '-pix_fmt', 'yuv444p10',
+    #            '-b:v', '85000k', '-shortest', '-y', 'out.mp4']
+    ext_cmd = ['ffmpeg', '-r', '12', '-i', 'img/hdr_img_%8d.tiff',
+               '-i', 'bgm.wav', '-ar', '48000', '-ac', '2', '-c:a', 'aac',
+               '-b:a', '384k',
+               '-r', '24', '-pix_fmt', 'yuv444p10',
+               '-shortest', '-y', '-strict', '-1', '-f', 'yuv4mpegpipe',
+               'out.y4m']
+    p = subprocess.Popen(ext_cmd, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, universal_newlines=True)
+
+    for line in p.stdout:
+        print(line.rstrip())
+
+    p.wait()
+
+
 if __name__ == '__main__':
     # 静止画のHDR確認動画を生成
     # -------------------------
-    copy_movie_seq_file()
-    encode_hdr_movie()
+    # copy_movie_seq_file()
+    # encode_hdr_movie()
 
     # 白ベタWindow がサイズを変えるHDR確認動画を生成
     # -------------------------------------------
     # brightness_limitter_test_pattern()
     # encode_hdr_movie()
+
+    # HEVCの10bit動画作成
+    # -------------------------------------------
+    # copy_movie_seq_file()
+    encode_hevc_10bit_movie()
