@@ -75,3 +75,8 @@ YouTube に HDR動画だと認識させるためには、10bitの動画として
 # 終わりに
 やはり動画編集に Windows PC は向いていない気がする。なんか、色々と躓くことが多い。
 
+# Annex A 10bit HEVC Encode
+
+```
+$ ./cross_compile_ffmpeg.sh --gcc-cpu-count=4 --disable-nonfree=n --compiler-flavors=win64 --high-bitdepth=10
+```
