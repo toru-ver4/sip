@@ -78,5 +78,5 @@ YouTube に HDR動画だと認識させるためには、10bitの動画として
 # Annex A 10bit HEVC Encode
 
 ```
-$ ./cross_compile_ffmpeg.sh --gcc-cpu-count=4 --disable-nonfree=n --compiler-flavors=win64 --high-bitdepth=10
+$ ./cross_compile_ffmpeg.sh --gcc-cpu-count=4 --disable-nonfree=n --compiler-flavors=win64 --high-bitdepth=y
 ```
