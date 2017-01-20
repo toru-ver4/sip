@@ -24,4 +24,7 @@ signal_generation/ffmpeg_tiff/img
 signal_generation/ffmpeg_tiff/*.exe
 signal_generation/ffmpeg_tiff/*.wav
 signal_generation/ffmpeg_tiff/*.mkv
+signal_generation/ffmpeg_tiff/*.hevc
+signal_generation/ffmpeg_tiff/*.mp4
+signal_generation/ffmpeg_tiff/*.y4m
 
