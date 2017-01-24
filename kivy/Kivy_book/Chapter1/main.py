@@ -1,15 +1,15 @@
 from kivy.app import App
-from kivy.uix.widget import Widget
+from kivy.uix.gridlayout import GridLayout
 
 
-class MyWidget(Widget):
+class MyGridLayout(GridLayout):
     pass
 
 
-class WidgetsApp(App):
+class LayoutsApp(App):
     def build(self):
-        return MyWidget()
+        return MyGridLayout()
 
 
 if __name__ == "__main__":
-    WidgetsApp().run()
+    LayoutsApp().run()
