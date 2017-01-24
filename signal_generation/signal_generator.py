@@ -102,7 +102,7 @@ def encode_hevc_10bit_movie():
                '-r', '24', '-c:v', 'libx265',
                # '-vf', 'scale=in_range=pc:out_range=pc',
                '-x265-params', 'crf=0',
-               '-pix_fmt', 'yuv420p10',
+               '-pix_fmt', 'yuv420p10le',
                '-shortest', '-y', 'out.mp4']
     p = subprocess.Popen(ext_cmd, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, universal_newlines=True)
