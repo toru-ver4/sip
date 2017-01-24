@@ -96,19 +96,14 @@ def encode_hevc_10bit_movie():
     """
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/ffmpeg_tiff")
 
-    # ext_cmd = ['ffmpeg', '-r', '24', '-i', 'img/hdr_img_%8d.tiff',
-    #            '-i', 'bgm.wav', '-ar', '48000', '-ac', '2', '-c:a', 'aac',
-    #            '-b:a', '384k',
-    #            '-r', '24', '-c:v', 'libx265', '-x265-params',
-    #            'crf=0:profile=main444-10',
-    #            '-pix_fmt', 'yuv444p10',
-    #            '-b:v', '85000k', '-shortest', '-y', 'out.mp4']
-    ext_cmd = ['ffmpeg', '-r', '12', '-i', 'img/hdr_img_%8d.tiff',
+    ext_cmd = ['ffmpeg', '-r', '24', '-i', 'img/hdr_img_%8d.tiff',
                '-i', 'bgm.wav', '-ar', '48000', '-ac', '2', '-c:a', 'aac',
                '-b:a', '384k',
-               '-r', '24', '-pix_fmt', 'yuv444p10',
-               '-shortest', '-y', '-strict', '-1', '-f', 'yuv4mpegpipe',
-               'out.y4m']
+               '-r', '24', '-c:v', 'libx265',
+               # '-vf', 'scale=in_range=pc:out_range=pc',
+               '-x265-params', 'crf=0',
+               '-pix_fmt', 'yuv420p10',
+               '-shortest', '-y', 'out.mp4']
     p = subprocess.Popen(ext_cmd, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, universal_newlines=True)
 
