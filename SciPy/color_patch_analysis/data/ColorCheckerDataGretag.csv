@@ -1,0 +1,25 @@
+No,Name,CIE_x,CIE_y,CIE_Y,Munsell_Hue,Munsell_Value,Munsell_Chroma,ISCC_NBS_Name
+1,dark skin,0.4,0.35,10.1,3 YR,3.7,3.2,moderate brown
+2,light skin,0.377,0.345,35.8,2.2 YR,6.47,4.1,light reddish brown
+3,blue sky,0.247,0.251,19.3,4.3 PB,4.95,5.5,moderate blue
+4,foliage,0.337,0.422,13.3,6.7 GY,4.2,4.1,moderate olive green
+5,blue flower,0.265,0.24,24.3,9.7 PB,5.47,6.7,light violet
+6,bluish green,0.261,0.343,43.1,2.5 BG,7,6,light bluish green
+7,orange,0.506,0.407,30.1,5 YR,6,11,strong orange
+8,purplish blue,0.211,0.175,12,7.5 PB,4,10.7,strong purplish blue
+9,moderate red,0.453,0.306,19.8,2.5 R,5,10,moderate red
+10,purple,0.285,0.202,6.6,5 P,3,7,deep purple
+11,yellow green,0.38,0.489,44.3,5 GY,7.1,9.1,strong yellow green
+12,orange yellow,0.473,0.438,43.1,10 YR,7,10.5,strong orange yellow
+13,blue,0.187,0.129,6.1,7.5 PB,2.9,12.7,vivid purplish blue
+14,green,0.305,0.478,23.4,0.25 G,5.4,8.65,strong yellowish green
+15,red,0.539,0.313,12,5 R,4,12,strong red
+16,yellow,0.448,0.47,59.1,5 Y,8,11.1,vivid yellow
+17,magenta,0.364,0.233,19.8,2.5 RP,5,12,strong reddish purple
+18,cyan,0.196,0.252,19.8,5 B,5,8,strong greenish blue
+19,white,0.31,0.316,90,N,9.5,0,white
+20,neutral 8,0.31,0.316,59.1,N,8,0,light gray
+21,neutral 6.5,0.31,0.316,36.2,N,6.5,0,light-medium gray
+22,neutral 5,0.31,0.316,19.8,N,5,0,medium gray
+23,neutral 3.5,0.31,0.316,9,N,3.5,0,dark gray
+24,black,0.31,0.316,3.1,N,2,0,black
