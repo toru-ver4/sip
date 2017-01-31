@@ -5,6 +5,10 @@ from scipy import linalg
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import color_convert as ccv
+import light as lit
+
+imp.reload(ccv)
+imp.reload(lit)
 
 
 def show_color_patch_spectral_data():
@@ -96,4 +100,5 @@ def make_color_patch_image():
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # show_color_patch_spectral_data()
-    make_color_patch_image()
+    # make_color_patch_image()
+    lit.get_d_illuminants_coef()
