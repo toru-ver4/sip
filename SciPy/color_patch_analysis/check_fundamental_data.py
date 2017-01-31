@@ -97,8 +97,35 @@ def make_color_patch_image():
     plt.show()
 
 
+def plot_d_illuminant():
+    t = np.arange(4000, 10000, 100, dtype=np.float64)
+    wl, s = lit.get_d_illuminants_spectrum(t)
+
+    # plot
+    # ----------------------------------
+    v_num = 6
+    h_num = 10
+    plt.rcParams["font.size"] = 16
+    f, axarr = plt.subplots(v_num, h_num, sharex='col', sharey='row',
+                            figsize=(30, 14))
+    for idx in range(v_num * h_num):
+        h_idx = idx % h_num
+        v_idx = idx // h_num
+        axarr[v_idx, h_idx].grid()
+        if v_idx == (v_num - 1):
+            axarr[v_idx, h_idx].set_xlabel("wavelength [nm]")
+        if h_idx == 0:
+            axarr[v_idx, h_idx].set_ylabel("Relative Power")
+        axarr[v_idx, h_idx].set_xlim(300, 830)
+        axarr[v_idx, h_idx].set_ylim(0, 170)
+        axarr[v_idx, h_idx].set_xticks([360, 560, 760])
+        axarr[v_idx, h_idx].set_yticks([0, 50, 100, 150])
+        axarr[v_idx, h_idx].plot(wl, s[idx])
+    plt.show()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # show_color_patch_spectral_data()
     # make_color_patch_image()
-    lit.get_d_illuminants_coef()
+    plot_d_illuminant()
