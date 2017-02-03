@@ -132,7 +132,6 @@ def plot_color_patch_variance():
     """
     coord_file = "./data/color_patch_coordinate.csv"
     coord = np.loadtxt(coord_file, dtype=np.uint16, delimiter=',', skiprows=1, )
-    print(coord.shape)
     img_file = "./figure/YAMADA_Z10-B.tif"
     img = cv2.imread(img_file,
                      cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
@@ -173,7 +172,7 @@ def plot_color_patch_variance():
     plt.show()
 
 
-def get_color_patch_average():
+def get_color_patch_average(plot=False):
     """
     # 概要
     カラーパッチの平均の算出。一応外れ値除外もするよ！
@@ -181,7 +180,6 @@ def get_color_patch_average():
     # カラーパッチデータ取得
     coord_file = "./data/color_patch_coordinate.csv"
     coord = np.loadtxt(coord_file, dtype=np.uint16, delimiter=',', skiprows=1, )
-    print(coord.shape)
     img_file = "./figure/YAMADA_Z10-B.tif"
     img = cv2.imread(img_file,
                      cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
@@ -198,40 +196,43 @@ def get_color_patch_average():
 
     # まずは平均と分散を求める
     # ------------------------
-    vari_array = []
     ave_array = []
-    h_num = 3
-    v_num = 8
-    plt.rcParams["font.size"] = 16
-    f, axarr = plt.subplots(v_num, h_num, sharex='col', sharey='row',
-                            figsize=(20, 20))
+    h_num = 6
+    v_num = 4
     for idx in range(v_num * h_num):
-        h_idx = idx % h_num
-        v_idx = idx // h_num
-        if v_idx == (v_num - 1):
-            axarr[v_idx, h_idx].set_xlabel("Video Level")
-        if h_idx == 0:
-            axarr[v_idx, h_idx].set_ylabel("Frequency")
-        axarr[v_idx, h_idx].set_xticks([20000, 40000, 60000])
-        p = color_data[idx]
-        p_b, p_g, p_r = np.dsplit(p, 3)
-        axarr[v_idx, h_idx].hist(p_r.flatten(), normed=False, bins=100,
-                                 color='red', alpha=0.5)
-        axarr[v_idx, h_idx].hist(p_g.flatten(), normed=False, bins=100,
-                                 color='green', alpha=0.5)
-        axarr[v_idx, h_idx].hist(p_b.flatten(), normed=False, bins=100,
-                                 color='blue', alpha=0.5)
-        rgb = [x for x in np.dsplit(color_data[idx], 3)]
-        b_v, g_v, r_v = [np.sqrt(np.var(x)) for x in rgb]
-        b_a, g_a, r_a = [np.average(x) for x in rgb]
-        axarr[v_idx, h_idx].plot([r_a-r_v, r_a-r_v], [0.0, 60000], 'r-')
-        axarr[v_idx, h_idx].plot([r_a+r_v, r_a+r_v], [0.0, 60000], 'r-')
-        axarr[v_idx, h_idx].plot([g_a-g_v, g_a-g_v], [0.0, 60000], 'g-')
-        axarr[v_idx, h_idx].plot([g_a+g_v, g_a+g_v], [0.0, 60000], 'g-')
-        axarr[v_idx, h_idx].plot([b_a-b_v, b_a-b_v], [0.0, 60000], 'b-')
-        axarr[v_idx, h_idx].plot([b_a+b_v, b_a+b_v], [0.0, 60000], 'b-')
+        bgr = [x for x in np.dsplit(color_data[idx], 3)]
+        b, g, r = np.dsplit(color_data[idx], 3)
+        b_v, g_v, r_v = [np.sqrt(np.var(x)) for x in bgr]
+        b_a, g_a, r_a = [np.average(x) for x in bgr]
+        mask_r = np.logical_and(r > (r_a - r_v), r < (r_a + r_v))
+        mask_g = np.logical_and(g > (g_a - g_v), g < (g_a + g_v))
+        mask_b = np.logical_and(b > (b_a - b_v), b < (b_a + b_v))
+        new_r = r[mask_r]
+        new_g = g[mask_g]
+        new_b = b[mask_b]
+        new_rgb = [np.average(new_r), np.average(new_g), np.average(new_b)]
+        ave_array.append(new_rgb)
 
-    plt.show()
+    if plot:
+        ave_array = np.array(ave_array)
+        ave_array = np.uint8(np.round((ave_array / 0xFFFF) * 0xFF))
+        plt.rcParams["font.size"] = 18
+        f, axarr = plt.subplots(v_num, h_num, sharex='col', sharey='row',
+                                figsize=(24, 16))
+        for idx in range(h_num * v_num):
+            color = "#{:02X}{:02X}{:02X}".format(ave_array[idx][0],
+                                                 ave_array[idx][1],
+                                                 ave_array[idx][2])
+            h_idx = idx % h_num
+            v_idx = idx // h_num
+            axarr[v_idx, h_idx].add_patch(
+                patches.Rectangle(
+                    (0, 0), 1.0, 1.0, facecolor=color
+                )
+            )
+        plt.show()
+
+    return ave_array
 
 
 if __name__ == '__main__':
@@ -240,7 +241,7 @@ if __name__ == '__main__':
     # make_color_patch_image()
     # plot_d_illuminant()
     # plot_color_patch_variance()
-    get_color_patch_average()
+    get_color_patch_average(plot=True)
     # x = np.arange(9).reshape(3, 3, 1)
     # print(np.var(x))
 
