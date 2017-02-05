@@ -2,6 +2,7 @@ import os
 import imp
 import numpy as np
 from scipy import linalg
+from scipy import integrate
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import cv2
@@ -10,6 +11,8 @@ import light as lit
 
 imp.reload(ccv)
 imp.reload(lit)
+
+const_lambda = np.arange(380, 785, 5)
 
 
 def show_color_patch_spectral_data():
@@ -235,13 +238,70 @@ def get_color_patch_average(plot=False):
     return ave_array
 
 
+def get_normal_distribution(mu, sigma, x=const_lambda, plot=False):
+    """
+    # 概要
+    正規分布を出力する関数を作る
+
+    # 注意事項
+    横軸は波長。範囲は 380..780nm の 5nm 刻みな。
+    """
+    exp_naka = -((x - mu) ** 2) / (2 * (sigma ** 2))
+    y = (1/np.sqrt(2 * np.pi * (sigma ** 2))) * np.exp(exp_naka)
+
+    if plot:
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
+        ax1.plot(x, y)
+        plt.show()
+
+    return x, y
+
+
+def plot_normal_distribution(mu_list, sigma_list):
+    """
+    # 概要
+    シミュレーションをぶん回す正規分布一覧をプロット
+
+    # 注意事項
+    横軸は波長。範囲は 380..780nm の 5nm 刻みな。
+    """
+
+    h_num = len(sigma_list)
+    v_num = len(mu_list)
+    plt.rcParams["font.size"] = 16
+    f, axarr = plt.subplots(v_num, h_num, sharex='col', sharey='row',
+                            figsize=(20, 20))
+    for m_idx, mu in enumerate(mu_list):
+        for s_idx, sigma in enumerate(sigma_list):
+            idx = m_idx * len(sigma_list) + s_idx
+            x, y = get_normal_distribution(mu, sigma)
+            h_idx = idx % h_num
+            v_idx = idx // h_num
+            axarr[v_idx, h_idx].grid()
+            if v_idx == (v_num - 1):
+                axarr[v_idx, h_idx].set_xlabel("wavelength [nm]")
+            if h_idx == 0:
+                axarr[v_idx, h_idx].set_ylabel("sensitivity")
+            axarr[v_idx, h_idx].set_xlim(380, 780)
+            axarr[v_idx, h_idx].set_ylim(0, 0.15)
+            axarr[v_idx, h_idx].set_xticks([400, 500, 600, 700])
+            axarr[v_idx, h_idx].set_yticks([0, 0.03, 0.06, 0.09, 0.12, 0.15])
+            axarr[v_idx, h_idx].plot(x, y)
+
+    plt.show()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # show_color_patch_spectral_data()
     # make_color_patch_image()
     # plot_d_illuminant()
     # plot_color_patch_variance()
-    get_color_patch_average(plot=True)
+    # get_color_patch_average(plot=True)
     # x = np.arange(9).reshape(3, 3, 1)
     # print(np.var(x))
-
+    # get_normal_distribution(a=1.0, mu=590, sigma=30)
+    mu_list = [500, 525, 550, 575, 600]
+    sigma_list = [3, 5, 7, 10, 15, 20]
+    plot_normal_distribution(mu_list, sigma_list)
