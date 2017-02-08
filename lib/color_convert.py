@@ -20,6 +20,11 @@ const_sRGB_xy = [[0.64, 0.33],
                  [0.15, 0.06],
                  [0.3127, 0.3290]]
 
+const_AdobeRGB_xy = [[0.6400, 0.3300],
+                     [0.2100, 0.7100],
+                     [0.1500, 0.0600],
+                     [0.3127, 0.3290]]
+
 const_ntsc_xy = [[0.67, 0.33],
                  [0.21, 0.71],
                  [0.14, 0.08],
@@ -148,6 +153,21 @@ def xyY_to_XYZ(xyY):
     large_z = large_y / small_y * small_z
 
     return np.dstack((large_x, large_y, large_z))
+
+
+def srgb_to_linear(img):
+    """
+    # 概要
+    sRGB の 画像をリニアに戻す
+
+    # 注意事項
+    img は float型であること
+    """
+
+    float_list = [np.float, np.float16, np.float32]
+
+    if img.dtype not in float_list:
+        raise TypeError('img must be float type!')
 
 
 if __name__ == '__main__':
