@@ -32,5 +32,10 @@ def color_patch_rgb_to_large_xyz(rgb_val):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    rgb_val = np.uint16(np.round(cfd.get_color_patch_average()))
-    color_patch_rgb_to_large_xyz(rgb_val)
+    # rgb_val = np.uint16(np.round(cfd.get_color_patch_average()))
+    # color_patch_rgb_to_large_xyz(rgb_val)
+    # x = np.arange(1024) / 1022
+    # y = ccv.srgb_to_linear(x)
+    # plt.plot(x, y)
+    # plt.plot(x, x**2.2)
+    # plt.show()

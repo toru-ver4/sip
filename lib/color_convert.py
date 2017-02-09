@@ -58,6 +58,9 @@ const_d50_xy = [0.34567, 0.35850]
 const_rec601_y_coef = [0.2990, 0.5870, 0.1140]
 const_rec709_y_coef = [0.2126, 0.7152, 0.0722]
 
+const_srgb_eotf_threshold = 0.04045
+const_srgb_oetf_threshold = 0.0031308
+
 
 def xy_to_xyz_internal(xy):
     rz = 1 - (xy[0][0] + xy[0][1])
@@ -168,6 +171,17 @@ def srgb_to_linear(img):
 
     if img.dtype not in float_list:
         raise TypeError('img must be float type!')
+
+    if np.sum(img > 1) > 0:
+        raise ValueError('img must be normalized to 0 .. 1')
+
+    lower_img = img / 12.92
+    upper_img = ((img + 0.055) / 1.055) ** 2.4
+
+    out_img = lower_img * (img <= const_srgb_eotf_threshold)\
+        + upper_img * (img >= const_srgb_eotf_threshold)
+
+    return out_img
 
 
 if __name__ == '__main__':
