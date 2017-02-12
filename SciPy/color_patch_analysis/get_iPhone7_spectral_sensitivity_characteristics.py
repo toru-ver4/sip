@@ -54,22 +54,20 @@ def d_illuminant_interpolation(plot=False):
     t = np.array([5000], dtype=np.float64)
     wl, s = lit.get_d_illuminants_spectrum(t)
 
-    # 380nm -- 780nm を抽出
+    # Interpolation
     # -----------------------------
-    idx380 = np.sum(wl < 380)
-    idx780 = np.sum(wl < 780)
-    wl_visible = wl[idx380:idx780+1]
-    s_visible = s[idx380:idx780+1]
-    f = interpolate.interp1d(wl_visible, s_visible, kind='cubic')
+    # f_quadratic = interpolate.interp1d(wl, s, kind='quadratic')
+    f_cubic = interpolate.interp1d(wl, s, kind='cubic')
     wl_new = np.arange(380, 785, 5, dtype=np.uint16)
-    s_new = f(wl_new)
+    # s_quadratic = f_quadratic(wl_new)
+    s_cubic = f_cubic(wl_new)
 
     if plot:
         ax1 = pu.plot_1_graph(fontsize=20,
                               figsize=(10, 8),
                               graph_title="cubic interpolation",
                               graph_title_size=None,
-                              xlabel="Wavelength", ylabel="Intensity",
+                              xlabel="Wavelength [nm]", ylabel="Intensity",
                               axis_label_size=None,
                               legend_size=17,
                               xlim=None,
@@ -78,13 +76,20 @@ def d_illuminant_interpolation(plot=False):
                               ytick=None,
                               xtick_size=None, ytick_size=None,
                               linewidth=None)
-        ax1.plot(wl_visible, s_visible, 'r-x', linewidth=5, label="old")
-        ax1.plot(wl_new, s_new, 'g-x', linewidth=2, label="new")
+        ax1.plot(wl, s, 'ro', linewidth=5, label="original")
+        # ax1.plot(wl_new, s_quadratic, 'g-x', linewidth=2, label="quadratic")
+        ax1.plot(wl_new, s_cubic, 'b-', linewidth=2, label="cubic")
         plt.legend(loc='lower right')
         plt.show()
 
-    return wl_new, s_new
+    return wl_new, s_cubic
 
+
+def intergrate_large_xyz():
+    """
+    # 概要
+    XYZ を求めるための積分をがんばる
+    """
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
