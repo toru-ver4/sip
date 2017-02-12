@@ -3,16 +3,18 @@ import imp
 import numpy as np
 from scipy import linalg
 from scipy import integrate
+from scipy import interpolate
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import cv2
 import color_convert as ccv
 import light as lit
 import check_fundamental_data as cfd
+import plot_utility as pu
 
 imp.reload(ccv)
 imp.reload(lit)
 imp.reload(cfd)
+imp.reload(pu)
 
 
 def color_patch_rgb_to_large_xyz(rgb_val):
@@ -41,12 +43,52 @@ def color_patch_rgb_to_large_xyz(rgb_val):
     return large_xyz_val
 
 
+def d_illuminant_interpolation(plot=False):
+    """
+    # 概要
+    D Illuminant の分光特性は 10nm 刻みなので、
+    それを 5nm 刻みに線形補完する
+    """
+    # D Illuminant 算出 (10nm精度)
+    # -----------------------------
+    t = np.array([5000], dtype=np.float64)
+    wl, s = lit.get_d_illuminants_spectrum(t)
+
+    # 380nm -- 780nm を抽出
+    # -----------------------------
+    idx380 = np.sum(wl < 380)
+    idx780 = np.sum(wl < 780)
+    wl_visible = wl[idx380:idx780+1]
+    s_visible = s[idx380:idx780+1]
+    f = interpolate.interp1d(wl_visible, s_visible, kind='cubic')
+    wl_new = np.arange(380, 785, 5, dtype=np.uint16)
+    s_new = f(wl_new)
+
+    if plot:
+        ax1 = pu.plot_1_graph(fontsize=20,
+                              figsize=(10, 8),
+                              graph_title="cubic interpolation",
+                              graph_title_size=None,
+                              xlabel="Wavelength", ylabel="Intensity",
+                              axis_label_size=None,
+                              legend_size=17,
+                              xlim=None,
+                              ylim=None,
+                              xtick=None,
+                              ytick=None,
+                              xtick_size=None, ytick_size=None,
+                              linewidth=None)
+        ax1.plot(wl_visible, s_visible, 'r-x', linewidth=5, label="old")
+        ax1.plot(wl_new, s_new, 'g-x', linewidth=2, label="new")
+        plt.legend(loc='lower right')
+        plt.show()
+
+    return wl_new, s_new
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    rgb_val = np.uint16(np.round(cfd.get_color_patch_average()))
-    color_patch_rgb_to_large_xyz(rgb_val)
-    # x = np.arange(1024) / 1022
-    # y = ccv.srgb_to_linear(x)
-    # plt.plot(x, y)
-    # plt.plot(x, x**2.2)
-    # plt.show()
+    # rgb_val = np.uint16(np.round(cfd.get_color_patch_average()))
+    # color_patch_rgb_to_large_xyz(rgb_val)
+    # plt.rcParams['axes.grid'] = True
+    d_illuminant_interpolation(plot=True)

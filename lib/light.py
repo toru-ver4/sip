@@ -71,7 +71,7 @@ def get_d_illuminants_spectrum(temperature):
     temperature は numpy であること。1次元。
     """
     s_param = _get_d_illuminants_s_coef()
-    wavelength = s_param[0]
+    wavelength = np.uint16(s_param[0])
     s0 = s_param[1]
     s1 = s_param[2]
     s2 = s_param[3]
@@ -82,7 +82,7 @@ def get_d_illuminants_spectrum(temperature):
         s.append(s0 + m1[idx] * s1 + m2[idx] * s2)
     s = np.array(s)
 
-    return wavelength, s
+    return wavelength, s.flatten()
 
 
 if __name__ == '__main__':
