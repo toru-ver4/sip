@@ -12,8 +12,37 @@ plot補助ツール群
 """
 
 import numpy as np
+from cycler import cycler
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import colorsys
+
+
+cycle_num = 6
+v_offset = 0.2
+s = np.arange(cycle_num) / (cycle_num - 1) * (1 - v_offset) + v_offset
+s = s[::-1]
+
+r_cycle = []
+g_cycle = []
+b_cycle = []
+
+for s_val in s:
+    r, g, b = colorsys.hsv_to_rgb(0.0, s_val, 0.9)
+    color = "#{:02X}{:02X}{:02X}".format(np.uint8(np.round(r * 0xFF)),
+                                         np.uint8(np.round(g * 0xFF)),
+                                         np.uint8(np.round(b * 0xFF)))
+    r_cycle.append(color)
+    r, g, b = colorsys.hsv_to_rgb(0.3, s_val, 0.9)
+    color = "#{:02X}{:02X}{:02X}".format(np.uint8(np.round(r * 0xFF)),
+                                         np.uint8(np.round(g * 0xFF)),
+                                         np.uint8(np.round(b * 0xFF)))
+    g_cycle.append(color)
+    r, g, b = colorsys.hsv_to_rgb(0.6, s_val, 0.9)
+    color = "#{:02X}{:02X}{:02X}".format(np.uint8(np.round(r * 0xFF)),
+                                         np.uint8(np.round(g * 0xFF)),
+                                         np.uint8(np.round(b * 0xFF)))
+    b_cycle.append(color)
 
 
 def _set_common_parameters(fontsize, **kwargs):
@@ -56,6 +85,9 @@ def _set_common_parameters(fontsize, **kwargs):
     if 'linewidth' in kwargs and kwargs['linewidth']:
         plt.rcParams['lines.linewidth'] = kwargs['linewidth']
 
+    if 'prop_cycle' in kwargs and kwargs['prop_cycle']:
+        plt.rcParams['axes.prop_cycle'] = kwargs['prop_cycle']
+
 
 def plot_1_graph(fontsize=12, **kwargs):
     _set_common_parameters(fontsize=fontsize, **kwargs)
@@ -96,11 +128,45 @@ def plot_1_graph(fontsize=12, **kwargs):
     return ax1
 
 
+def _check_hsv_space():
+    """
+    # 概要
+    Linestyle で 明度が徐々か変わるやつを作りたいんだけど、
+    HSVの値がイマイチ分からないのでプロットしてみる。
+    """
+
+    h_num = 11
+    s_num = 11
+
+    h = np.arange(h_num) / (h_num - 1)
+    s = np.arange(s_num) / (s_num - 1)
+
+    f, axarr = plt.subplots(h_num, s_num, sharex='col', sharey='row',
+                            figsize=(16, 16))
+    for idx in range(h_num * s_num):
+        h_idx = idx % h_num
+        v_idx = idx // h_num
+        r, g, b = colorsys.hsv_to_rgb(h[h_idx], s[v_idx], 0.9)
+        color = "#{:02X}{:02X}{:02X}".format(np.uint8(np.round(r * 0xFF)),
+                                             np.uint8(np.round(g * 0xFF)),
+                                             np.uint8(np.round(b * 0xFF)))
+        axarr[v_idx, h_idx].add_patch(
+            patches.Rectangle(
+                (0, 0), 1.0, 1.0, facecolor=color
+            )
+        )
+    plt.show()
+
+
 if __name__ == '__main__':
+    # _check_hsv_space()
+
     # sample code for plot_1_graph()
     # -------------------------------
     x = np.arange(1024) / 1023
-    y = x ** 2.2
+    gamma_list = [1.0, 1.2, 1.5, 1.9, 2.4, 3.0]
+    label_list = ["gamma " + str(x) for x in gamma_list]
+    y_list = [x ** gamma for gamma in gamma_list]
     ax1 = plot_1_graph(fontsize=20,
                        figsize=(10, 8),
                        graph_title="Title",
@@ -113,7 +179,9 @@ if __name__ == '__main__':
                        xtick=None,
                        ytick=None,
                        xtick_size=None, ytick_size=None,
-                       linewidth=None)
-    ax1.plot(x, y, label="Legend")
+                       linewidth=3,
+                       prop_cycle=cycler(color=g_cycle))
+    for y, label in zip(y_list, label_list):
+        ax1.plot(x, y, label=label)
     plt.legend(loc='upper left')
     plt.show()

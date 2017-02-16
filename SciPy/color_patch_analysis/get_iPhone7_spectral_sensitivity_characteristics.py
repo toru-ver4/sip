@@ -90,10 +90,18 @@ def intergrate_large_xyz():
     # 概要
     XYZ を求めるための積分をがんばる
     """
+    wl, lll = d_illuminant_interpolation()
+    spectral_data = "./data/MacbethColorChecker_SpectralData.csv"
+    rrr = np.loadtxt(spectral_data, delimiter=',', skiprows=3).T
+    rrr = rrr[1:, :]
+    wl2, ccc = cfd.get_normal_distribution(500, 10)
+    print(ccc.shape)
+
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # rgb_val = np.uint16(np.round(cfd.get_color_patch_average()))
     # color_patch_rgb_to_large_xyz(rgb_val)
     # plt.rcParams['axes.grid'] = True
-    d_illuminant_interpolation(plot=True)
+    # d_illuminant_interpolation(plot=True)
+    intergrate_large_xyz()
