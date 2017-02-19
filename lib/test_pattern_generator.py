@@ -285,13 +285,13 @@ def make_crosshatch(width=1920, height=1080,
         st_v = (fragment_height * idx) / np.cos(rad)
         ed_v = end_v_init + st_v
         cv2.line(img, (0, st_v), (width, ed_v),
-                 (fg_color[0], fg_color[1], fg_color[2]), linewidth, linetype)
+                 fg_color, linewidth, linetype)
 
     for idx in range(second_roop_max):
         st_v = (fragment_height * (idx + 1)) / np.cos(rad) * -1
         ed_v = end_v_init + st_v
         cv2.line(img, (0, st_v), (width, ed_v),
-                 (fg_color[0], fg_color[1], fg_color[2]), linewidth, linetype)
+                 fg_color, linewidth, linetype)
 
     # plot vertical lines
     # -----------------------------
@@ -302,7 +302,17 @@ def make_crosshatch(width=1920, height=1080,
         st_h = idx * offset
         ed_h = end_h_init + (idx * offset)
         cv2.line(img, (st_h, 0), (ed_h, height),
-                 (fg_color[0], fg_color[1], fg_color[2]), linewidth, linetype)
+                 fg_color, linewidth, linetype)
+
+    # add information of the video level.
+    # ------------------------------------
+    font = cv2.FONT_HERSHEY_DUPLEX
+    text_format = "bg:({:03d}, {:03d}, {:03d})"
+    text = text_format.format(bg_color[0], bg_color[1], bg_color[2])
+    cv2.putText(img, text, (15, 20), font, 0.35, fg_color, 1, cv2.LINE_AA)
+    text_format = "fg:({:03.0f}, {:03.0f}, {:03.0f})"
+    text = text_format.format(fg_color[0], fg_color[1], fg_color[2])
+    cv2.putText(img, text, (15, 40), font, 0.35, fg_color, 1, cv2.LINE_AA)
 
     if debug:
         preview_image(img[:, :, ::-1])
