@@ -352,6 +352,16 @@ def make_multi_crosshatch(width=1920, height=1080,
                           bg_color_array=const_gray_array_lower,
                           fg_color_array=const_white_array,
                           angle=30, debug=False):
+    """
+    # 概要
+    欲張って複数パターンのクロスハッチを1枚の画像に入れるようにした。
+    複数パターンは bg_color_array, fg_color_array にリストとして記述する。
+
+    # 注意事項
+    bg_color_array, fg_color_array の shape は
+    h_block * v_block の値と一致させること。
+    さもないと冒頭のパラメータチェックで例外飛びます。
+    """
     # parameter check
     # -----------------------
     if bg_color_array.shape[0] != (h_block * v_block):
