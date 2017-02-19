@@ -246,13 +246,28 @@ def _croshatch_fragment(width=256, height=128, linewidth=1,
     return fragment
 
 
-def make_crosshatch(width=1920, height=1080, linewidth=1,
+def make_crosshatch(width=1920, height=1080,
+                    linewidth=1, linetype=cv2.LINE_8,
                     fragment_width=64, fragment_height=64,
                     bg_color=const_black, fg_color=const_white,
-                    angle=30):
+                    angle=30, debug=False):
+    """
+    # 概要
+    クロスハッチパターンを作る。
+
+    # 注意事項
+    アンチエイリアシングが8bitしか効かないので
+    本関数では強制的に8bitになる。
+    """
+
+    # convert float to uint8
+    # ---------------------------------
+    bg_color = np.uint8(np.round(bg_color * np.iinfo(np.uint8).max))
+    fg_color = np.round(fg_color * np.iinfo(np.uint8).max)
+
     # make base rectanble
     # ----------------------------------
-    img = np.ones((height, width, 3))
+    img = np.zeros((height, width, 3), dtype=np.uint8)
     for idx in range(3):
         img[:, :, idx] *= bg_color[idx]
 
@@ -267,13 +282,13 @@ def make_crosshatch(width=1920, height=1080, linewidth=1,
         st_v = (fragment_height * idx) / np.cos(rad)
         ed_v = end_v_init + st_v
         cv2.line(img, (0, st_v), (width, ed_v),
-                 fg_color, linewidth, cv2.LINE_AA)
+                 (fg_color[0], fg_color[1], fg_color[2]), linewidth, linetype)
 
     for idx in range(second_roop_max):
         st_v = (fragment_height * (idx + 1)) / np.cos(rad) * -1
         ed_v = end_v_init + st_v
         cv2.line(img, (0, st_v), (width, ed_v),
-                 fg_color, linewidth, cv2.LINE_AA)
+                 (fg_color[0], fg_color[1], fg_color[2]), linewidth, linetype)
 
     # plot vertical lines
     # -----------------------------
@@ -284,10 +299,12 @@ def make_crosshatch(width=1920, height=1080, linewidth=1,
         st_h = idx * offset
         ed_h = end_h_init + (idx * offset)
         cv2.line(img, (st_h, 0), (ed_h, height),
-                 fg_color, linewidth, cv2.LINE_AA)
+                 (fg_color[0], fg_color[1], fg_color[2]), linewidth, linetype)
 
-    preview_image(img[:, :, ::-1])
+    if debug:
+        preview_image(img[:, :, ::-1])
 
+    return img
 
 
 if __name__ == '__main__':
@@ -305,4 +322,15 @@ if __name__ == '__main__':
 
     # img = gen_youtube_hdr_test_pattern(high_bit_num=6, window_size=0.05)
     # _crosshatch_fragment()
-    make_crosshatch()
+    img_aa = make_crosshatch(width=1920, height=1080,
+                             linewidth=1, linetype=cv2.LINE_AA,
+                             fragment_width=64, fragment_height=64,
+                             bg_color=const_black, fg_color=const_white,
+                             angle=30)
+    img_na = make_crosshatch(width=1920, height=1080,
+                             linewidth=1, linetype=cv2.LINE_8,
+                             fragment_width=64, fragment_height=64,
+                             bg_color=const_black, fg_color=const_white,
+                             angle=30)
+    img = cv2.hconcat([img_na, img_aa])
+    preview_image(img[:, :, ::-1])
