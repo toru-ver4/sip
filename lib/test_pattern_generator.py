@@ -22,6 +22,24 @@ const_blue = np.array([0.0, 0.0, 1.0])
 const_cyan = np.array([0.0, 1.0, 1.0])
 const_majenta = np.array([1.0, 0.0, 1.0])
 const_yellow = np.array([1.0, 1.0, 0.0])
+const_black_array = np.array([(0.0, 0.0, 0.0) for x in range(0, 128, 16)])
+const_white_array = np.array([(1.0, 1.0, 1.0) for x in range(0, 128, 16)])
+const_gray_array_lower = np.array([(x/255, x/255, x/255)
+                                   for x in range(0, 128, 16)])
+const_gray_array_higher = np.array([(x/255, x/255, x/255)
+                                    for x in range(255, 128, -16)])
+const_red_grad_array_higher = np.array([(x/255, 0, 0)
+                                        for x in range(255, 128, -16)])
+const_green_grad_array_higher = np.array([(0, x/255, 0)
+                                          for x in range(255, 128, -16)])
+const_blue_grad_array_higher = np.array([(0, 0, x/255)
+                                         for x in range(255, 128, -16)])
+const_magenta_grad_array_higher = np.array([(x/255, 0, x/255)
+                                            for x in range(255, 128, -16)])
+const_yellow_grad_array_higher = np.array([(x/255, x/255, 0)
+                                           for x in range(255, 128, -16)])
+const_cyan_grad_array_higher = np.array([(0, x/255, x/255)
+                                         for x in range(255, 128, -16)])
 
 
 def preview_image(img):
@@ -270,7 +288,7 @@ def make_crosshatch(width=1920, height=1080,
 
     # make base rectanble
     # ----------------------------------
-    img = np.zeros((height, width, 3), dtype=np.uint8)
+    img = np.ones((height, width, 3), dtype=np.uint8)
     for idx in range(3):
         img[:, :, idx] *= bg_color[idx]
 
@@ -320,6 +338,46 @@ def make_crosshatch(width=1920, height=1080,
     return img
 
 
+def make_multi_crosshatch(width=1920, height=1080,
+                          h_block=4, v_block=2,
+                          fragment_width=64, fragment_height=64,
+                          linewidth=1, linetype=cv2.LINE_AA,
+                          bg_color_array=const_gray_array_lower,
+                          fg_color_array=const_white_array,
+                          angle=30, debug=False):
+    # parameter check
+    # -----------------------
+    if bg_color_array.shape[0] != (h_block * v_block):
+        raise TypeError("bg_color_array.shape is invalid.")
+    if fg_color_array.shape[0] != (h_block * v_block):
+        raise TypeError("fg_color_array.shape is invalid.")
+
+    block_width = width // h_block
+    block_height = height // v_block
+
+    v_img_list = []
+    for v_idx in range(v_block):
+        h_img_list = []
+        for h_idx in range(h_block):
+            idx = (v_idx * h_block) + h_idx
+            img = make_crosshatch(width=block_width, height=block_height,
+                                  linewidth=linewidth, linetype=linetype,
+                                  fragment_width=fragment_width,
+                                  fragment_height=fragment_height,
+                                  bg_color=bg_color_array[idx],
+                                  fg_color=fg_color_array[idx],
+                                  angle=angle)
+            h_img_list.append(img)
+
+        v_img_list.append(cv2.hconcat(h_img_list))
+    img = cv2.vconcat((v_img_list))
+
+    if debug:
+        preview_image(img[:, :, ::-1])
+
+    return img
+
+
 if __name__ == '__main__':
     # gen_gradation_bar(width=1920, height=1080,
     #                   color=np.array([1.0, 0.7, 0.3]),
@@ -335,15 +393,16 @@ if __name__ == '__main__':
 
     # img = gen_youtube_hdr_test_pattern(high_bit_num=6, window_size=0.05)
     # _crosshatch_fragment()
-    img_aa = make_crosshatch(width=1920, height=1080,
-                             linewidth=1, linetype=cv2.LINE_AA,
-                             fragment_width=64, fragment_height=64,
-                             bg_color=const_black, fg_color=const_white,
-                             angle=30)
-    img_na = make_crosshatch(width=1920, height=1080,
-                             linewidth=1, linetype=cv2.LINE_8,
-                             fragment_width=64, fragment_height=64,
-                             bg_color=const_black, fg_color=const_white,
-                             angle=30)
-    img = cv2.hconcat([img_na, img_aa])
-    preview_image(img[:, :, ::-1])
+    # img_aa = make_crosshatch(width=1920, height=1080,
+    #                          linewidth=1, linetype=cv2.LINE_AA,
+    #                          fragment_width=64, fragment_height=64,
+    #                          bg_color=const_black, fg_color=const_white,
+    #                          angle=30, debug=False)
+    # img_na = make_crosshatch(width=1920, height=1080,
+    #                          linewidth=1, linetype=cv2.LINE_8,
+    #                          fragment_width=64, fragment_height=64,
+    #                          bg_color=const_black, fg_color=const_white,
+    #                          angle=30)
+    # img = cv2.hconcat([img_na, img_aa])
+    # preview_image(img[:, :, ::-1])
+    make_multi_crosshatch(debug=True)
