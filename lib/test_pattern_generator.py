@@ -9,7 +9,6 @@
 
 """
 
-import os
 import cv2
 import numpy as np
 
@@ -108,7 +107,6 @@ def gen_gradation_bar(width=1920, height=1080,
     """
 
     slope = color - offset
-    inv_color = 1 - color
     if direction == 'h':
         x = np.arange(width) / (width - 1)
         r, g, b = [(x * s_val) + offset for s_val in slope]

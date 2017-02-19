@@ -7,11 +7,8 @@
 """
 
 import os
-import sys
 import cv2
 import numpy as np
-from PIL import ImageCms
-from PIL import Image
 import test_pattern_generator as tpg
 import imp
 imp.reload(tpg)
@@ -214,7 +211,6 @@ def make_and_save_crosshatch():
                           angle=30, debug=False)
     fname = "./figure/crosshatch_linewidth-4_antialiasing-on_angle-30.png"
     cv2.imwrite(fname, img[:, :, ::-1])
-
 
     img = make_crosshatch(width=4096, height=2160,
                           h_block=16, v_block=8,
