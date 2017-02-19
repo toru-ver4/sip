@@ -304,12 +304,17 @@ def make_crosshatch(width=1920, height=1080,
     first_roop_max = int(np.round(np.cos(rad) * height / fragment_height)) + 1
     second_roop_max = int(end_v_init / (fragment_height / np.cos(rad)))
 
+    # H方の直線を下に向かって書く。
+    # --------------------------------
     for idx in range(first_roop_max):
         st_v = (fragment_height * idx) / np.cos(rad)
         ed_v = end_v_init + st_v
         cv2.line(img, (0, st_v), (width, ed_v),
                  fg_color, linewidth, linetype)
 
+    # 回転がある場合、最初のループでは右上の領に
+    # 書き損が生じる。これを救うために上に向かってH方のの線を書く
+    # --------------------------------
     for idx in range(second_roop_max):
         st_v = (fragment_height * (idx + 1)) / np.cos(rad) * -1
         ed_v = end_v_init + st_v
