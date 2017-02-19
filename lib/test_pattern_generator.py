@@ -247,7 +247,7 @@ def _croshatch_fragment(width=256, height=128, linewidth=1,
 
 
 def make_crosshatch(width=1920, height=1080,
-                    linewidth=1, linetype=cv2.LINE_8,
+                    linewidth=1, linetype=cv2.LINE_AA,
                     fragment_width=64, fragment_height=64,
                     bg_color=const_black, fg_color=const_white,
                     angle=30, debug=False):
@@ -258,6 +258,9 @@ def make_crosshatch(width=1920, height=1080,
     # 注意事項
     アンチエイリアシングが8bitしか効かないので
     本関数では強制的に8bitになる。
+
+    アンチエイリアシングをOFFにすななら、
+    ```linetype = cv2.LINE_8``` で関数をコールすること。
     """
 
     # convert float to uint8
