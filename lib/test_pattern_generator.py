@@ -24,6 +24,12 @@ const_majenta = np.array([1.0, 0.0, 1.0])
 const_yellow = np.array([1.0, 1.0, 0.0])
 
 
+def preview_image(img):
+    cv2.imshow('preview', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
 def parameter_error_message(param_name):
     print('parameter "{}" is not valid.'.format(param_name))
 
@@ -214,6 +220,76 @@ def gen_youtube_hdr_test_pattern(high_bit_num=5, window_size=0.05):
     return img
 
 
+def _croshatch_fragment(width=256, height=128, linewidth=1,
+                        bg_color=const_black, fg_color=const_white,
+                        debug=False):
+    """
+    # 概要
+    クロスハッチの最小パーツを作る
+    線は上側、左側にしか引かない。後に結合することを考えて。
+    """
+
+    # make base rectanble
+    # ----------------------------------
+    fragment = np.ones((height, width, 3))
+    for idx in range(3):
+        fragment[:, :, idx] *= bg_color[idx]
+
+    # add fg lines
+    # ----------------------------------
+    cv2.line(fragment, (0, 0), (0, height - 1), fg_color, linewidth)
+    cv2.line(fragment, (0, 0), (width - 1, 0), fg_color, linewidth)
+
+    if debug:
+        preview_image(fragment[:, :, ::-1])
+
+    return fragment
+
+
+def make_crosshatch(width=1920, height=1080, linewidth=1,
+                    fragment_width=64, fragment_height=64,
+                    bg_color=const_black, fg_color=const_white,
+                    angle=30):
+    # make base rectanble
+    # ----------------------------------
+    img = np.ones((height, width, 3))
+    for idx in range(3):
+        img[:, :, idx] *= bg_color[idx]
+
+    # plot horizontal lines
+    # -----------------------------
+    rad = np.array([angle * np.pi / 180.0])
+    end_v_init = width * np.tan(rad)
+    first_roop_max = int(np.round(np.cos(rad) * height / fragment_height)) + 1
+    second_roop_max = int(end_v_init / (fragment_height / np.cos(rad)))
+
+    for idx in range(first_roop_max):
+        st_v = (fragment_height * idx) / np.cos(rad)
+        ed_v = end_v_init + st_v
+        cv2.line(img, (0, st_v), (width, ed_v),
+                 fg_color, linewidth, cv2.LINE_AA)
+
+    for idx in range(second_roop_max):
+        st_v = (fragment_height * (idx + 1)) / np.cos(rad) * -1
+        ed_v = end_v_init + st_v
+        cv2.line(img, (0, st_v), (width, ed_v),
+                 fg_color, linewidth, cv2.LINE_AA)
+
+    # plot vertical lines
+    # -----------------------------
+    end_h_init = height * np.tan(rad) * -1
+    offset = fragment_width / np.cos(rad)
+    roop_max = int(np.round((width - end_h_init) / offset) + 1)
+    for idx in range(roop_max):
+        st_h = idx * offset
+        ed_h = end_h_init + (idx * offset)
+        cv2.line(img, (st_h, 0), (ed_h, height),
+                 fg_color, linewidth, cv2.LINE_AA)
+
+    preview_image(img[:, :, ::-1])
+
+
+
 if __name__ == '__main__':
     # gen_gradation_bar(width=1920, height=1080,
     #                   color=np.array([1.0, 0.7, 0.3]),
@@ -227,6 +303,6 @@ if __name__ == '__main__':
     #                   color_bar_gain=1.0,
     #                   window_size=0.1, debug=False)
 
-    img = gen_youtube_hdr_test_pattern(high_bit_num=6, window_size=0.05)
-    # os.chdir(os.path.dirname(__file__))
-    cv2.imwrite("source.tiff", img)
+    # img = gen_youtube_hdr_test_pattern(high_bit_num=6, window_size=0.05)
+    # _crosshatch_fragment()
+    make_crosshatch()
