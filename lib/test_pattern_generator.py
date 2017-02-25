@@ -454,7 +454,7 @@ def _rotate_coordinate(pos, angle=30):
     return (x[0], y[0])
 
 
-def make_rectangle_pattern(width=1920, height=1080,
+def make_rectangle_pattern(width=128, height=128,
                            h_side_len=16, v_side_len=8,
                            angle=45,
                            linetype=cv2.LINE_AA,
@@ -475,6 +475,7 @@ def make_rectangle_pattern(width=1920, height=1080,
     st_offset_v = (fragment_height // 2) - (v_side_len // 2)
 
     # 回転の前に Rectangle の中心が (0, 0) となるよう座標変換
+    # ----------------------------------------------------
     center = (h_side_len / 2.0, v_side_len / 2.0)
     pt1_h = 0 - center[0]
     pt1_v = 0 - center[1]
@@ -484,40 +485,21 @@ def make_rectangle_pattern(width=1920, height=1080,
     pt3_v = pt1_v + v_side_len
     pt4_h = pt1_h + h_side_len
     pt4_v = pt1_v + v_side_len
-
-    pt1_pos = _rotate_coordinate((pt1_h, pt1_v), angle)
-    pt2_pos = _rotate_coordinate((pt2_h, pt2_v), angle)
-    pt3_pos = _rotate_coordinate((pt3_h, pt3_v), angle)
-    pt4_pos = _rotate_coordinate((pt4_h, pt4_v), angle)
-
-    pt1_pos = (pt1_pos[0] + center[0] + st_offset_h,
-               pt1_pos[1] + center[1] + st_offset_v)
-    pt2_pos = (pt2_pos[0] + center[0] + st_offset_h,
-               pt2_pos[1] + center[1] + st_offset_v)
-    pt3_pos = (pt3_pos[0] + center[0] + st_offset_h,
-               pt3_pos[1] + center[1] + st_offset_v)
-    pt4_pos = (pt4_pos[0] + center[0] + st_offset_h,
-               pt4_pos[1] + center[1] + st_offset_v)
+    ptrs = [(pt1_h, pt1_v), (pt2_h, pt2_v), (pt4_h, pt4_v), (pt3_h, pt3_v)]
+    ptrs = [_rotate_coordinate(x, angle) for x in ptrs]
+    ptrs = [(x[0] + center[0] + st_offset_h, x[1] + center[1] + st_offset_v)
+            for x in ptrs]
 
     fragment_h_num = (width // fragment_width) + 1
     fragment_v_num = (height // fragment_height) + 1
 
     for v_idx in range(fragment_v_num):
-        pt1_pos_v = pt1_pos[1] + v_idx * fragment_width
-        pt2_pos_v = pt2_pos[1] + v_idx * fragment_width
-        pt3_pos_v = pt3_pos[1] + v_idx * fragment_width
-        pt4_pos_v = pt4_pos[1] + v_idx * fragment_width
         for h_idx in range(fragment_h_num):
-            idx = v_idx * fragment_h_num + h_idx
-            pt1_pos_h = pt1_pos[0] + h_idx * fragment_width
-            pt2_pos_h = pt2_pos[0] + h_idx * fragment_width
-            pt3_pos_h = pt3_pos[0] + h_idx * fragment_width
-            pt4_pos_h = pt4_pos[0] + h_idx * fragment_width
-            ptrs = [[pt1_pos_h, pt1_pos_v], [pt2_pos_h, pt2_pos_v],
-                    [pt4_pos_h, pt4_pos_v], [pt3_pos_h, pt3_pos_v]]
-            ptrs = np.array(ptrs, np.int32)
-            print(ptrs)
-            cv2.fillConvexPoly(img, ptrs, fg_color)
+            ptrs_current = [(x[0] + h_idx * fragment_width,
+                            x[1] + v_idx * fragment_width)
+                            for x in ptrs]
+            ptrs_current = np.array(ptrs_current, np.int32)
+            cv2.fillConvexPoly(img, ptrs_current, fg_color)
 
     if debug:
         preview_image(img[:, :, ::-1])
