@@ -12,6 +12,30 @@
 import cv2
 import numpy as np
 
+increment_8bit_16 = [x for x in range(0, 256, 16)]
+decrement_8bit_16 = [x for x in range(256, 0, -16)]
+decrement_8bit_16[0] = 255
+gray_grad_increment_16 = np.array([(x/255, x/255, x/255)
+                                   for x in increment_8bit_16])
+gray_grad_decrement_16 = np.array([(x/255, x/255, x/255)
+                                   for x in decrement_8bit_16])
+const_black_array_16 = np.array([(0.0, 0.0, 0.0)
+                                 for x in increment_8bit_16])
+const_white_array_16 = np.array([(1.0, 1.0, 1.0)
+                                 for x in increment_8bit_16])
+red_grad_array_decrement_16 = np.array([(x/255, 0, 0)
+                                        for x in decrement_8bit_16])
+green_grad_array_decrement_16 = np.array([(0, x/255, 0)
+                                          for x in decrement_8bit_16])
+blue_grad_array_decrement_16 = np.array([(0, 0, x/255)
+                                         for x in decrement_8bit_16])
+magenta_grad_decrement_16 = np.array([(x/255, 0, x/255)
+                                      for x in decrement_8bit_16])
+yellow_grad_decrement_16 = np.array([(x/255, x/255, 0)
+                                     for x in decrement_8bit_16])
+cyan_grad_decrement_16 = np.array([(0, x/255, x/255)
+                                   for x in decrement_8bit_16])
+
 const_default_color = np.array([1.0, 1.0, 0.0])
 const_white = np.array([1.0, 1.0, 1.0])
 const_black = np.array([0.0, 0.0, 0.0])
@@ -411,7 +435,7 @@ def _get_center_address(width, height):
 
 def make_circle_pattern(width=1920, height=1080,
                         circle_size=1, linetype=cv2.LINE_AA,
-                        fragment_width=64, fragment_height=64,
+                        fragment_width=96, fragment_height=96,
                         bg_color=const_black, fg_color=const_white,
                         debug=False):
 
@@ -439,6 +463,8 @@ def make_circle_pattern(width=1920, height=1080,
     if debug:
         preview_image(img[:, :, ::-1])
 
+    return img
+
 
 def _rotate_coordinate(pos, angle=30):
     """
@@ -454,11 +480,11 @@ def _rotate_coordinate(pos, angle=30):
     return (x[0], y[0])
 
 
-def make_rectangle_pattern(width=128, height=128,
-                           h_side_len=16, v_side_len=8,
+def make_rectangle_pattern(width=1920, height=1080,
+                           h_side_len=32, v_side_len=32,
                            angle=45,
                            linetype=cv2.LINE_AA,
-                           fragment_width=64, fragment_height=64,
+                           fragment_width=96, fragment_height=96,
                            bg_color=const_black, fg_color=const_white,
                            debug=False):
 
@@ -485,24 +511,76 @@ def make_rectangle_pattern(width=128, height=128,
     pt3_v = pt1_v + v_side_len
     pt4_h = pt1_h + h_side_len
     pt4_v = pt1_v + v_side_len
+
+    # 回転する。そのあと、center を足して元の座標に戻す
+    # ついでに fragment の中心に配置されるよう offset 足す
+    # -------------------------------------------------
     ptrs = [(pt1_h, pt1_v), (pt2_h, pt2_v), (pt4_h, pt4_v), (pt3_h, pt3_v)]
     ptrs = [_rotate_coordinate(x, angle) for x in ptrs]
     ptrs = [(x[0] + center[0] + st_offset_h, x[1] + center[1] + st_offset_v)
             for x in ptrs]
 
+    # 描画ループ
+    # ------------------------------------------------
     fragment_h_num = (width // fragment_width) + 1
     fragment_v_num = (height // fragment_height) + 1
-
     for v_idx in range(fragment_v_num):
         for h_idx in range(fragment_h_num):
             ptrs_current = [(x[0] + h_idx * fragment_width,
                             x[1] + v_idx * fragment_width)
                             for x in ptrs]
             ptrs_current = np.array(ptrs_current, np.int32)
-            cv2.fillConvexPoly(img, ptrs_current, fg_color)
+            cv2.fillConvexPoly(img, ptrs_current, fg_color, linetype)
 
     if debug:
         preview_image(img[:, :, ::-1])
+
+    return img
+
+
+def make_multi_circle(width=1920, height=1080,
+                      h_block=4, v_block=2,
+                      circle_size=1, linetype=cv2.LINE_AA,
+                      fragment_width=96, fragment_height=96,
+                      bg_color_array=const_black_array,
+                      fg_color_array=const_white_array,
+                      debug=False):
+    """
+    # 概要
+    欲張って複数パターンの円形画像を１枚に収める
+    """
+    # parameter check
+    # -----------------------
+    if bg_color_array.shape[0] != (h_block * v_block):
+        raise TypeError("bg_color_array.shape is invalid.")
+    if fg_color_array.shape[0] != (h_block * v_block):
+        raise TypeError("fg_color_array.shape is invalid.")
+
+    block_width = width // h_block
+    block_height = height // v_block
+
+    v_img_list = []
+    for v_idx in range(v_block):
+        h_img_list = []
+        for h_idx in range(h_block):
+            idx = (v_idx * h_block) + h_idx
+            img = make_circle_pattern(width=block_width, height=block_height,
+                                      circle_size=circle_size,
+                                      linetype=linetype,
+                                      fragment_width=fragment_width,
+                                      fragment_height=fragment_height,
+                                      bg_color=bg_color_array[idx],
+                                      fg_color=fg_color_array[idx],
+                                      debug=False)
+            h_img_list.append(img)
+
+        v_img_list.append(cv2.hconcat(h_img_list))
+    img = cv2.vconcat((v_img_list))
+
+    if debug:
+        preview_image(img[:, :, ::-1])
+
+    return img
 
 
 if __name__ == '__main__':
@@ -538,4 +616,28 @@ if __name__ == '__main__':
     #                     fragment_width=64, fragment_height=64,
     #                     bg_color=const_black, fg_color=const_white,
     #                     debug=True)
-    make_rectangle_pattern(debug=True)
+    # make_rectangle_pattern(debug=True)
+    bg_array = [const_black_array_16 for x in range(8)]
+    bg_array = np.array(bg_array)
+    after_shape = (bg_array.shape[0] * bg_array.shape[1],
+                   bg_array.shape[2])
+    bg_array = bg_array.reshape(after_shape)
+    fg_array = [red_grad_array_decrement_16,
+                green_grad_array_decrement_16,
+                blue_grad_array_decrement_16,
+                cyan_grad_decrement_16,
+                magenta_grad_decrement_16,
+                yellow_grad_decrement_16,
+                gray_grad_decrement_16,
+                const_white_array_16]
+    fg_array = np.array(fg_array)
+    after_shape = (fg_array.shape[0] * fg_array.shape[1],
+                   fg_array.shape[2])
+    fg_array = fg_array.reshape(after_shape)
+    make_multi_circle(width=4096, height=2160,
+                      h_block=16, v_block=8,
+                      circle_size=10, linetype=cv2.LINE_AA,
+                      fragment_width=96, fragment_height=96,
+                      bg_color_array=bg_array,
+                      fg_color_array=fg_array,
+                      debug=True)
