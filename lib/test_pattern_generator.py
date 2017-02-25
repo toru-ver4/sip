@@ -433,6 +433,32 @@ def _get_center_address(width, height):
     return h_pos, v_pos
 
 
+def _add_text_infomation(img,
+                         bg_pos=(15, 20), fg_pos=(15, 40),
+                         fg_color=const_white, bg_color=const_black):
+    """
+    # 概要
+    fg_color, bg_color 情報を画像に直書きする
+
+    # 注意事項
+    色かぶりを防ぐために、フォントカラーは (fg + bg) / 2 を
+    さらに反転させて 128 で正規化してる。
+    反転が嫌だったらコードを直接編集して。
+    """
+
+    # add information of the video level.
+    # ------------------------------------
+    text_color = np.array([256, 256, 256]) - (fg_color + bg_color) / 2
+    text_color = text_color / np.max(text_color) * 128
+    font = cv2.FONT_HERSHEY_DUPLEX
+    text_format = "bg:({:03d}, {:03d}, {:03d})"
+    text = text_format.format(bg_color[0], bg_color[1], bg_color[2])
+    cv2.putText(img, text, (15, 20), font, 0.35, text_color, 1, cv2.LINE_AA)
+    text_format = "fg:({:03.0f}, {:03.0f}, {:03.0f})"
+    text = text_format.format(fg_color[0], fg_color[1], fg_color[2])
+    cv2.putText(img, text, (15, 40), font, 0.35, text_color, 1, cv2.LINE_AA)
+
+
 def make_circle_pattern(width=1920, height=1080,
                         circle_size=1, linetype=cv2.LINE_AA,
                         fragment_width=96, fragment_height=96,
@@ -451,7 +477,6 @@ def make_circle_pattern(width=1920, height=1080,
     fragment_h_num = (width // fragment_width) + 1
     fragment_v_num = (height // fragment_height) + 1
     st_pos_h, st_pos_v = _get_center_address(fragment_width, fragment_height)
-    print(st_pos_h, st_pos_v)
     for v_idx in range(fragment_v_num):
         pos_v = st_pos_v + v_idx * fragment_height
         for h_idx in range(fragment_h_num):
@@ -459,6 +484,12 @@ def make_circle_pattern(width=1920, height=1080,
             pos_h = st_pos_h + h_idx * fragment_width
             cv2.circle(img, (pos_h, pos_v), circle_size,
                        fg_color, -1, linetype)
+
+    # add information of the video level.
+    # ------------------------------------
+    _add_text_infomation(img,
+                         bg_pos=(15, 20), fg_pos=(15, 40),
+                         fg_color=fg_color, bg_color=bg_color)
 
     if debug:
         preview_image(img[:, :, ::-1])
@@ -531,6 +562,12 @@ def make_rectangle_pattern(width=1920, height=1080,
                             for x in ptrs]
             ptrs_current = np.array(ptrs_current, np.int32)
             cv2.fillConvexPoly(img, ptrs_current, fg_color, linetype)
+
+    # add information of the video level.
+    # ------------------------------------
+    _add_text_infomation(img,
+                         bg_pos=(15, 20), fg_pos=(15, 40),
+                         fg_color=fg_color, bg_color=bg_color)
 
     if debug:
         preview_image(img[:, :, ::-1])
@@ -636,8 +673,8 @@ if __name__ == '__main__':
     fg_array = fg_array.reshape(after_shape)
     make_multi_circle(width=4096, height=2160,
                       h_block=16, v_block=8,
-                      circle_size=10, linetype=cv2.LINE_AA,
-                      fragment_width=96, fragment_height=96,
+                      circle_size=70, linetype=cv2.LINE_AA,
+                      fragment_width=128, fragment_height=128,
                       bg_color_array=bg_array,
                       fg_color_array=fg_array,
                       debug=True)
