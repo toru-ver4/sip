@@ -620,6 +620,56 @@ def make_multi_circle(width=1920, height=1080,
     return img
 
 
+def make_multi_rectangle(width=1920, height=1080,
+                         h_block=4, v_block=2,
+                         h_side_len=32, v_side_len=32,
+                         angle=45,
+                         linetype=cv2.LINE_AA,
+                         fragment_width=96, fragment_height=96,
+                         bg_color_array=const_black_array,
+                         fg_color_array=const_white_array,
+                         debug=False):
+    """
+    # 概要
+    欲張って複数パターンの四角画像を１枚に収める
+    """
+    # parameter check
+    # -----------------------
+    if bg_color_array.shape[0] != (h_block * v_block):
+        raise TypeError("bg_color_array.shape is invalid.")
+    if fg_color_array.shape[0] != (h_block * v_block):
+        raise TypeError("fg_color_array.shape is invalid.")
+
+    block_width = width // h_block
+    block_height = height // v_block
+
+    v_img_list = []
+    for v_idx in range(v_block):
+        h_img_list = []
+        for h_idx in range(h_block):
+            idx = (v_idx * h_block) + h_idx
+            img = make_rectangle_pattern(width=block_width,
+                                         height=block_height,
+                                         h_side_len=h_side_len,
+                                         v_side_len=v_side_len,
+                                         angle=angle,
+                                         linetype=cv2.LINE_AA,
+                                         fragment_width=fragment_width,
+                                         fragment_height=fragment_height,
+                                         bg_color=bg_color_array[idx],
+                                         fg_color=fg_color_array[idx],
+                                         debug=False)
+            h_img_list.append(img)
+
+        v_img_list.append(cv2.hconcat(h_img_list))
+    img = cv2.vconcat((v_img_list))
+
+    if debug:
+        preview_image(img[:, :, ::-1])
+
+    return img
+
+
 if __name__ == '__main__':
     # gen_gradation_bar(width=1920, height=1080,
     #                   color=np.array([1.0, 0.7, 0.3]),
@@ -671,10 +721,19 @@ if __name__ == '__main__':
     after_shape = (fg_array.shape[0] * fg_array.shape[1],
                    fg_array.shape[2])
     fg_array = fg_array.reshape(after_shape)
-    make_multi_circle(width=4096, height=2160,
-                      h_block=16, v_block=8,
-                      circle_size=70, linetype=cv2.LINE_AA,
-                      fragment_width=128, fragment_height=128,
-                      bg_color_array=bg_array,
-                      fg_color_array=fg_array,
-                      debug=True)
+    # make_multi_circle(width=4096, height=2160,
+    #                   h_block=16, v_block=8,
+    #                   circle_size=70, linetype=cv2.LINE_AA,
+    #                   fragment_width=128, fragment_height=128,
+    #                   bg_color_array=bg_array,
+    #                   fg_color_array=fg_array,
+    #                   debug=True)
+    make_multi_rectangle(width=4096, height=2160,
+                         h_block=16, v_block=8,
+                         h_side_len=32, v_side_len=32,
+                         angle=45,
+                         linetype=cv2.LINE_AA,
+                         fragment_width=96, fragment_height=96,
+                         bg_color_array=bg_array,
+                         fg_color_array=fg_array,
+                         debug=True)

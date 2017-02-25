@@ -243,6 +243,75 @@ def make_and_save_crosshatch():
                           angle=0, debug=False)
 
 
+def _convert_array_for_multi_pattern(array):
+    array = np.array(array)
+    after_shape = (array.shape[0] * array.shape[1],
+                   array.shape[2])
+    array = array.reshape(after_shape)
+
+    return array
+
+
+def make_complex_circle_pattern():
+    """
+    # 概要
+    複数のパラメータの円形パターンを作る
+    """
+    h_block = 16
+    v_block = 8
+    bg_array = [tpg.const_black_array_16 for x in range(v_block)]
+    bg_array = _convert_array_for_multi_pattern(bg_array)
+    fg_array = [tpg.red_grad_array_decrement_16,
+                tpg.green_grad_array_decrement_16,
+                tpg.blue_grad_array_decrement_16,
+                tpg.cyan_grad_decrement_16,
+                tpg.magenta_grad_decrement_16,
+                tpg.yellow_grad_decrement_16,
+                tpg.gray_grad_decrement_16,
+                tpg.const_white_array_16]
+    fg_array = _convert_array_for_multi_pattern(fg_array)
+
+    tpg.make_multi_circle(width=4096, height=2160,
+                          h_block=h_block, v_block=v_block,
+                          circle_size=32, linetype=cv2.LINE_AA,
+                          fragment_width=64, fragment_height=64,
+                          bg_color_array=bg_array,
+                          fg_color_array=fg_array,
+                          debug=True)
+
+
+def make_complex_rectangle_pattern():
+    """
+    # 概要
+    複数のパラメータの円形パターンを作る
+    """
+    h_block = 16
+    v_block = 8
+    bg_array = [tpg.const_black_array_16 for x in range(v_block)]
+    bg_array = _convert_array_for_multi_pattern(bg_array)
+    fg_array = [tpg.red_grad_array_decrement_16,
+                tpg.green_grad_array_decrement_16,
+                tpg.blue_grad_array_decrement_16,
+                tpg.cyan_grad_decrement_16,
+                tpg.magenta_grad_decrement_16,
+                tpg.yellow_grad_decrement_16,
+                tpg.gray_grad_decrement_16,
+                tpg.const_white_array_16]
+    fg_array = _convert_array_for_multi_pattern(fg_array)
+
+    tpg.make_multi_rectangle(width=4096, height=2160,
+                             h_block=h_block, v_block=v_block,
+                             h_side_len=40, v_side_len=40,
+                             angle=0,
+                             linetype=cv2.LINE_AA,
+                             fragment_width=64, fragment_height=64,
+                             bg_color_array=bg_array,
+                             fg_color_array=fg_array,
+                             debug=True)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    make_and_save_crosshatch()
+    # make_and_save_crosshatch()
+    # make_complex_circle_pattern()
+    make_complex_rectangle_pattern()
