@@ -398,6 +398,131 @@ def make_multi_crosshatch(width=1920, height=1080,
     return img
 
 
+def _get_center_address(width, height):
+    """
+    # 概要
+    格子の中心座標(整数値)を求める
+    """
+    h_pos = width // 2
+    v_pos = height // 2
+
+    return h_pos, v_pos
+
+
+def make_circle_pattern(width=1920, height=1080,
+                        circle_size=1, linetype=cv2.LINE_AA,
+                        fragment_width=64, fragment_height=64,
+                        bg_color=const_black, fg_color=const_white,
+                        debug=False):
+
+    # convert float to uint8
+    # ---------------------------------
+    bg_color = np.uint8(np.round(bg_color * np.iinfo(np.uint8).max))
+    fg_color = np.round(fg_color * np.iinfo(np.uint8).max)
+
+    img = np.ones((height, width, 3), dtype=np.uint8)
+    for idx in range(3):
+        img[:, :, idx] *= bg_color[idx]
+
+    fragment_h_num = (width // fragment_width) + 1
+    fragment_v_num = (height // fragment_height) + 1
+    st_pos_h, st_pos_v = _get_center_address(fragment_width, fragment_height)
+    print(st_pos_h, st_pos_v)
+    for v_idx in range(fragment_v_num):
+        pos_v = st_pos_v + v_idx * fragment_height
+        for h_idx in range(fragment_h_num):
+            idx = v_idx * fragment_h_num + h_idx
+            pos_h = st_pos_h + h_idx * fragment_width
+            cv2.circle(img, (pos_h, pos_v), circle_size,
+                       fg_color, -1, linetype)
+
+    if debug:
+        preview_image(img[:, :, ::-1])
+
+
+def _rotate_coordinate(pos, angle=30):
+    """
+    # 概要
+    座ををθ℃だけ回転させるよ！
+    # 注意事項
+    pos は (x, y) 的なタプルな。
+    """
+    rad = np.array([angle * np.pi / 180.0])
+    x = np.cos(rad) * pos[0] + -np.sin(rad) * pos[1]
+    y = np.sin(rad) * pos[0] + np.cos(rad) * pos[1]
+
+    return (x[0], y[0])
+
+
+def make_rectangle_pattern(width=1920, height=1080,
+                           h_side_len=16, v_side_len=8,
+                           angle=45,
+                           linetype=cv2.LINE_AA,
+                           fragment_width=64, fragment_height=64,
+                           bg_color=const_black, fg_color=const_white,
+                           debug=False):
+
+    # convert float to uint8
+    # ---------------------------------
+    bg_color = np.uint8(np.round(bg_color * np.iinfo(np.uint8).max))
+    fg_color = np.round(fg_color * np.iinfo(np.uint8).max)
+
+    img = np.ones((height, width, 3), dtype=np.uint8)
+    for idx in range(3):
+        img[:, :, idx] *= bg_color[idx]
+
+    st_offset_h = (fragment_width // 2) - (h_side_len // 2)
+    st_offset_v = (fragment_height // 2) - (v_side_len // 2)
+
+    # 回転の前に Rectangle の中心が (0, 0) となるよう座標変換
+    center = (h_side_len / 2.0, v_side_len / 2.0)
+    pt1_h = 0 - center[0]
+    pt1_v = 0 - center[1]
+    pt2_h = pt1_h + h_side_len
+    pt2_v = pt1_v
+    pt3_h = pt1_h
+    pt3_v = pt1_v + v_side_len
+    pt4_h = pt1_h + h_side_len
+    pt4_v = pt1_v + v_side_len
+
+    pt1_pos = _rotate_coordinate((pt1_h, pt1_v), angle)
+    pt2_pos = _rotate_coordinate((pt2_h, pt2_v), angle)
+    pt3_pos = _rotate_coordinate((pt3_h, pt3_v), angle)
+    pt4_pos = _rotate_coordinate((pt4_h, pt4_v), angle)
+
+    pt1_pos = (pt1_pos[0] + center[0] + st_offset_h,
+               pt1_pos[1] + center[1] + st_offset_v)
+    pt2_pos = (pt2_pos[0] + center[0] + st_offset_h,
+               pt2_pos[1] + center[1] + st_offset_v)
+    pt3_pos = (pt3_pos[0] + center[0] + st_offset_h,
+               pt3_pos[1] + center[1] + st_offset_v)
+    pt4_pos = (pt4_pos[0] + center[0] + st_offset_h,
+               pt4_pos[1] + center[1] + st_offset_v)
+
+    fragment_h_num = (width // fragment_width) + 1
+    fragment_v_num = (height // fragment_height) + 1
+
+    for v_idx in range(fragment_v_num):
+        pt1_pos_v = pt1_pos[1] + v_idx * fragment_width
+        pt2_pos_v = pt2_pos[1] + v_idx * fragment_width
+        pt3_pos_v = pt3_pos[1] + v_idx * fragment_width
+        pt4_pos_v = pt4_pos[1] + v_idx * fragment_width
+        for h_idx in range(fragment_h_num):
+            idx = v_idx * fragment_h_num + h_idx
+            pt1_pos_h = pt1_pos[0] + h_idx * fragment_width
+            pt2_pos_h = pt2_pos[0] + h_idx * fragment_width
+            pt3_pos_h = pt3_pos[0] + h_idx * fragment_width
+            pt4_pos_h = pt4_pos[0] + h_idx * fragment_width
+            ptrs = [[pt1_pos_h, pt1_pos_v], [pt2_pos_h, pt2_pos_v],
+                    [pt4_pos_h, pt4_pos_v], [pt3_pos_h, pt3_pos_v]]
+            ptrs = np.array(ptrs, np.int32)
+            print(ptrs)
+            cv2.fillConvexPoly(img, ptrs, fg_color)
+
+    if debug:
+        preview_image(img[:, :, ::-1])
+
+
 if __name__ == '__main__':
     # gen_gradation_bar(width=1920, height=1080,
     #                   color=np.array([1.0, 0.7, 0.3]),
@@ -425,4 +550,10 @@ if __name__ == '__main__':
     #                          angle=30)
     # img = cv2.hconcat([img_na, img_aa])
     # preview_image(img[:, :, ::-1])
-    make_multi_crosshatch(debug=True)
+    # make_multi_crosshatch(debug=True)
+    # make_circle_pattern(width=1920, height=1080,
+    #                     circle_size=10, linetype=cv2.LINE_AA,
+    #                     fragment_width=64, fragment_height=64,
+    #                     bg_color=const_black, fg_color=const_white,
+    #                     debug=True)
+    make_rectangle_pattern(debug=True)
