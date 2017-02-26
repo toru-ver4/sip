@@ -460,7 +460,7 @@ def _add_text_infomation(img,
 
 
 def make_circle_pattern(width=1920, height=1080,
-                        circle_size=1, linetype=cv2.LINE_AA,
+                        circle_size=1,
                         fragment_width=96, fragment_height=96,
                         bg_color=const_black, fg_color=const_white,
                         debug=False):
@@ -469,6 +469,10 @@ def make_circle_pattern(width=1920, height=1080,
     # ---------------------------------
     bg_color = np.uint8(np.round(bg_color * np.iinfo(np.uint8).max))
     fg_color = np.round(fg_color * np.iinfo(np.uint8).max)
+    if circle_size <= 1:
+        linetype = cv2.LINE_8
+    else:
+        linetype = cv2.LINE_AA
 
     img = np.ones((height, width, 3), dtype=np.uint8)
     for idx in range(3):
@@ -577,7 +581,7 @@ def make_rectangle_pattern(width=1920, height=1080,
 
 def make_multi_circle(width=1920, height=1080,
                       h_block=4, v_block=2,
-                      circle_size=1, linetype=cv2.LINE_AA,
+                      circle_size=1,
                       fragment_width=96, fragment_height=96,
                       bg_color_array=const_black_array,
                       fg_color_array=const_white_array,
@@ -603,7 +607,6 @@ def make_multi_circle(width=1920, height=1080,
             idx = (v_idx * h_block) + h_idx
             img = make_circle_pattern(width=block_width, height=block_height,
                                       circle_size=circle_size,
-                                      linetype=linetype,
                                       fragment_width=fragment_width,
                                       fragment_height=fragment_height,
                                       bg_color=bg_color_array[idx],

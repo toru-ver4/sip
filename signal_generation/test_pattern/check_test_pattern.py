@@ -271,13 +271,22 @@ def make_complex_circle_pattern():
                 tpg.const_white_array_16]
     fg_array = _convert_array_for_multi_pattern(fg_array)
 
-    tpg.make_multi_circle(width=4096, height=2160,
-                          h_block=h_block, v_block=v_block,
-                          circle_size=32, linetype=cv2.LINE_AA,
-                          fragment_width=64, fragment_height=64,
-                          bg_color_array=bg_array,
-                          fg_color_array=fg_array,
-                          debug=True)
+    size_param = [[1, 64], [4, 64], [16, 64], [64, 64], [64, 128]]
+
+    file_str = "figure/circle_size-{}_frag_size-{}.png"
+
+    for size in size_param:
+        img = tpg.make_multi_circle(width=4096, height=2160,
+                                    h_block=h_block, v_block=v_block,
+                                    circle_size=size[0],
+                                    fragment_width=size[1],
+                                    fragment_height=size[1],
+                                    bg_color_array=bg_array,
+                                    fg_color_array=fg_array,
+                                    debug=False)
+        img = np.uint8(img)
+        file_name = file_str.format(size[0], size[1])
+        cv2.imwrite(file_name, img[:, :, ::-1])
 
 
 def make_complex_rectangle_pattern():
@@ -299,19 +308,32 @@ def make_complex_rectangle_pattern():
                 tpg.const_white_array_16]
     fg_array = _convert_array_for_multi_pattern(fg_array)
 
-    tpg.make_multi_rectangle(width=4096, height=2160,
-                             h_block=h_block, v_block=v_block,
-                             h_side_len=40, v_side_len=40,
-                             angle=0,
-                             linetype=cv2.LINE_AA,
-                             fragment_width=64, fragment_height=64,
-                             bg_color_array=bg_array,
-                             fg_color_array=fg_array,
-                             debug=True)
+    len_param = [[2, 64], [8, 64], [32, 64], [64, 64], [64, 128]]
+    angle_param = [[0, cv2.LINE_8], [30, cv2.LINE_AA],
+                   [45, cv2.LINE_AA], [60, cv2.LINE_AA]]
+
+    file_str = "figure/rectangle_len-{}_angle-{}.png"
+    for len in len_param:
+        for angle in angle_param:
+            img = tpg.make_multi_rectangle(width=4096, height=2160,
+                                           h_block=h_block, v_block=v_block,
+                                           h_side_len=len[0],
+                                           v_side_len=len[0],
+                                           angle=angle[0],
+                                           linetype=angle[1],
+                                           fragment_width=len[1],
+                                           fragment_height=len[1],
+                                           bg_color_array=bg_array,
+                                           fg_color_array=fg_array,
+                                           debug=False)
+            img = np.uint8(img)
+            file_name = file_str.format(len[0], angle[0])
+            cv2.imwrite(file_name, img[:, :, ::-1])
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # make_and_save_crosshatch()
-    # make_complex_circle_pattern()
-    make_complex_rectangle_pattern()
+    make_complex_circle_pattern()
+    # make_complex_rectangle_pattern()
+
