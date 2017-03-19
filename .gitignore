@@ -28,3 +28,4 @@ signal_generation/ffmpeg_tiff/*.hevc
 signal_generation/ffmpeg_tiff/*.mp4
 signal_generation/ffmpeg_tiff/*.y4m
 signal_generation/test_pattern/figure/*.png
+signal_generation/test_pattern/doc/~$test_pattern_spec.pptx
