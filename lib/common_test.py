@@ -7,7 +7,7 @@ test code
 """
 
 import unittest
-from nose.tools import ok_, raises
+from nose.tools import ok_, eq_, raises
 import numpy as np
 import common
 
@@ -34,6 +34,27 @@ class CommontestCase(unittest.TestCase):
     def test_is_correct_dtype_exception_data(self):
         ok_types = {np.uint32, np.uint64}
         common.is_correct_dtype(1, ok_types)
+
+    def test_equal_division(self):
+        # normal pattern
+        # -----------------
+        result_no1 = [1] * 100
+        eq_(common.equal_devision(100, 100), result_no1)
+        result_no2 = [1] * 99 + [2]
+        eq_(common.equal_devision(101, 100), result_no2)
+
+        # minimum
+        # ----------------
+        result_no3 = [1]
+        eq_(common.equal_devision(1, 1), result_no3)
+
+        # abnormal
+        # ---------------
+        result_no4 = [0]
+        eq_(common.equal_devision(0, 1), result_no4)
+        result_no5 = [0] * 3
+        eq_(common.equal_devision(0, 3), result_no5)
+
 
 
 if __name__ == '__main__':

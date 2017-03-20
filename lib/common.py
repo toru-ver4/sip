@@ -8,7 +8,8 @@
 """
 
 import numpy as np
-import math 
+import math
+
 
 def is_numpy_module(data):
     return type(data).__module__ == np.__name__
@@ -33,40 +34,35 @@ def equal_devision(length, div_num):
     """
     # 概要
     length を div_num で分割する。
-    端数が出た場合は誤差拡散法っぽく良い感じにする。
-
-    # 例(odd)
-    equal_devision(9, 9)  => [1, 1, 1, 1, 1, 1, 1, 1, 1]
-    equal_devision(10, 9) => [2, 1, 1, 1, 1, 1, 1, 1, 1]
-    equal_devision(11, 9) => [2, 1, 1, 1, 2, 1, 1, 1, 1]
-    equal_devision(12, 9) => [2, 1, 1, 1, 2, 1, 1, 1, 2]
-    equal_devision(13, 9) => [2, 1, 2, 1, 2, 1, 1, 1, 2]
-    equal_devision(14, 9) => [2, 1, 2, 1, 2, 1, 2, 1, 2]
-    equal_devision(15, 9) => [2, 2, 2, 1, 2, 1, 2, 1, 2]
-    equal_devision(16, 9) => [2, 2, 2, 2, 2, 1, 2, 1, 2]
-    equal_devision(17, 9) => [2, 2, 2, 2, 2, 2, 2, 1, 2]
-
-    # 例(even)
-    equal_devision(10, 10) => [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    equal_devision(11, 10) => [2, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    equal_devision(12, 10) => [2, 1, 1, 1, 2, 1, 1, 1, 1, 1]
-    equal_devision(13, 10) => [2, 1, 1, 1, 2, 1, 1, 1, 2, 1]
-    equal_devision(14, 10) => [2, 1, 2, 1, 2, 1, 1, 1, 2, 1]
-    equal_devision(15, 10) => [2, 1, 2, 1, 2, 1, 2, 1, 2, 1]
-    equal_devision(16, 10) => [2, 2, 2, 1, 2, 1, 2, 1, 2, 1]
-    equal_devision(17, 10) => [2, 2, 2, 2, 2, 1, 2, 1, 2, 1]
-    equal_devision(18, 10) => [2, 2, 2, 2, 2, 2, 2, 1, 2, 1]
-    equal_devision(19, 10) => [2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
+    端数が出た場合は誤差拡散法を使って上手い具合に分散させる。
     """
-    base = length // div_num
-    rest_val = length - (base * div_num)
-    ret_array = [base] * div_num
-    step = (div_num) // 2
+    base = length / div_num
+    ret_array = [base for x in range(div_num)]
 
-    are = int(math.floor(math.log2(div_num)))
-    are_list = [2 ** x for x in range(are)]
-    print(are_list)
+    # 誤差拡散法を使った辻褄合わせを適用
+    # -------------------------------------------
+    diff = 0
+    for idx in range(div_num):
+        diff += math.modf(ret_array[idx])[0]
+        if diff >= 1.0:
+            diff -= 1.0
+            ret_array[idx] = int(math.floor(ret_array[idx]) + 1)
+        else:
+            ret_array[idx] = int(math.floor(ret_array[idx]))
+
+    # 計算誤差により最終点が +1 されない場合への対処
+    # -------------------------------------------
+    diff = length - sum(ret_array)
+    if diff != 0:
+        ret_array[-1] += diff
+
+    # 最終確認
+    # -------------------------------------------
+    if length != sum(ret_array):
+        raise ValueError("the output of equal_division() is abnormal.")
+
+    return ret_array
 
 
 if __name__ == '__main__':
-    equal_devision(17, 6)
+    print(equal_devision(0, 3))
