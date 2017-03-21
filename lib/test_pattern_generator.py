@@ -75,8 +75,13 @@ const_cyan_grad_array_higher = np.array([(0, x/255, x/255)
                                          for x in range(255, 128, -16)])
 
 
-def preview_image(img):
-    cv2.imshow('preview', img)
+def preview_image(img, order=None):
+    if order == 'rgb':
+        cv2.imshow('preview', img[:, :, ::-1])
+    elif order == 'bgr':
+        cv2.imshow('preview', img)
+    else:
+        raise ValueError("order parameter is invalid")
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -688,83 +693,40 @@ def change_12bit_to_16bit(data):
     return data * 16
 
 
-def gen_csf_pattern(width=640, height=480, bar_num=16,
-                    a=(0, 0, 0), b=(32768, 32768, 32768),
-                    dtype=np.uint16):
+def gen_csf_pattern(width=640, height=480, bar_num=17,
+                    a=(32768, 32768, 0), b=(32768, 0, 32768),
+                    dtype=np.uint16, debug=False):
     """
     # 概要
     CSF(Contrast Sensitivity Function) のパターンを作る
     """
-    line = np.zeros((width, 3), dtype=dtype)
+    lut = [a, b]
+    bar_length_list = common.equal_devision(width, bar_num)
+    line_bar_list = []
+    for bar_idx, length in enumerate(bar_length_list):
+        # LUT値をトグルして1次元のbarの値を作る
+        # -----------------------------------
+        bar = [np.ones((length), dtype=dtype) * lut[bar_idx % 2][color]
+               for color in range(3)]
+        bar = np.dstack(bar)
+        line_bar_list.append(bar)
+
+    # a と b をトグルして作った bar を結合
+    # -----------------------------------
+    line = np.hstack(line_bar_list)
+    line_stack = [line for x in range(height)]
+
+    # v方向にも stack して 1次元画像を2次元画像にする
+    # --------------------------------------------
+    img = np.vstack(line_stack)
+
+    if debug:
+        preview_image(img, 'rgb')
+
+    return img
 
 
 if __name__ == '__main__':
-    # gen_gradation_bar(width=1920, height=1080,
-    #                   color=np.array([1.0, 0.7, 0.3]),
-    #                   direction='v', offset=0.8, debug=False)
-
-    # gen_window_pattern(width=1920, height=1080,
-    #                    color=np.array([1.0, 1.0, 1.0]), size=0.9, debug=False)
-
-    # check_abl_pattern(width=3840, height=2160,
-    #                   color_bar_width=200, color_bar_offset=0.0,
-    #                   color_bar_gain=1.0,
-    #                   window_size=0.1, debug=False)
-
-    # img = gen_youtube_hdr_test_pattern(high_bit_num=6, window_size=0.05)
-    # _crosshatch_fragment()
-    # img_aa = make_crosshatch(width=1920, height=1080,
-    #                          linewidth=1, linetype=cv2.LINE_AA,
-    #                          fragment_width=64, fragment_height=64,
-    #                          bg_color=const_black, fg_color=const_white,
-    #                          angle=30, debug=False)
-    # img_na = make_crosshatch(width=1920, height=1080,
-    #                          linewidth=1, linetype=cv2.LINE_8,
-    #                          fragment_width=64, fragment_height=64,
-    #                          bg_color=const_black, fg_color=const_white,
-    #                          angle=30)
-    # img = cv2.hconcat([img_na, img_aa])
-    # preview_image(img[:, :, ::-1])
-    # make_multi_crosshatch(debug=True)
-    # make_circle_pattern(width=1920, height=1080,
-    #                     circle_size=10, linetype=cv2.LINE_AA,
-    #                     fragment_width=64, fragment_height=64,
-    #                     bg_color=const_black, fg_color=const_white,
-    #                     debug=True)
-    # make_rectangle_pattern(debug=True)
-    # bg_array = [const_black_array_16 for x in range(8)]
-    # bg_array = np.array(bg_array)
-    # after_shape = (bg_array.shape[0] * bg_array.shape[1],
-    #                bg_array.shape[2])
-    # bg_array = bg_array.reshape(after_shape)
-    # fg_array = [red_grad_array_decrement_16,
-    #             green_grad_array_decrement_16,
-    #             blue_grad_array_decrement_16,
-    #             cyan_grad_decrement_16,
-    #             magenta_grad_decrement_16,
-    #             yellow_grad_decrement_16,
-    #             gray_grad_decrement_16,
-    #             const_white_array_16]
-    # fg_array = np.array(fg_array)
-    # after_shape = (fg_array.shape[0] * fg_array.shape[1],
-    #                fg_array.shape[2])
-    # fg_array = fg_array.reshape(after_shape)
-    # make_multi_circle(width=4096, height=2160,
-    #                   h_block=16, v_block=8,
-    #                   circle_size=70, linetype=cv2.LINE_AA,
-    #                   fragment_width=128, fragment_height=128,
-    #                   bg_color_array=bg_array,
-    #                   fg_color_array=fg_array,
-    #                   debug=True)
-    # make_multi_rectangle(width=4096, height=2160,
-    #                      h_block=16, v_block=8,
-    #                      h_side_len=32, v_side_len=32,
-    #                      angle=45,
-    #                      linetype=cv2.LINE_AA,
-    #                      fragment_width=96, fragment_height=96,
-    #                      bg_color_array=bg_array,
-    #                      fg_color_array=fg_array,
-    #                      debug=True)
-
     # fire.Fire()
-    change_bit_depth(src=8, dst=10, data=np.array(1024))
+    # change_bit_depth(src=8, dst=10, data=np.array(1024))
+    gen_csf_pattern(debug=True)

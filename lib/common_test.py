@@ -56,6 +56,5 @@ class CommontestCase(unittest.TestCase):
         eq_(common.equal_devision(0, 3), result_no5)
 
 
-
 if __name__ == '__main__':
     pass

@@ -65,4 +65,4 @@ def equal_devision(length, div_num):
 
 
 if __name__ == '__main__':
-    print(equal_devision(0, 3))
+    print(equal_devision(10000, 1001))
