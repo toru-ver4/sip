@@ -55,6 +55,17 @@ class CommontestCase(unittest.TestCase):
         result_no5 = [0] * 3
         eq_(common.equal_devision(0, 3), result_no5)
 
+    def test_is_img_shape(self):
+        data1 = np.ones((100, 100, 3))
+        data2 = np.ones((100, 3))
+        data3 = np.ones((100, 100, 3, 100))
+        data4 = (100, 100, 3)
+        ok_(common.is_img_shape(data1))
+        ok_(not common.is_img_shape(data2))
+        ok_(not common.is_img_shape(data3))
+        with self.assertRaises(TypeError):
+            common.is_img_shape(data4)
+
 
 if __name__ == '__main__':
     pass

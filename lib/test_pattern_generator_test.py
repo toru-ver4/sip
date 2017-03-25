@@ -7,7 +7,7 @@ test code
 """
 
 import unittest
-from nose.tools import eq_
+from nose.tools import eq__
 import test_pattern_generator as tpg
 
 
@@ -26,6 +26,7 @@ class TpgtestCase(unittest.TestCase):
         eq_(tpg.change_12bit_to_16bit(0), 0)
         eq_(tpg.change_12bit_to_16bit(4095), 0xFFF0)
         eq_(tpg.change_12bit_to_16bit(4096), 65536)
+
 
 if __name__ == '__main__':
     pass

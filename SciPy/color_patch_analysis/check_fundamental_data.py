@@ -2,7 +2,6 @@ import os
 import imp
 import numpy as np
 from scipy import linalg
-from scipy import integrate
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import cv2

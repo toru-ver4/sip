@@ -9,10 +9,10 @@
 
 """
 
-import cv2
+import sys
 import numpy as np
 from scipy import linalg
-import matplotlib.pyplot as plt
+import common
 
 
 const_sRGB_xy = [[0.64, 0.33],
@@ -184,5 +184,27 @@ def srgb_to_linear(img):
     return out_img
 
 
+def xyY_to_RGB(xyY, gamut=const_sRGB_xy):
+    """
+    # 概要
+    xyY から RGB値を算出する
+    # 入力データ
+    numpy形式。shape = (N, M, 3)
+    """
+    if not common.is_img_shape(xyY):
+        raise TypeError('xyY shape must be (N, M, 3)')
+
+    large_xyz = xyY_to_XYZ(xyY)
+    cvt_mtx = get_rgb_to_xyz_matrix(gamut)
+    cvt_mtx = linalg.inv(cvt_mtx)
+    rgb = color_cvt(large_xyz, cvt_mtx)
+    print(rgb)
+
+
 if __name__ == '__main__':
-    pass
+    xyY = np.ones((1, 1, 3))
+    xyY[0][0][0] = 0.539
+    xyY[0][0][1] = 0.313
+    xyY[0][0][2] = 20
+    xyY_to_RGB(xyY, gamut=const_sRGB_xy)
+

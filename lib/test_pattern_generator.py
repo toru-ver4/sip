@@ -714,11 +714,91 @@ def gen_csf_pattern(width=640, height=480, bar_num=17,
     # a と b をトグルして作った bar を結合
     # -----------------------------------
     line = np.hstack(line_bar_list)
-    line_stack = [line for x in range(height)]
 
     # v方向にも stack して 1次元画像を2次元画像にする
     # --------------------------------------------
+    line_stack = [line for x in range(height)]
     img = np.vstack(line_stack)
+
+    if debug:
+        preview_image(img, 'rgb')
+
+    return img
+
+
+def gen_step_gradation(width=1024, height=128, step_num=17,
+                       bit_depth=10, color=(1.0, 1.0, 1.0),
+                       direction='h', debug=False):
+    """
+    # 概要
+    階段状に変化するグラデーションパターンを作る。
+    なお、引数の調整により滑らからに変化するグラデーションも作れる
+
+    # 注意事項
+    1階調ずつ滑らかに階調が変わるグラデーションを作る場合は
+    ```(2 ** bit_depth) == (step_num + 1)```
+    となるようにパラメータを指定すること。
+
+    """
+    max = 2 ** bit_depth
+
+    # グラデーション方向設定
+    # ----------------------
+    if direction == 'h':
+        pass
+    else:
+        temp = height
+        height = width
+        width = temp
+
+    # 階段状に変化するグラデーションかどうか判定
+    # -------------------------------------
+    if (max + 1 != step_num):
+        val_list = np.linspace(0, max, step_num)
+        val_list[-1] -= 1
+    else:
+        """
+        滑らかに変化させる場合は末尾のデータが 256 や 1024 に
+        なるため除外する。
+        """
+        val_list = np.linspace(0, max, step_num)[0:-1]
+        step_num -= 1  # step_num は 引数で余計に +1 されてるので引く
+
+        # 念のため1階調ずつの変化か確認
+        # ---------------------------
+        diff = val_list[1:] - val_list[0:-1]
+        if (diff == 1).all():
+            pass
+        else:
+            raise ValueError("calculated value is invalid.")
+
+    # まずは水平1LINEのグラデーションを作る
+    # -----------------------------------
+    step_length_list = common.equal_devision(width, step_num)
+    step_bar_list = []
+    for step_idx, length in enumerate(step_length_list):
+        step = [np.ones((length)) * color[c_idx] * val_list[step_idx]
+                for c_idx in range(3)]
+        if direction == 'h':
+            step = np.dstack(step)
+            step_bar_list.append(step)
+            step_bar = np.hstack(step_bar_list)
+        else:
+            step = np.dstack(step).reshape((length, 1, 3))
+            step_bar_list.append(step)
+            step_bar = np.vstack(step_bar_list)
+
+    # LineをV方向に束ねて画像にする
+    # ------------------------------
+    bar_stack = [step_bar for x in range(height)]
+    if direction == 'h':
+        img = np.vstack(bar_stack)
+    else:
+        img = np.hstack(bar_stack)
+
+    # np.uint16 にコンバート
+    # ------------------------------
+    img = np.uint16(np.round(img * (2 ** (16 - bit_depth))))
 
     if debug:
         preview_image(img, 'rgb')
@@ -729,4 +809,13 @@ def gen_csf_pattern(width=640, height=480, bar_num=17,
 if __name__ == '__main__':
     # fire.Fire()
     # change_bit_depth(src=8, dst=10, data=np.array(1024))
-    gen_csf_pattern(debug=True)
+    # gen_csf_pattern(debug=True)
+    img = gen_step_gradation(width=100, height=4096, step_num=4097,
+                             bit_depth=12, color=(1.0, 1.0, 1.0),
+                             direction='v', debug=True)
+    print(img.shape)
+    count = 0
+    for idx in range(0, 4096):
+        # print(count, idx, end=" ")
+        count += 1
+        print(img[idx, 0, 0] >> 4, end=" ")

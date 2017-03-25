@@ -15,6 +15,20 @@ def is_numpy_module(data):
     return type(data).__module__ == np.__name__
 
 
+def is_img_shape(data):
+    """
+    # brief
+    check whether the shape of data is (N, M, 3).
+    """
+    if not is_numpy_module(data):
+        raise TypeError("data must be a numpy instance")
+    if len(data.shape) != 3:
+        return False
+    if data.shape[2] != 3:
+        return False
+    return True
+
+
 def is_correct_dtype(data, types={np.uint32, np.uint64}):
     """
     # brief
@@ -65,4 +79,6 @@ def equal_devision(length, div_num):
 
 
 if __name__ == '__main__':
-    print(equal_devision(10000, 1001))
+    # print(equal_devision(10000, 1001))
+    data = (100, 100, 3)
+    print(is_img_shape(data))
