@@ -9,10 +9,12 @@
 
 """
 
+import os
 import cv2
 import numpy as np
 import common
-import fire
+from PIL import ImageCms
+# import fire
 
 
 increment_8bit_16 = [x for x in range(0, 256, 16)]
@@ -806,20 +808,30 @@ def gen_step_gradation(width=1024, height=128, step_num=17,
     return img
 
 
+def get_primary_data():
+    """
+    # 概要
+    とある機材のPrimary情報を取得する。
+    # src_code
+    http://www.eizo.co.jp/support/db/products/download/791
+    # 注意事項
+    icc profile を $ROOT/lib/data/ 以下に置いておくこと
+    """
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    filename = os.path.join(base_dir, "./data/CG318 Custom 6500K G2.2.icc")
+    profile = ImageCms.getOpenProfile(filename)
+    r_xy = profile.profile.red_primary[1][0:2]
+    g_xy = profile.profile.green_primary[1][0:2]
+    b_xy = profile.profile.blue_primary[1][0:2]
+
+    native_xy = [r_xy, g_xy, b_xy, [0.3127, 0.3290]]
+
+    return native_xy
+
+
 if __name__ == '__main__':
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # fire.Fire()
     # change_bit_depth(src=8, dst=10, data=np.array(1024))
     # gen_csf_pattern(debug=True)
-    bit = 10
-    color = (1.0, 1.0, 1.0)
-    img = gen_step_gradation(width=256+16, height=50, step_num=17,
-                             bit_depth=bit, color=color,
-                             direction='h', debug=False)
-    idx = [x * 16 + 8 for x in range(17)]
-    # img = img[:, idx[0:-1], :]
-    for c_idx in range(3):
-        diff = img[0, 1:, c_idx] - img[0, 0:-1, c_idx]
-        ref_val = int(round((2 ** (16 - bit)) * color[c_idx]))
-        ref_val_last = ((2 ** bit) - 1) * (2 ** (16 - bit)) * color[c_idx]
-        ref_val_last = int(round(ref_val_last))
-        print(img[:, idx[-1], c_idx])
+    get_primary_data()

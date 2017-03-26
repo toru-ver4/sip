@@ -334,6 +334,5 @@ def make_complex_rectangle_pattern():
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # make_and_save_crosshatch()
-    make_complex_circle_pattern()
+    # make_complex_circle_pattern()
     # make_complex_rectangle_pattern()
-
