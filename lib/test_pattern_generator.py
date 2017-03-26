@@ -810,12 +810,16 @@ if __name__ == '__main__':
     # fire.Fire()
     # change_bit_depth(src=8, dst=10, data=np.array(1024))
     # gen_csf_pattern(debug=True)
-    img = gen_step_gradation(width=100, height=4096, step_num=4097,
-                             bit_depth=12, color=(1.0, 1.0, 1.0),
-                             direction='v', debug=True)
-    print(img.shape)
-    count = 0
-    for idx in range(0, 4096):
-        # print(count, idx, end=" ")
-        count += 1
-        print(img[idx, 0, 0] >> 4, end=" ")
+    bit = 10
+    color = (1.0, 1.0, 1.0)
+    img = gen_step_gradation(width=256+16, height=50, step_num=17,
+                             bit_depth=bit, color=color,
+                             direction='h', debug=False)
+    idx = [x * 16 + 8 for x in range(17)]
+    # img = img[:, idx[0:-1], :]
+    for c_idx in range(3):
+        diff = img[0, 1:, c_idx] - img[0, 0:-1, c_idx]
+        ref_val = int(round((2 ** (16 - bit)) * color[c_idx]))
+        ref_val_last = ((2 ** bit) - 1) * (2 ** (16 - bit)) * color[c_idx]
+        ref_val_last = int(round(ref_val_last))
+        print(img[:, idx[-1], c_idx])
