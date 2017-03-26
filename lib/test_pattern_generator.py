@@ -818,7 +818,7 @@ def get_primary_data():
     icc profile を $ROOT/lib/data/ 以下に置いておくこと
     """
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    filename = os.path.join(base_dir, "./data/CG318 Custom 6500K G2.2.icc")
+    filename = os.path.join(base_dir, "./data/6500K.icc")
     profile = ImageCms.getOpenProfile(filename)
     r_xy = profile.profile.red_primary[1][0:2]
     g_xy = profile.profile.green_primary[1][0:2]

@@ -29,4 +29,4 @@ signal_generation/ffmpeg_tiff/*.mp4
 signal_generation/ffmpeg_tiff/*.y4m
 signal_generation/test_pattern/figure/*.png
 signal_generation/test_pattern/doc/~$test_pattern_spec.pptx
-lib/data/CG318_Custom_6500K_G2.2.icc
+lib/data/6500K.icc
