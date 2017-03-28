@@ -829,9 +829,105 @@ def get_primary_data():
     return native_xy
 
 
+def composite_gray_scale(img, width, height):
+
+    grad_width = 2048
+    grad_height = 128
+    grad_start_v = 128
+    grad_space_v = 64
+
+    # 8bit, 10bit のグラデーション表示
+    # -------------------------------
+    grad_8 = gen_step_gradation(width=grad_width, height=grad_height,
+                                step_num=257, bit_depth=8,
+                                color=(1.0, 1.0, 1.0), direction='h')
+    grad_10 = gen_step_gradation(width=grad_width, height=grad_height,
+                                 step_num=1025, bit_depth=10,
+                                 color=(1.0, 1.0, 1.0), direction='h')
+    start_h = width // 2 - grad_width // 2
+    start_v = grad_start_v
+    img[start_v:start_v+grad_height, start_h:start_h+grad_width] = grad_8
+    start_v += grad_height + grad_space_v
+    img[start_v:start_v+grad_height, start_h:start_h+grad_width] = grad_10
+
+    # グラデーションの横に端点を示すマーカーを用意
+    # ----------------------------------------
+    rect_h_len = 20
+    rect_v_len = 20
+    marker_color = (32768, 32768, 32768)
+    ptrs_1 = np.array([(start_h - rect_h_len, grad_start_v - grad_space_v),
+                       (start_h, rect_v_len + grad_start_v - grad_space_v),
+                       (start_h + rect_h_len, grad_start_v - grad_space_v)],
+                      np.int32)
+    ptrs_2 = np.array([(start_h - rect_h_len + grad_width,
+                        grad_start_v - grad_space_v),
+                       (start_h + grad_width,
+                        rect_v_len + grad_start_v - grad_space_v),
+                       (start_h + rect_h_len + grad_width,
+                        grad_start_v - grad_space_v)],
+                      np.int32)
+    ptrs_3 = np.array([(start_h - rect_h_len,
+                        grad_start_v + grad_height * 2 + grad_space_v * 2),
+                       (start_h,
+                        grad_start_v + grad_height * 2 + grad_space_v * 2 -
+                        rect_v_len),
+                       (start_h + rect_h_len,
+                        grad_start_v + grad_height * 2 + grad_space_v * 2)],
+                      np.int32)
+    ptrs_4 = np.array([(start_h - rect_h_len + grad_width,
+                        grad_start_v + grad_height * 2 + grad_space_v * 2),
+                       (start_h + grad_width,
+                        grad_start_v + grad_height * 2 + grad_space_v * 2 -
+                        rect_v_len),
+                       (start_h + rect_h_len + grad_width,
+                        grad_start_v + grad_height * 2 + grad_space_v * 2)],
+                      np.int32)
+    cv2.fillConvexPoly(img, ptrs_1, marker_color, cv2.LINE_AA)
+    cv2.fillConvexPoly(img, ptrs_2, marker_color, cv2.LINE_AA)
+    cv2.fillConvexPoly(img, ptrs_3, marker_color, cv2.LINE_AA)
+    cv2.fillConvexPoly(img, ptrs_4, marker_color, cv2.LINE_AA)
+
+
+def make_m_and_e_test_pattern(size='uhd'):
+    """
+    # 概要
+    機材の状況が予定通りとなっているか判断できるパターンを作る。
+    設計書は $ROOT/signal_generation/test_pattern/doc/
+    # 詳細
+    引数は 'uhd' or 'dci4k' を指定すること
+    """
+
+    # サイズの設定
+    # --------------------------
+    if size == 'uhd':
+        width = 3840
+    elif size == 'dci4k':
+        width = 4096
+    height = 2160
+
+    csf_start_v = 128 + 128
+
+    # 黒ベタの背景にグレー枠を付ける
+    # ----------------------------
+    img = np.ones((height, width, 3), dtype=np.uint16) * 0x8000
+    img[1:-1, 1:-1] = [0, 0, 0]
+
+    # 8bit, 10bit のグラデーション表示
+    # -------------------------------
+    composite_gray_scale(img, width, height)
+
+    # CSFパターンを 8bit/10bit/12git の3種類用意
+    # -----------------------------------------
+
+    img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
+    preview_image(img, 'rgb')
+    cv2.imwrite('hoge.tif', img[:, :, ::-1])
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # fire.Fire()
     # change_bit_depth(src=8, dst=10, data=np.array(1024))
     # gen_csf_pattern(debug=True)
-    get_primary_data()
+    # get_primary_data()
+    make_m_and_e_test_pattern(size='uhd')
