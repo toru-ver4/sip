@@ -888,6 +888,46 @@ def composite_gray_scale(img, width, height):
     cv2.fillConvexPoly(img, ptrs_4, marker_color, cv2.LINE_AA)
 
 
+def composite_csf_pattern(img, width, height):
+    csf_start_h = width // 2 - 1024
+    csf_start_v = 600
+    csf_width = 640
+    csf_height = 480
+    csf_h_space = 64
+    csf_h_offset = csf_width + csf_h_space
+    bar_num = 16
+
+    # csf pattern 作成
+    # ----------------------------------
+    fg_8bit = [128 * 256 for x in range(3)]
+    bg_8bit = [127 * 256 for x in range(3)]
+    csf_8bit = gen_csf_pattern(width=csf_width, height=csf_height,
+                               bar_num=bar_num, a=fg_8bit, b=bg_8bit,
+                               dtype=np.uint16)
+    img[csf_start_v:csf_start_v+csf_height,
+        csf_start_h:csf_start_h+csf_width] = csf_8bit
+
+    fg_10bit = [512 * 64 for x in range(3)]
+    bg_10bit = [511 * 64 for x in range(3)]
+    csf_10bit = gen_csf_pattern(width=csf_width, height=csf_height,
+                                bar_num=bar_num, a=fg_10bit, b=bg_10bit,
+                                dtype=np.uint16)
+    h_start = csf_start_h + csf_h_offset * 1
+    h_end = csf_start_h + csf_h_offset * 1 + csf_width
+    img[csf_start_v:csf_start_v+csf_height,
+        h_start:h_end] = csf_10bit
+
+    fg_12bit = [2048 * 16 for x in range(3)]
+    bg_12bit = [2047 * 16 for x in range(3)]
+    csf_12bit = gen_csf_pattern(width=csf_width, height=csf_height,
+                                bar_num=bar_num, a=fg_12bit, b=bg_12bit,
+                                dtype=np.uint16)
+    h_start = csf_start_h + csf_h_offset * 2
+    h_end = csf_start_h + csf_h_offset * 2 + csf_width
+    img[csf_start_v:csf_start_v+csf_height,
+        h_start:h_end] = csf_12bit
+
+
 def make_m_and_e_test_pattern(size='uhd'):
     """
     # 概要
@@ -905,8 +945,6 @@ def make_m_and_e_test_pattern(size='uhd'):
         width = 4096
     height = 2160
 
-    csf_start_v = 128 + 128
-
     # 黒ベタの背景にグレー枠を付ける
     # ----------------------------
     img = np.ones((height, width, 3), dtype=np.uint16) * 0x8000
@@ -918,6 +956,13 @@ def make_m_and_e_test_pattern(size='uhd'):
 
     # CSFパターンを 8bit/10bit/12git の3種類用意
     # -----------------------------------------
+    composite_csf_pattern(img, width, height)
+
+    # 左側にST2084確認用のパターンを表示
+    # ----------------------------------------
+
+    # 右側にSTD-B67確認用のパターンを表示
+    # ----------------------------------------
 
     img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
     preview_image(img, 'rgb')
