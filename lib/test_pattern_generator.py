@@ -14,6 +14,8 @@ import cv2
 import numpy as np
 import common
 from PIL import ImageCms
+import plot_utility as pu
+import matplotlib.pyplot as plt
 # import fire
 
 
@@ -235,6 +237,27 @@ def get_bt2100_pq_curve(x, debug=False):
     luminance = (bunsi / bunbo) ** (1/m1)
 
     return luminance * 10000
+
+
+def get_bt2100_hlg_curve(x, debug=False):
+    """
+    参考：ITU-R Recommendation BT.2100-0
+    """
+    a = 0.17883277
+    b = 0.28466892
+    c = 0.55991073
+
+    under = (x <= 0.5) * 4 * (x ** 2)
+    over = (x > 0.5) * (np.exp((x - c) / a) + b)
+
+    y = (under + over) / 12.0
+
+    if debug:
+        ax1 = pu.plot_1_graph()
+        ax1.plot(x, y)
+        plt.show()
+
+    return y
 
 
 def gen_youtube_hdr_test_pattern(high_bit_num=5, window_size=0.05):
@@ -892,7 +915,7 @@ def composite_csf_pattern(img, width, height):
     csf_start_h = width // 2 - 1024
     csf_start_v = 600
     csf_width = 640
-    csf_height = 480
+    csf_height = 360
     csf_h_space = 64
     csf_h_offset = csf_width + csf_h_space
     bar_num = 16
@@ -928,14 +951,47 @@ def composite_csf_pattern(img, width, height):
         h_start:h_end] = csf_12bit
 
 
+def composite_limited_full_pattern(img, width, height):
+    csf_start_h = width // 2 - 1024
+    csf_start_v = 1024
+    csf_width = 640
+    csf_height = 360
+    csf_h_space = 64
+    csf_h_offset = csf_width + csf_h_space
+    bar_num = 16
+
+    # csf pattern 作成
+    # ----------------------------------
+    fg_8bit = [0 * 256 for x in range(3)]
+    bg_8bit = [16 * 256 for x in range(3)]
+    csf_8bit = gen_csf_pattern(width=csf_width-2, height=csf_height-2,
+                               bar_num=bar_num, a=fg_8bit, b=bg_8bit,
+                               dtype=np.uint16)
+    img[csf_start_v:csf_start_v+csf_height,
+        csf_start_h:csf_start_h+csf_width] = [48*256, 48*256, 48*256]
+    img[csf_start_v+1:csf_start_v+csf_height-1,
+        csf_start_h+1:csf_start_h+csf_width-1] = csf_8bit
+
+    fg_12bit = [235 * 256 for x in range(3)]
+    bg_12bit = [255 * 256 for x in range(3)]
+    csf_12bit = gen_csf_pattern(width=csf_width, height=csf_height,
+                                bar_num=bar_num, a=fg_12bit, b=bg_12bit,
+                                dtype=np.uint16)
+    h_start = csf_start_h + csf_h_offset * 2
+    h_end = csf_start_h + csf_h_offset * 2 + csf_width
+    img[csf_start_v:csf_start_v+csf_height,
+        h_start:h_end] = csf_12bit
+
+
 def gen_ST2084_gray_scale(img, width, height):
     scale_width = 96
     scale_height = height - 2  # "-2" is for pixels of frame.
     scale_step = 65
     bit_depth = 10
     scale_color = (1.0, 1.0, 1.0)
-    text_offset_h = 16
+    text_offset_h = 12
     text_offset_v = 26
+    text_scale = 0.8
 
     # グレースケール設置
     # --------------------------
@@ -953,13 +1009,16 @@ def gen_ST2084_gray_scale(img, width, height):
     v_st = 0
     val_list = np.linspace(0, 2**bit_depth, scale_step)
     val_list[-1] -= 1
-    luminance = get_bt2100_pq_curve(val_list / (2**bit_depth))
+    luminance = get_bt2100_pq_curve(val_list / ((2**bit_depth)-1))
 
     for idx, x in enumerate(len_list):
         pos = (scale_width + text_offset_h, text_offset_v + v_st)
         v_st += x
-        text = "{:>4.0f}, {:>6.1f}".format(val_list[idx], luminance[idx])
-        cv2.putText(img, text, pos, font, 1, font_color)
+        if luminance[idx] < 999.99999:
+            text = "{:>4.0f},{:>6.1f}".format(val_list[idx], luminance[idx])
+        else:
+            text = "{:>4.0f},{:>5.0f}".format(val_list[idx], luminance[idx])
+        cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def gen_hlg_gray_scale(img, width, height):
@@ -968,8 +1027,9 @@ def gen_hlg_gray_scale(img, width, height):
     scale_step = 65
     bit_depth = 10
     scale_color = (1.0, 1.0, 1.0)
-    text_offset_h = 256 - 40
+    text_offset_h = 256 - 40 - 42
     text_offset_v = 26
+    text_scale = 0.8
 
     # グレースケール設置
     # --------------------------
@@ -991,13 +1051,16 @@ def gen_hlg_gray_scale(img, width, height):
     v_st = 0
     val_list = np.linspace(0, 2**bit_depth, scale_step)
     val_list[-1] -= 1
-    luminance = get_bt2100_pq_curve(val_list / (2**bit_depth)) / 10
+    luminance = get_bt2100_hlg_curve(val_list / ((2**bit_depth)-1)) * 1000
 
     for idx, x in enumerate(len_list):
         pos = (width - scale_width - text_offset_h, text_offset_v + v_st)
         v_st += x
-        text = "{:>4.0f}, {:>5.1f}".format(val_list[idx], luminance[idx])
-        cv2.putText(img, text, pos, font, 1, font_color)
+        if luminance[idx] < 999.99999:
+            text = "{:>4.0f}, {:>5.1f}".format(val_list[idx], luminance[idx])
+        else:
+            text = "{:>4.0f}, {:>4.0f}".format(val_list[idx], luminance[idx])
+        cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def make_m_and_e_test_pattern(size='uhd'):
@@ -1029,6 +1092,10 @@ def make_m_and_e_test_pattern(size='uhd'):
     # CSFパターンを 8bit/10bit/12git の3種類用意
     # -----------------------------------------
     composite_csf_pattern(img, width, height)
+
+    # CSFパターンを limited/full 確認用に2パターン用意
+    # -----------------------------------------
+    composite_limited_full_pattern(img, width, height)
 
     # 左側にST2084確認用のパターンを表示
     # ----------------------------------------
