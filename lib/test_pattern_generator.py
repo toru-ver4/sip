@@ -923,7 +923,7 @@ def composite_csf_pattern(img, width, height):
     # csf pattern 作成
     # ----------------------------------
     fg_8bit = [128 * 256 for x in range(3)]
-    bg_8bit = [129 * 256 for x in range(3)]
+    bg_8bit = [130 * 256 for x in range(3)]
     csf_8bit = gen_csf_pattern(width=csf_width, height=csf_height,
                                bar_num=bar_num, a=fg_8bit, b=bg_8bit,
                                dtype=np.uint16)
@@ -931,7 +931,7 @@ def composite_csf_pattern(img, width, height):
         csf_start_h:csf_start_h+csf_width] = csf_8bit
 
     fg_10bit = [512 * 64 for x in range(3)]
-    bg_10bit = [513 * 64 for x in range(3)]
+    bg_10bit = [514 * 64 for x in range(3)]
     csf_10bit = gen_csf_pattern(width=csf_width, height=csf_height,
                                 bar_num=bar_num, a=fg_10bit, b=bg_10bit,
                                 dtype=np.uint16)
@@ -941,7 +941,7 @@ def composite_csf_pattern(img, width, height):
         h_start:h_end] = csf_10bit
 
     fg_12bit = [2048 * 16 for x in range(3)]
-    bg_12bit = [2049 * 16 for x in range(3)]
+    bg_12bit = [2050 * 16 for x in range(3)]
     csf_12bit = gen_csf_pattern(width=csf_width, height=csf_height,
                                 bar_num=bar_num, a=fg_12bit, b=bg_12bit,
                                 dtype=np.uint16)
