@@ -900,7 +900,7 @@ def composite_csf_pattern(img, width, height):
     # csf pattern 作成
     # ----------------------------------
     fg_8bit = [128 * 256 for x in range(3)]
-    bg_8bit = [127 * 256 for x in range(3)]
+    bg_8bit = [129 * 256 for x in range(3)]
     csf_8bit = gen_csf_pattern(width=csf_width, height=csf_height,
                                bar_num=bar_num, a=fg_8bit, b=bg_8bit,
                                dtype=np.uint16)
@@ -908,7 +908,7 @@ def composite_csf_pattern(img, width, height):
         csf_start_h:csf_start_h+csf_width] = csf_8bit
 
     fg_10bit = [512 * 64 for x in range(3)]
-    bg_10bit = [511 * 64 for x in range(3)]
+    bg_10bit = [513 * 64 for x in range(3)]
     csf_10bit = gen_csf_pattern(width=csf_width, height=csf_height,
                                 bar_num=bar_num, a=fg_10bit, b=bg_10bit,
                                 dtype=np.uint16)
@@ -918,7 +918,7 @@ def composite_csf_pattern(img, width, height):
         h_start:h_end] = csf_10bit
 
     fg_12bit = [2048 * 16 for x in range(3)]
-    bg_12bit = [2047 * 16 for x in range(3)]
+    bg_12bit = [2049 * 16 for x in range(3)]
     csf_12bit = gen_csf_pattern(width=csf_width, height=csf_height,
                                 bar_num=bar_num, a=fg_12bit, b=bg_12bit,
                                 dtype=np.uint16)
@@ -926,6 +926,78 @@ def composite_csf_pattern(img, width, height):
     h_end = csf_start_h + csf_h_offset * 2 + csf_width
     img[csf_start_v:csf_start_v+csf_height,
         h_start:h_end] = csf_12bit
+
+
+def gen_ST2084_gray_scale(img, width, height):
+    scale_width = 96
+    scale_height = height - 2  # "-2" is for pixels of frame.
+    scale_step = 65
+    bit_depth = 10
+    scale_color = (1.0, 1.0, 1.0)
+    text_offset_h = 16
+    text_offset_v = 26
+
+    # グレースケール設置
+    # --------------------------
+    scale = gen_step_gradation(width=scale_width, height=scale_height,
+                               step_num=scale_step, color=scale_color,
+                               direction='v', bit_depth=bit_depth)
+    img[0+1:height-1, 0+1:scale_width+1] = scale
+
+    # テキスト情報付与
+    # --------------------------
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_color = (0x8000, 0x8000, 0x0000)
+
+    len_list = common.equal_devision(scale_height, scale_step)
+    v_st = 0
+    val_list = np.linspace(0, 2**bit_depth, scale_step)
+    val_list[-1] -= 1
+    luminance = get_bt2100_pq_curve(val_list / (2**bit_depth))
+
+    for idx, x in enumerate(len_list):
+        pos = (scale_width + text_offset_h, text_offset_v + v_st)
+        v_st += x
+        text = "{:>4.0f}, {:>6.1f}".format(val_list[idx], luminance[idx])
+        cv2.putText(img, text, pos, font, 1, font_color)
+
+
+def gen_hlg_gray_scale(img, width, height):
+    scale_width = 96
+    scale_height = height - 2  # "-2" is for pixels of frame.
+    scale_step = 65
+    bit_depth = 10
+    scale_color = (1.0, 1.0, 1.0)
+    text_offset_h = 256 - 40
+    text_offset_v = 26
+
+    # グレースケール設置
+    # --------------------------
+    scale = gen_step_gradation(width=scale_width, height=scale_height,
+                               step_num=scale_step, color=scale_color,
+                               direction='v', bit_depth=bit_depth)
+    v_b = 0 + 1
+    v_e = height - 1
+    h_b = width - scale_width - 1
+    h_e = width - scale_width + scale_width - 1
+    img[v_b:v_e, h_b:h_e] = scale
+
+    # テキスト情報付与
+    # --------------------------
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_color = (0x8000, 0x8000, 0x0000)
+
+    len_list = common.equal_devision(scale_height, scale_step)
+    v_st = 0
+    val_list = np.linspace(0, 2**bit_depth, scale_step)
+    val_list[-1] -= 1
+    luminance = get_bt2100_pq_curve(val_list / (2**bit_depth)) / 10
+
+    for idx, x in enumerate(len_list):
+        pos = (width - scale_width - text_offset_h, text_offset_v + v_st)
+        v_st += x
+        text = "{:>4.0f}, {:>5.1f}".format(val_list[idx], luminance[idx])
+        cv2.putText(img, text, pos, font, 1, font_color)
 
 
 def make_m_and_e_test_pattern(size='uhd'):
@@ -960,9 +1032,11 @@ def make_m_and_e_test_pattern(size='uhd'):
 
     # 左側にST2084確認用のパターンを表示
     # ----------------------------------------
+    gen_ST2084_gray_scale(img, width, height)
 
     # 右側にSTD-B67確認用のパターンを表示
     # ----------------------------------------
+    gen_hlg_gray_scale(img, width, height)
 
     img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
     preview_image(img, 'rgb')
