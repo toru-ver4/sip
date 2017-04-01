@@ -37,7 +37,8 @@ def color_patch_rgb_to_large_xyz(rgb_val):
     # rgb2XYZ変換
     # --------------------------------------
     rgb_linear = ccv.srgb_to_linear(rgb_val)
-    mtx = ccv.get_rgb_to_xyz_matrix(gamut=ccv.const_sRGB_xy)
+    mtx = ccv.get_rgb_to_xyz_matrix(gamut=ccv.const_sRGB_xy,
+                                    white=ccv.const_d65_large_xyz)
     large_xyz_val = (ccv.color_cvt(rgb_linear, mtx) * 100)
 
     return large_xyz_val

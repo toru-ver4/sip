@@ -66,7 +66,9 @@ def make_color_patch_image():
 
     # XYZ to RGB 変換を実施
     # --------------------------------
-    rgb_large_xyz_matrix = ccv.get_rgb_to_xyz_matrix(gamut=ccv.const_sRGB_xy)
+    rgb_large_xyz_matrix \
+        = ccv.get_rgb_to_xyz_matrix(gamut=ccv.const_sRGB_xy,
+                                    white=ccv.const_d65_large_xyz)
     large_xyz_to_rgb_mtx = linalg.inv(rgb_large_xyz_matrix)
     rgb_data = ccv.color_cvt(large_xyz_data, large_xyz_to_rgb_mtx)
 
