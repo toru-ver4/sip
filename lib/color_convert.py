@@ -13,6 +13,8 @@ import sys
 import numpy as np
 from scipy import linalg
 import common
+import plot_utility as pu
+import matplotlib.pyplot as plt
 
 
 const_lab_delta = 6.0/29.0
@@ -315,5 +317,5 @@ if __name__ == '__main__':
     # rgb = large_xyz_to_rgb(large_xyz, const_sRGB_xy)
     # print(rgb)
     # print(linear_to_srgb(rgb/100) * 255)
-    print(get_rgb_to_xyz_matrix(gamut=const_sRGB_xy, white=const_d65_large_xyz))
-
+    # print(get_rgb_to_xyz_matrix(gamut=const_sRGB_xy, white=const_d65_large_xyz))
+    test_color_cvt()

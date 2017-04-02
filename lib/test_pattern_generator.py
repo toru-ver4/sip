@@ -1116,4 +1116,4 @@ if __name__ == '__main__':
     # change_bit_depth(src=8, dst=10, data=np.array(1024))
     # gen_csf_pattern(debug=True)
     # get_primary_data()
-    make_m_and_e_test_pattern(size='uhd')
+    # make_m_and_e_test_pattern(size='uhd')
