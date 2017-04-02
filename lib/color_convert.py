@@ -299,21 +299,21 @@ def lab_to_large_xyz(lab, white=const_d50_large_xyz):
 
 
 if __name__ == '__main__':
-    # lab = np.ones((1, 1, 3))
-    # lab[0][0][0] = 42.101
-    # lab[0][0][1] = 53.378
-    # lab[0][0][2] = 28.19
-    # # lab[0][0][0] = 96.539
-    # # lab[0][0][1] = -0.425
-    # # lab[0][0][2] = 1.186
-    # large_xyz = lab_to_large_xyz(lab, white=const_d50_large_xyz)
-    # print(large_xyz)
-    # d50_to_d65_mtx = get_white_point_conv_matrix(src=const_d50_large_xyz,
-    #                                              dst=const_d65_large_xyz)
-    # large_xyz = color_cvt(img=large_xyz, mtx=d50_to_d65_mtx)
-    # print(large_xyz)
-    # rgb = large_xyz_to_rgb(large_xyz, const_sRGB_xy)
-    # print(rgb)
-    # print(linear_to_srgb(rgb/100) * 255)
-    print(get_rgb_to_xyz_matrix(gamut=const_sRGB_xy, white=const_d65_large_xyz))
+    lab = np.ones((1, 1, 3))
+    lab[0][0][0] = 42.101
+    lab[0][0][1] = 53.378
+    lab[0][0][2] = 28.19
+    # lab[0][0][0] = 96.539
+    # lab[0][0][1] = -0.425
+    # lab[0][0][2] = 1.186
+    large_xyz = lab_to_large_xyz(lab, white=const_d50_large_xyz)
+    print(large_xyz)
+    d50_to_d65_mtx = get_white_point_conv_matrix(src=const_d50_large_xyz,
+                                                 dst=const_d65_large_xyz)
+    large_xyz = color_cvt(img=large_xyz, mtx=d50_to_d65_mtx)
+    print(large_xyz)
+    rgb = large_xyz_to_rgb(large_xyz=large_xyz, gamut=const_sRGB_xy,
+                           white=const_d65_large_xyz)
+    print(rgb)
+    print(linear_to_srgb(rgb/100) * 255)
 
