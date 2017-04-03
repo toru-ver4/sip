@@ -30,3 +30,4 @@ signal_generation/ffmpeg_tiff/*.y4m
 signal_generation/test_pattern/figure/*.png
 signal_generation/test_pattern/doc/~$test_pattern_spec.pptx
 lib/data/6500K.icc
+lib/hoge.tif
