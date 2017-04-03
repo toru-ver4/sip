@@ -218,6 +218,50 @@ def srgb_to_linear(img):
     return out_img
 
 
+def linear_to_pq(img):
+    """
+    # brief
+    convert linear data to pq.
+    # reference
+    ITU-R BT.2100-0
+    """
+    float_list = [np.float, np.float16, np.float32]
+
+    if img.dtype not in float_list:
+        raise TypeError('img must be float type!')
+
+    if np.sum(img > 1) > 0:
+        raise ValueError('img must be normalized to 0 .. 1')
+
+    m1 = 2610 / 16384
+    m2 = 2523 / 4096 * 128
+    c1 = 3424 / 4096
+    c2 = 2413 / 4096 * 32
+    c3 = 2392 / 4096 * 32
+
+    numerator = c1 + c2 * (img**m1)
+    denominator = 1 + c3 * (img**m1)
+
+    return (numerator / denominator) ** m2
+
+
+def linear_to_hlg(img):
+    """
+    # brief
+    convert linear data to hlg.
+    # reference
+    ITU-R BT.2100-0
+    """
+    a = 0.17883277
+    b = 0.02372241
+    c = 1.00429347
+    lower = (img <= 1/12) * ((3 * img) ** (0.5))
+    img_b = img - b
+    img_b[img_b < 0] = 0.00001
+    upper = (img > 1/12) * (a * np.log(img_b) + c)
+    return lower + upper
+
+
 def linear_to_srgb(img):
     """
     # 概要
@@ -259,6 +303,22 @@ def xyY_to_RGB(xyY, gamut=const_sRGB_xy, white=const_d65_large_xyz):
     return rgb
 
 
+def rgb_to_large_xyz(rgb, gamut=const_sRGB_xy,
+                     white=const_d65_large_xyz):
+    """
+    # 概要
+    RGB値 から XYZ値を算出する
+    # 入力データ
+    numpy形式。shape = (N, M, 3)
+    ガンマがキャンセルされ、かつ 0:1 に正規化されていること。
+    """
+    if not common.is_img_shape(rgb):
+        raise TypeError('XYZ shape must be (N, M, 3)')
+    cvt_mtx = get_rgb_to_xyz_matrix(gamut=gamut, white=white)
+    large_xyz = color_cvt(rgb, cvt_mtx)
+    return large_xyz
+
+
 def large_xyz_to_rgb(large_xyz, gamut=const_sRGB_xy,
                      white=const_d65_large_xyz):
     """
@@ -270,13 +330,18 @@ def large_xyz_to_rgb(large_xyz, gamut=const_sRGB_xy,
     if not common.is_img_shape(large_xyz):
         raise TypeError('XYZ shape must be (N, M, 3)')
     cvt_mtx = get_rgb_to_xyz_matrix(gamut=gamut, white=white)
-    print(cvt_mtx)
     cvt_mtx = linalg.inv(cvt_mtx)
-    rgb = color_cvt(large_xyz, cvt_mtx)
+    rgb = color_cvt(large_xyz, cvt_mtx) / white[1]
     return rgb
 
 
 def _func_t(t):
+    upper = (t > const_lab_delta) * (t ** (1/3))
+    lower = (t <= const_lab_delta) * (t/(3 * (const_lab_delta ** 2)) + 4/29)
+    return upper + lower
+
+
+def _func_t_inverse(t):
     upper = (t > const_lab_delta) * (t ** 3)
     lower = (t <= const_lab_delta) * 3 * (const_lab_delta ** 2) * (t - 4/29)
     return upper + lower
@@ -288,16 +353,38 @@ def lab_to_large_xyz(lab, white=const_d50_large_xyz):
     L*a*b* から XYZ値を算出する
     # 入力データ
     numpy形式。shape = (N, M, 3)
+    # 参考
+    https://en.wikipedia.org/wiki/Lab_color_space
     """
     if not common.is_img_shape(lab):
         raise TypeError('lab shape must be (N, M, 3)')
 
     l, a, b = np.dsplit(lab, 3)
-    large_x = white[0] * _func_t((l + 16)/116 + a/500)
-    large_y = white[1] * _func_t((l + 16)/116)
-    large_z = white[2] * _func_t((l + 16)/116 - b/200)
+    large_x = white[0] * _func_t_inverse((l + 16)/116 + a/500)
+    large_y = white[1] * _func_t_inverse((l + 16)/116)
+    large_z = white[2] * _func_t_inverse((l + 16)/116 - b/200)
 
     return np.dstack((large_x, large_y, large_z))
+
+
+def large_xyz_to_lab(large_xyz, white=const_d50_large_xyz):
+    """
+    # 概要
+    L*a*b* から XYZ値を算出する
+    # 入力データ
+    numpy形式。shape = (N, M, 3)
+    # 参考
+    https://en.wikipedia.org/wiki/Lab_color_space
+    """
+    if not common.is_img_shape(large_xyz):
+        raise TypeError('large_xyz shape must be (N, M, 3)')
+
+    x, y, z = np.dsplit(large_xyz, 3)
+    l = 116 * _func_t(y/white[1]) - 16
+    a = 500 * (_func_t(x/white[0]) - _func_t(y/white[1]))
+    b = 200 * (_func_t(y/white[1]) - _func_t(z/white[2]))
+
+    return np.dstack((l, a, b))
 
 
 if __name__ == '__main__':
@@ -318,4 +405,18 @@ if __name__ == '__main__':
     # print(rgb)
     # print(linear_to_srgb(rgb/100) * 255)
     # print(get_rgb_to_xyz_matrix(gamut=const_sRGB_xy, white=const_d65_large_xyz))
-    test_color_cvt()
+    rgb = np.ones((1, 1, 3))
+    rgb[0][0][0] = 243
+    rgb[0][0][1] = 243
+    rgb[0][0][2] = 242
+    rgb = srgb_to_linear(rgb/255)
+    xyz = rgb_to_large_xyz(rgb=rgb, gamut=const_sRGB_xy,
+                           white=const_d65_large_xyz)
+    xyz *= 100
+    mtx = get_white_point_conv_matrix(src=const_d65_large_xyz,
+                                      dst=const_d50_large_xyz)
+    xyz = color_cvt(img=xyz, mtx=mtx)
+    print(xyz)
+    lab = large_xyz_to_lab(large_xyz=xyz, white=const_d50_large_xyz)
+    print(lab)
+    pass

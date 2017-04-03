@@ -16,6 +16,7 @@ import common
 from PIL import ImageCms
 import plot_utility as pu
 import matplotlib.pyplot as plt
+import color_convert as ccv
 # import fire
 
 
@@ -77,6 +78,34 @@ const_yellow_grad_array_higher = np.array([(x/255, x/255, 0)
                                            for x in range(255, 128, -16)])
 const_cyan_grad_array_higher = np.array([(0, x/255, x/255)
                                          for x in range(255, 128, -16)])
+
+"""src:https://en.wikipedia.org/wiki/ColorChecker#Colors"""
+const_color_checker_xyY = [
+    [0.400, 0.350, 10.1],
+    [0.377, 0.345, 35.8],
+    [0.247, 0.251, 19.3],
+    [0.337, 0.422, 13.3],
+    [0.265, 0.240, 24.3],
+    [0.261, 0.343, 43.1],
+    [0.506, 0.407, 30.1],
+    [0.211, 0.175, 12.0],
+    [0.453, 0.306, 19.8],
+    [0.285, 0.202, 6.6],
+    [0.380, 0.489, 44.3],
+    [0.473, 0.438, 43.1],
+    [0.187, 0.129, 6.1],
+    [0.305, 0.478, 23.4],
+    [0.539, 0.313, 12.0],
+    [0.448, 0.470, 59.1],
+    [0.364, 0.233, 19.8],
+    [0.196, 0.252, 19.8],
+    [0.310, 0.316, 90.0],
+    [0.310, 0.316, 59.1],
+    [0.310, 0.316, 36.2],
+    [0.310, 0.316, 19.8],
+    [0.310, 0.316, 9.0],
+    [0.310, 0.316, 3.1],
+]
 
 
 def preview_image(img, order=None):
@@ -991,7 +1020,7 @@ def gen_ST2084_gray_scale(img, width, height):
     scale_color = (1.0, 1.0, 1.0)
     text_offset_h = 12
     text_offset_v = 26
-    text_scale = 0.8
+    text_scale = 0.5
 
     # グレースケール設置
     # --------------------------
@@ -1027,9 +1056,9 @@ def gen_hlg_gray_scale(img, width, height):
     scale_step = 65
     bit_depth = 10
     scale_color = (1.0, 1.0, 1.0)
-    text_offset_h = 256 - 40 - 42
+    text_offset_h = 256 - 40 - 96
     text_offset_v = 26
-    text_scale = 0.8
+    text_scale = 0.5
 
     # グレースケール設置
     # --------------------------
@@ -1061,6 +1090,58 @@ def gen_hlg_gray_scale(img, width, height):
         else:
             text = "{:>4.0f}, {:>4.0f}".format(val_list[idx], luminance[idx])
         cv2.putText(img, text, pos, font, text_scale, font_color)
+
+
+def gen_pq_sdr_color_checker(img, width, height):
+    patch_width = 112
+    patch_height = 112
+    patch_space = 24
+    h_offset = width // 14
+    v_offset = 128
+    h_num = 4
+    v_num = 6
+    xyY = np.array(const_color_checker_xyY)
+    xyY = xyY.reshape((1, xyY.shape[0], xyY.shape[1]))
+    rgb = ccv.xyY_to_RGB(xyY=xyY,
+                         gamut=ccv.const_rec2020_xy,
+                         white=ccv.const_d65_large_xyz)
+    rgb[rgb < 0] = 0
+    rgb = np.uint16(np.round(ccv.linear_to_pq(rgb/100) * 0xFFFF))
+
+    for idx in range(h_num * v_num):
+        h_idx = idx // v_num
+        v_idx = v_num - (idx % v_num) - 1
+        patch = np.ones((patch_height, patch_width, 3), dtype=np.uint16)
+        patch[:, :] = rgb[0][idx]
+        st_h = h_offset + (patch_width + patch_space) * h_idx
+        st_v = v_offset + (patch_height + patch_space) * v_idx
+        img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+
+def gen_hlg_sdr_color_checker(img, width, height):
+    patch_width = 112
+    patch_height = 112
+    patch_space = 24
+    h_offset = width // 1.5 + (width // 8)
+    v_offset = 128
+    h_num = 4
+    v_num = 6
+    xyY = np.array(const_color_checker_xyY)
+    xyY = xyY.reshape((1, xyY.shape[0], xyY.shape[1]))
+    rgb = ccv.xyY_to_RGB(xyY=xyY,
+                         gamut=ccv.const_rec2020_xy,
+                         white=ccv.const_d65_large_xyz)
+    rgb[rgb < 0] = 0
+    rgb = np.uint16(np.round(ccv.linear_to_hlg(rgb/10) * 0xFFFF))
+
+    for idx in range(h_num * v_num):
+        h_idx = idx // v_num
+        v_idx = v_num - (idx % v_num) - 1
+        patch = np.ones((patch_height, patch_width, 3), dtype=np.uint16)
+        patch[:, :] = rgb[0][idx]
+        st_h = h_offset + (patch_width + patch_space) * h_idx
+        st_v = v_offset + (patch_height + patch_space) * v_idx
+        img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
 
 
 def make_m_and_e_test_pattern(size='uhd'):
@@ -1105,7 +1186,15 @@ def make_m_and_e_test_pattern(size='uhd'):
     # ----------------------------------------
     gen_hlg_gray_scale(img, width, height)
 
-    img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
+    # 左側にSDRレンジのColorChecker(PQ)を表示
+    # ----------------------------------------
+    gen_pq_sdr_color_checker(img, width, height)
+
+    # 左側にSDRレンジのColorChecker(HLG)を表示
+    # ----------------------------------------
+    gen_hlg_sdr_color_checker(img, width, height)
+
+    # img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
     preview_image(img, 'rgb')
     cv2.imwrite('hoge.tif', img[:, :, ::-1])
 
@@ -1116,4 +1205,9 @@ if __name__ == '__main__':
     # change_bit_depth(src=8, dst=10, data=np.array(1024))
     # gen_csf_pattern(debug=True)
     # get_primary_data()
-    # make_m_and_e_test_pattern(size='uhd')
+    make_m_and_e_test_pattern(size='uhd')
+    # x = np.linspace(0, 1, 1024)
+    # y = ccv.linear_to_hlg(x)
+    # plt.plot(x, y)
+    # plt.show()
+
