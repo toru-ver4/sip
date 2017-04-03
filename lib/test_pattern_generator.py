@@ -1190,7 +1190,7 @@ def make_m_and_e_test_pattern(size='uhd'):
     # ----------------------------------------
     gen_pq_sdr_color_checker(img, width, height)
 
-    # 左側にSDRレンジのColorChecker(HLG)を表示
+    # 右側にSDRレンジのColorChecker(HLG)を表示
     # ----------------------------------------
     gen_hlg_sdr_color_checker(img, width, height)
 
