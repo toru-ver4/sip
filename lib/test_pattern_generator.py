@@ -17,6 +17,7 @@ from PIL import ImageCms
 import plot_utility as pu
 import matplotlib.pyplot as plt
 import color_convert as ccv
+from numba import jit
 # import fire
 
 
@@ -1106,6 +1107,8 @@ def gen_pq_sdr_color_checker(img, width, height):
                          gamut=ccv.const_rec2020_xy,
                          white=ccv.const_d65_large_xyz)
     rgb[rgb < 0] = 0
+
+    # scale to 100 nits (rgb/100).
     rgb = np.uint16(np.round(ccv.linear_to_pq(rgb/100) * 0xFFFF))
 
     for idx in range(h_num * v_num):
@@ -1142,6 +1145,51 @@ def gen_hlg_sdr_color_checker(img, width, height):
         st_h = h_offset + (patch_width + patch_space) * h_idx
         st_v = v_offset + (patch_height + patch_space) * v_idx
         img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+
+def gen_rgbmyc_color_bar(img, width, height):
+    # パラメータ設定
+    # ----------------------
+    bar_width = 2048
+    bar_total_height = 256
+    h_st = width // 2 - bar_width // 2
+    v_st = height - bar_total_height - 1
+    color_list = [(1, 0, 0), (0, 1, 0), (0, 0, 1),
+                  (1, 0, 1), (1, 1, 0), (0, 1, 1)]
+
+    # color bar 作成
+    # ----------------------
+    bar_height_list = common.equal_devision(bar_total_height, 6)
+    bar_img_list = []
+    for color, bar_height in zip(color_list, bar_height_list):
+        color_bar = gen_step_gradation(width=bar_width, height=bar_height,
+                                       step_num=1025, bit_depth=10,
+                                       color=color, direction='h')
+        bar_img_list.append(color_bar)
+    color_bar = np.vstack(bar_img_list)
+
+    img[v_st:v_st+bar_total_height, h_st:h_st+bar_width] = color_bar
+
+    # marker用意
+    # ----------------------
+    grad_space_v = 64
+    grad_start_v = v_st
+    rect_h_len = 20
+    rect_v_len = 20
+    marker_color = (32768, 32768, 32768)
+    ptrs_1 = np.array([(h_st - rect_h_len, grad_start_v - grad_space_v),
+                       (h_st, rect_v_len + grad_start_v - grad_space_v),
+                       (h_st + rect_h_len, grad_start_v - grad_space_v)],
+                      np.int32)
+    ptrs_2 = np.array([(h_st - rect_h_len + bar_width,
+                        grad_start_v - grad_space_v),
+                       (h_st + bar_width,
+                        rect_v_len + grad_start_v - grad_space_v),
+                       (h_st + rect_h_len + bar_width,
+                        grad_start_v - grad_space_v)],
+                      np.int32)
+    cv2.fillConvexPoly(img, ptrs_1, marker_color, cv2.LINE_AA)
+    cv2.fillConvexPoly(img, ptrs_2, marker_color, cv2.LINE_AA)
 
 
 def make_m_and_e_test_pattern(size='uhd'):
@@ -1194,7 +1242,11 @@ def make_m_and_e_test_pattern(size='uhd'):
     # ----------------------------------------
     gen_hlg_sdr_color_checker(img, width, height)
 
-    # img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
+    # 画面下にRGBMYCのカラーバーを表示
+    # ----------------------------------------
+    gen_rgbmyc_color_bar(img, width, height)
+
+    img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
     preview_image(img, 'rgb')
     cv2.imwrite('hoge.tif', img[:, :, ::-1])
 
