@@ -877,7 +877,7 @@ def get_primary_data():
     g_xy = profile.profile.green_primary[1][0:2]
     b_xy = profile.profile.blue_primary[1][0:2]
 
-    native_xy = [r_xy, g_xy, b_xy, [0.3127, 0.3290]]
+    native_xy = [r_xy, g_xy, b_xy, (0.3127, 0.3290)]
 
     return native_xy
 
@@ -1192,6 +1192,27 @@ def gen_rgbmyc_color_bar(img, width, height):
     cv2.fillConvexPoly(img, ptrs_2, marker_color, cv2.LINE_AA)
 
 
+def gen_rec2020_clip_csf_pattern(img, width, height):
+    # get native gamut
+    # -----------------
+    large_y_list = [12.0, 23.4, 6.6]
+    native_gamut_list = get_primary_data()[0:3]
+    rec2020_gamut_list = ccv.const_rec2020_xy
+
+    for idx in range(3):
+        native_xyy = list(native_gamut_list[idx]) + [large_y_list[idx]]
+        native_xyy = np.array(native_xyy).reshape((1, 1, 3))
+        rec2020_xyy = rec2020_gamut_list[idx] + [large_y_list[idx]]
+        rec2020_xyy = np.array(rec2020_xyy).reshape((1, 1, 3))
+        native_rgb = ccv.xyY_to_RGB(xyY=native_xyy,
+                                    gamut=ccv.const_rec2020_xy,
+                                    white=ccv.const_d65_large_xyz)
+        rec2020_rgb = ccv.xyY_to_RGB(xyY=rec2020_xyy,
+                                     gamut=ccv.const_rec2020_xy,
+                                     white=ccv.const_d65_large_xyz)
+        print(native_rgb, rec2020_rgb)
+
+
 def make_m_and_e_test_pattern(size='uhd'):
     """
     # 概要
@@ -1202,7 +1223,7 @@ def make_m_and_e_test_pattern(size='uhd'):
     """
 
     # サイズの設定
-    # --------------------------
+    # -------------------------
     if size == 'uhd':
         width = 3840
     elif size == 'dci4k':
@@ -1242,11 +1263,15 @@ def make_m_and_e_test_pattern(size='uhd'):
     # ----------------------------------------
     gen_hlg_sdr_color_checker(img, width, height)
 
+    # REC2020 のクリップ確認用の CSFパターンを用意
+    # ------------------------------------------
+    gen_rec2020_clip_csf_pattern(img, width, height)
+
     # 画面下にRGBMYCのカラーバーを表示
     # ----------------------------------------
-    gen_rgbmyc_color_bar(img, width, height)
+    # gen_rgbmyc_color_bar(img, width, height)
 
-    img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
+    # img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
     preview_image(img, 'rgb')
     cv2.imwrite('hoge.tif', img[:, :, ::-1])
 
