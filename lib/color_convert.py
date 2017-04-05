@@ -316,6 +316,13 @@ def rgb_to_large_xyz(rgb, gamut=const_sRGB_xy,
         raise TypeError('XYZ shape must be (N, M, 3)')
     cvt_mtx = get_rgb_to_xyz_matrix(gamut=gamut, white=white)
     large_xyz = color_cvt(rgb, cvt_mtx)
+
+    if np.sum(large_xyz < 0) > 0:
+        print("function : rgb_to_large_xyz")
+        print("  underflow has occured!")
+
+    large_xyz[large_xyz < 0] = 0
+
     return large_xyz
 
 
@@ -332,6 +339,14 @@ def large_xyz_to_rgb(large_xyz, gamut=const_sRGB_xy,
     cvt_mtx = get_rgb_to_xyz_matrix(gamut=gamut, white=white)
     cvt_mtx = linalg.inv(cvt_mtx)
     rgb = color_cvt(large_xyz, cvt_mtx) / white[1]
+
+    if (np.sum(rgb < 0) > 0) or (np.sum(rgb > 1) > 0):
+        print("function : large_xyz_to_rgb")
+        print("  overflow or underflow has occured!")
+
+    rgb[rgb < 0] = 0
+    rgb[rgb > 1] = 1
+
     return rgb
 
 

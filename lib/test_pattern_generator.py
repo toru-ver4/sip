@@ -17,9 +17,7 @@ from PIL import ImageCms
 import plot_utility as pu
 import matplotlib.pyplot as plt
 import color_convert as ccv
-from numba import jit
 # import fire
-
 
 increment_8bit_16 = [x for x in range(0, 256, 16)]
 decrement_8bit_16 = [x for x in range(256, 0, -16)]
@@ -1108,7 +1106,7 @@ def gen_pq_sdr_color_checker(img, width, height):
                          white=ccv.const_d65_large_xyz)
     rgb[rgb < 0] = 0
 
-    # scale to 100 nits (rgb/100).
+    # scale to 100 nits (rgssb/100).
     rgb = np.uint16(np.round(ccv.linear_to_pq(rgb/100) * 0xFFFF))
 
     for idx in range(h_num * v_num):
@@ -1193,24 +1191,56 @@ def gen_rgbmyc_color_bar(img, width, height):
 
 
 def gen_rec2020_clip_csf_pattern(img, width, height):
+    csf_start_h = width // 2 - 1024
+    csf_start_v = 1450
+    csf_width = 640
+    csf_height = 360
+    csf_h_space = 64
+    csf_h_offset = csf_width + csf_h_space
+    bar_num = 16
+
     # get native gamut
     # -----------------
-    large_y_list = [12.0, 23.4, 6.6]
+    # large_y_list = [12.0, 23.4, 6.6]
+    large_y_list = [10.0, 20.4, 1.6]
     native_gamut_list = get_primary_data()[0:3]
     rec2020_gamut_list = ccv.const_rec2020_xy
 
     for idx in range(3):
+        # make xyY data
+        # ---------------------------
         native_xyy = list(native_gamut_list[idx]) + [large_y_list[idx]]
         native_xyy = np.array(native_xyy).reshape((1, 1, 3))
         rec2020_xyy = rec2020_gamut_list[idx] + [large_y_list[idx]]
         rec2020_xyy = np.array(rec2020_xyy).reshape((1, 1, 3))
+
+        # convert from xyY to rgb
+        # ---------------------------
         native_rgb = ccv.xyY_to_RGB(xyY=native_xyy,
                                     gamut=ccv.const_rec2020_xy,
                                     white=ccv.const_d65_large_xyz)
         rec2020_rgb = ccv.xyY_to_RGB(xyY=rec2020_xyy,
                                      gamut=ccv.const_rec2020_xy,
                                      white=ccv.const_d65_large_xyz)
-        print(native_rgb, rec2020_rgb)
+        # apply oetf
+        # ---------------------------
+        native_rgb = ccv.linear_to_pq(native_rgb) / 2  # div 2 means 512 level
+        native_rgb = np.uint16(np.round(native_rgb * 0xFFFF))
+        rec2020_rgb = ccv.linear_to_pq(rec2020_rgb) / 2  # div 2 means 512 lv
+        rec2020_rgb = np.uint16(np.round(rec2020_rgb * 0xFFFF))
+
+        # make csf pattern
+        # ---------------------------
+        csf = gen_csf_pattern(width=csf_width, height=csf_height,
+                              bar_num=bar_num,
+                              a=native_rgb[0, 0], b=rec2020_rgb[0, 0],
+                              dtype=np.uint16)
+
+        # composite
+        # ---------------------------
+        h_start = csf_start_h + csf_h_offset * idx
+        h_end = csf_start_h + csf_h_offset * idx + csf_width
+        img[csf_start_v:csf_start_v+csf_height, h_start:h_end] = csf
 
 
 def make_m_and_e_test_pattern(size='uhd'):
