@@ -871,13 +871,16 @@ def get_primary_data():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     filename = os.path.join(base_dir, "./data/6500K.icc")
     profile = ImageCms.getOpenProfile(filename)
-    r_xy = profile.profile.red_primary[1][0:2]
-    g_xy = profile.profile.green_primary[1][0:2]
-    b_xy = profile.profile.blue_primary[1][0:2]
+    r_xyY = list(profile.profile.red_primary[1][0:2])\
+        + [profile.profile.red_primary[0][1] * 100]
+    g_xyY = list(profile.profile.green_primary[1][0:2])\
+        + [profile.profile.green_primary[0][1] * 100]
+    b_xyY = list(profile.profile.blue_primary[1][0:2])\
+        + [profile.profile.blue_primary[0][1] * 100]
 
-    native_xy = [r_xy, g_xy, b_xy, (0.3127, 0.3290)]
+    native_xyY = [r_xyY, g_xyY, b_xyY, (0.3127, 0.3290, 100)]
 
-    return native_xy
+    return native_xyY
 
 
 def composite_gray_scale(img, width, height):
@@ -1201,18 +1204,19 @@ def gen_rec2020_clip_csf_pattern(img, width, height):
 
     # get native gamut
     # -----------------
-    # large_y_list = [12.0, 23.4, 6.6]
-    large_y_list = [10.0, 20.4, 1.6]
+    large_y_list = [26.27, 67.80, 5.93]
     native_gamut_list = get_primary_data()[0:3]
     rec2020_gamut_list = ccv.const_rec2020_xy
 
     for idx in range(3):
         # make xyY data
         # ---------------------------
-        native_xyy = list(native_gamut_list[idx]) + [large_y_list[idx]]
+        native_xyy = native_gamut_list[idx]
         native_xyy = np.array(native_xyy).reshape((1, 1, 3))
         rec2020_xyy = rec2020_gamut_list[idx] + [large_y_list[idx]]
         rec2020_xyy = np.array(rec2020_xyy).reshape((1, 1, 3))
+        print(native_xyy)
+        print(rec2020_xyy)
 
         # convert from xyY to rgb
         # ---------------------------
@@ -1224,9 +1228,11 @@ def gen_rec2020_clip_csf_pattern(img, width, height):
                                      white=ccv.const_d65_large_xyz)
         # apply oetf
         # ---------------------------
-        native_rgb = ccv.linear_to_pq(native_rgb) / 2  # div 2 means 512 level
+        print(native_rgb)
+        print(rec2020_rgb)
+        native_rgb = ccv.linear_to_pq(native_rgb)  # div 2 means 512 level
         native_rgb = np.uint16(np.round(native_rgb * 0xFFFF))
-        rec2020_rgb = ccv.linear_to_pq(rec2020_rgb) / 2  # div 2 means 512 lv
+        rec2020_rgb = ccv.linear_to_pq(rec2020_rgb)  # div 2 means 512 lv
         rec2020_rgb = np.uint16(np.round(rec2020_rgb * 0xFFFF))
 
         # make csf pattern
