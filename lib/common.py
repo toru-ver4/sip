@@ -29,6 +29,19 @@ def is_img_shape(data):
     return True
 
 
+def is_numpy_color_module(data):
+    """
+    # brief
+    check whether the data is numpy.
+    and element num is 3.
+    """
+    if not is_numpy_module(data):
+        raise TypeError("data must be a numpy instance")
+    if data.shape[-1] != 3:
+        return False
+    return True
+
+
 def is_correct_dtype(data, types={np.uint32, np.uint64}):
     """
     # brief

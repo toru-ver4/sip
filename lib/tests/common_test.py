@@ -66,6 +66,22 @@ class CommontestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             common.is_img_shape(data4)
 
+    def test_is_numpy_color_module(self):
+        data1 = np.ones((100, 100, 3))
+        data2 = np.ones((100, 3))
+        data3 = np.ones((100, 100, 3, 100))
+        data4 = (100, 100, 3)
+        data5 = np.ones((3))
+        data6 = [1, 1, 1]
+        ok_(common.is_numpy_color_module(data1))
+        ok_(common.is_numpy_color_module(data2))
+        ok_(not common.is_numpy_color_module(data3))
+        with self.assertRaises(TypeError):
+            common.is_numpy_color_module(data4)
+        ok_(common.is_numpy_color_module(data5))
+        with self.assertRaises(TypeError):
+            common.is_numpy_color_module(data6)
+
 
 if __name__ == '__main__':
     pass

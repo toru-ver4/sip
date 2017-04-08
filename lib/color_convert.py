@@ -402,6 +402,21 @@ def large_xyz_to_lab(large_xyz, white=const_d50_large_xyz):
     return np.dstack((l, a, b))
 
 
+def test_lab_to_large_xyz():
+    lab_data1 = np.array([42.101, 53.378, 28.19]).reshape((1, 1, 3))
+    lab_data2 = np.array([96.539, -0.425, 1.186]).reshape((1, 1, 3))
+    expected1 = np.array([21.6315, 12.5654, 3.8476]).reshape((1, 1, 3))
+    expected2 = np.array([87.8151, 91.3135, 73.9795]).reshape((1, 1, 3))
+
+    result1 = lab_to_large_xyz(lab_data1, const_d50_large_xyz)
+    result2 = lab_to_large_xyz(lab_data2, const_d50_large_xyz)
+
+    print(result1)
+    print(expected1)
+    print(result2)
+    print(expected2)
+
+
 if __name__ == '__main__':
     # lab = np.ones((1, 1, 3))
     # lab[0][0][0] = 42.101
@@ -420,18 +435,18 @@ if __name__ == '__main__':
     # print(rgb)
     # print(linear_to_srgb(rgb/100) * 255)
     # print(get_rgb_to_xyz_matrix(gamut=const_sRGB_xy, white=const_d65_large_xyz))
-    rgb = np.ones((1, 1, 3))
-    rgb[0][0][0] = 243
-    rgb[0][0][1] = 243
-    rgb[0][0][2] = 242
-    rgb = srgb_to_linear(rgb/255)
-    xyz = rgb_to_large_xyz(rgb=rgb, gamut=const_sRGB_xy,
-                           white=const_d65_large_xyz)
-    xyz *= 100
-    mtx = get_white_point_conv_matrix(src=const_d65_large_xyz,
-                                      dst=const_d50_large_xyz)
-    xyz = color_cvt(img=xyz, mtx=mtx)
-    print(xyz)
-    lab = large_xyz_to_lab(large_xyz=xyz, white=const_d50_large_xyz)
-    print(lab)
-    pass
+    # rgb = np.ones((1, 1, 3))
+    # rgb[0][0][0] = 243
+    # rgb[0][0][1] = 243
+    # rgb[0][0][2] = 242
+    # rgb = srgb_to_linear(rgb/255)
+    # xyz = rgb_to_large_xyz(rgb=rgb, gamut=const_sRGB_xy,
+    #                        white=const_d65_large_xyz)
+    # xyz *= 100
+    # mtx = get_white_point_conv_matrix(src=const_d65_large_xyz,
+    #                                   dst=const_d50_large_xyz)
+    # xyz = color_cvt(img=xyz, mtx=mtx)
+    # print(xyz)
+    # lab = large_xyz_to_lab(large_xyz=xyz, white=const_d50_large_xyz)
+    # print(lab)
+    test_lab_to_large_xyz()

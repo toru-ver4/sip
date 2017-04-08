@@ -56,6 +56,19 @@ class ColorConvertTestCase(unittest.TestCase):
                     self.assertAlmostEqual(result.tolist()[i][j][k],
                                            expected[i][j][k], 6)
 
+    def test_lab_to_large_xyz(self):
+        lab_data1 = np.array([42.101, 53.378, 28.19]).reshape((1, 1, 3))
+        lab_data2 = np.array([96.539, -0.425, 1.186]).reshape((1, 1, 3))
+        expected1 = np.array([21.6315, 12.5654, 3.8476])
+        expected2 = np.array([87.8151, 91.3135, 73.9795])
+
+        result1 = ccv.lab_to_large_xyz(lab_data1, ccv.const_d50_large_xyz)
+        result2 = ccv.lab_to_large_xyz(lab_data2, ccv.const_d50_large_xyz)
+
+        for i in range(3):
+            self.assertAlmostEqual(result1[0][0][i], expected1[i], 4)
+            self.assertAlmostEqual(result2[0][0][i], expected2[i], 4)
+
 
 if __name__ == '__main__':
     pass
