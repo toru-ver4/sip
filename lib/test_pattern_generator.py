@@ -890,6 +890,10 @@ def composite_gray_scale(img, width, height):
     grad_start_v = 128
     grad_space_v = 64
 
+    text_scale = 0.5
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_color = (0x8000, 0x8000, 0x0000)
+
     # 8bit, 10bit のグラデーション表示
     # -------------------------------
     grad_8 = gen_step_gradation(width=grad_width, height=grad_height,
@@ -940,6 +944,15 @@ def composite_gray_scale(img, width, height):
     cv2.fillConvexPoly(img, ptrs_2, marker_color, cv2.LINE_AA)
     cv2.fillConvexPoly(img, ptrs_3, marker_color, cv2.LINE_AA)
     cv2.fillConvexPoly(img, ptrs_4, marker_color, cv2.LINE_AA)
+
+    # マーカーの横に説明テキスト付与
+    # -------------------------------
+    pos = (ptrs_1[0][0] + 64, ptrs_1[0][1] + 16)
+    text = "8bit gradation"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
+    pos = (ptrs_3[0][0] + 64, ptrs_3[0][1] - 8)
+    text = "10bit gradation"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def composite_csf_pattern(img, width, height):
@@ -1215,8 +1228,6 @@ def gen_rec2020_clip_csf_pattern(img, width, height):
         native_xyy = np.array(native_xyy).reshape((1, 1, 3))
         rec2020_xyy = rec2020_gamut_list[idx] + [large_y_list[idx]]
         rec2020_xyy = np.array(rec2020_xyy).reshape((1, 1, 3))
-        print(native_xyy)
-        print(rec2020_xyy)
 
         # convert from xyY to rgb
         # ---------------------------
@@ -1228,8 +1239,6 @@ def gen_rec2020_clip_csf_pattern(img, width, height):
                                      white=ccv.const_d65_large_xyz)
         # apply oetf
         # ---------------------------
-        print(native_rgb)
-        print(rec2020_rgb)
         native_rgb = ccv.linear_to_pq(native_rgb)  # div 2 means 512 level
         native_rgb = np.uint16(np.round(native_rgb * 0xFFFF))
         rec2020_rgb = ccv.linear_to_pq(rec2020_rgb)  # div 2 means 512 lv
