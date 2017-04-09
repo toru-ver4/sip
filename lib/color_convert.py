@@ -351,8 +351,9 @@ def large_xyz_to_rgb(large_xyz, gamut=const_sRGB_xy,
 
 
 def _func_t(t):
-    upper = (t > const_lab_delta) * (t ** (1/3))
-    lower = (t <= const_lab_delta) * (t/(3 * (const_lab_delta ** 2)) + 4/29)
+    threshold = const_lab_delta ** 3
+    upper = (t > threshold) * (t ** (1/3))
+    lower = (t <= threshold) * (t/(3 * (const_lab_delta ** 2)) + 4/29)
     return upper + lower
 
 
