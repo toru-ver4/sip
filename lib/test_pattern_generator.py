@@ -889,6 +889,7 @@ def composite_gray_scale(img, width, height):
     grad_height = 128
     grad_start_v = 128
     grad_space_v = 64
+    mk_space_v = 48
 
     text_scale = 0.5
     font = cv2.FONT_HERSHEY_DUPLEX
@@ -913,32 +914,32 @@ def composite_gray_scale(img, width, height):
     rect_h_len = 20
     rect_v_len = 20
     marker_color = (32768, 32768, 32768)
-    ptrs_1 = np.array([(start_h - rect_h_len, grad_start_v - grad_space_v),
-                       (start_h, rect_v_len + grad_start_v - grad_space_v),
-                       (start_h + rect_h_len, grad_start_v - grad_space_v)],
+    ptrs_1 = np.array([(start_h - rect_h_len, grad_start_v - mk_space_v),
+                       (start_h, rect_v_len + grad_start_v - mk_space_v),
+                       (start_h + rect_h_len, grad_start_v - mk_space_v)],
                       np.int32)
     ptrs_2 = np.array([(start_h - rect_h_len + grad_width,
-                        grad_start_v - grad_space_v),
+                        grad_start_v - mk_space_v),
                        (start_h + grad_width,
-                        rect_v_len + grad_start_v - grad_space_v),
+                        rect_v_len + grad_start_v - mk_space_v),
                        (start_h + rect_h_len + grad_width,
-                        grad_start_v - grad_space_v)],
+                        grad_start_v - mk_space_v)],
                       np.int32)
     ptrs_3 = np.array([(start_h - rect_h_len,
-                        grad_start_v + grad_height * 2 + grad_space_v * 2),
+                        grad_start_v + grad_height * 2 + mk_space_v * 2.35),
                        (start_h,
-                        grad_start_v + grad_height * 2 + grad_space_v * 2 -
+                        grad_start_v + grad_height * 2 + mk_space_v * 2.35 -
                         rect_v_len),
                        (start_h + rect_h_len,
-                        grad_start_v + grad_height * 2 + grad_space_v * 2)],
+                        grad_start_v + grad_height * 2 + mk_space_v * 2.35)],
                       np.int32)
     ptrs_4 = np.array([(start_h - rect_h_len + grad_width,
-                        grad_start_v + grad_height * 2 + grad_space_v * 2),
+                        grad_start_v + grad_height * 2 + mk_space_v * 2.35),
                        (start_h + grad_width,
-                        grad_start_v + grad_height * 2 + grad_space_v * 2 -
+                        grad_start_v + grad_height * 2 + mk_space_v * 2.35 -
                         rect_v_len),
                        (start_h + rect_h_len + grad_width,
-                        grad_start_v + grad_height * 2 + grad_space_v * 2)],
+                        grad_start_v + grad_height * 2 + mk_space_v * 2.35)],
                       np.int32)
     cv2.fillConvexPoly(img, ptrs_1, marker_color, cv2.LINE_AA)
     cv2.fillConvexPoly(img, ptrs_2, marker_color, cv2.LINE_AA)
