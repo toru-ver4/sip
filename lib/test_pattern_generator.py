@@ -960,10 +960,14 @@ def composite_csf_pattern(img, width, height):
     csf_start_h = width // 2 - 1024
     csf_start_v = 600
     csf_width = 640
-    csf_height = 360
+    csf_height = 340
     csf_h_space = 64
     csf_h_offset = csf_width + csf_h_space
     bar_num = 16
+    text_scale = 0.5
+    text_offset_v = 16
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_color = (0x8000, 0x8000, 0x0000)
 
     # csf pattern 作成
     # ----------------------------------
@@ -995,15 +999,33 @@ def composite_csf_pattern(img, width, height):
     img[csf_start_v:csf_start_v+csf_height,
         h_start:h_end] = csf_12bit
 
+    # 説明用のテキスト
+    # -------------------
+    pos = (csf_start_h + csf_h_offset * 0, csf_start_v - text_offset_v)
+    text = "128 and 129 level"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
+
+    pos = (csf_start_h + csf_h_offset * 1, csf_start_v - text_offset_v)
+    text = "512 and 513 level"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
+
+    pos = (csf_start_h + csf_h_offset * 2, csf_start_v - text_offset_v)
+    text = "2048 and 2049 level"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
+
 
 def composite_limited_full_pattern(img, width, height):
     csf_start_h = width // 2 - 1024
     csf_start_v = 1024
     csf_width = 640
-    csf_height = 360
+    csf_height = 340
     csf_h_space = 64
     csf_h_offset = csf_width + csf_h_space
     bar_num = 16
+    text_scale = 0.5
+    text_offset_v = 16
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_color = (0x8000, 0x8000, 0x0000)
 
     # csf pattern 作成
     # ----------------------------------
@@ -1026,6 +1048,16 @@ def composite_limited_full_pattern(img, width, height):
     h_end = csf_start_h + csf_h_offset * 2 + csf_width
     img[csf_start_v:csf_start_v+csf_height,
         h_start:h_end] = csf_12bit
+
+    # 説明用のテキスト
+    # -------------------
+    pos = (csf_start_h + csf_h_offset * 0, csf_start_v - text_offset_v)
+    text = "0 and 64 level"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
+
+    pos = (csf_start_h + csf_h_offset * 2, csf_start_v - text_offset_v)
+    text = "940 and 1023 level"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def gen_ST2084_gray_scale(img, width, height):
@@ -1064,6 +1096,12 @@ def gen_ST2084_gray_scale(img, width, height):
         else:
             text = "{:>4.0f},{:>5.0f}".format(val_list[idx], luminance[idx])
         cv2.putText(img, text, pos, font, text_scale, font_color)
+
+    # 説明用のマーカー＆テキスト付与
+    # -------------------------------
+    pos = (scale_width + text_offset_h + 128, text_offset_v)
+    text = "<-- VideoLevel, Brightness for PQ Curve."
+    cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def gen_hlg_gray_scale(img, width, height):
@@ -1107,6 +1145,12 @@ def gen_hlg_gray_scale(img, width, height):
             text = "{:>4.0f}, {:>4.0f}".format(val_list[idx], luminance[idx])
         cv2.putText(img, text, pos, font, text_scale, font_color)
 
+    # 説明用のマーカー＆テキスト付与
+    # -------------------------------
+    pos = (width - 532, text_offset_v)
+    text = "VideoLevel, Brightness for HLG. -->"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
+
 
 def gen_pq_sdr_color_checker(img, width, height):
     patch_width = 112
@@ -1116,6 +1160,12 @@ def gen_pq_sdr_color_checker(img, width, height):
     v_offset = 128
     h_num = 4
     v_num = 6
+
+    text_scale = 0.5
+    text_offset_v = 16
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_color = (0x8000, 0x8000, 0x0000)
+
     xyY = np.array(const_color_checker_xyY)
     xyY = xyY.reshape((1, xyY.shape[0], xyY.shape[1]))
     rgb = ccv.xyY_to_RGB(xyY=xyY,
@@ -1135,6 +1185,10 @@ def gen_pq_sdr_color_checker(img, width, height):
         st_v = v_offset + (patch_height + patch_space) * v_idx
         img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
 
+    pos = (h_offset, v_offset - text_offset_v)
+    text = "vvv ColorChecker for PQ1000 vvv"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
+
 
 def gen_hlg_sdr_color_checker(img, width, height):
     patch_width = 112
@@ -1144,6 +1198,12 @@ def gen_hlg_sdr_color_checker(img, width, height):
     v_offset = 128
     h_num = 4
     v_num = 6
+
+    text_scale = 0.5
+    text_offset_v = 16
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_color = (0x8000, 0x8000, 0x0000)
+
     xyY = np.array(const_color_checker_xyY)
     xyY = xyY.reshape((1, xyY.shape[0], xyY.shape[1]))
     rgb = ccv.xyY_to_RGB(xyY=xyY,
@@ -1160,6 +1220,10 @@ def gen_hlg_sdr_color_checker(img, width, height):
         st_h = h_offset + (patch_width + patch_space) * h_idx
         st_v = v_offset + (patch_height + patch_space) * v_idx
         img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+    pos = (int(h_offset), v_offset - text_offset_v)
+    text = "vvv ColorChecker for HLG system gamma=1.0 vvv"
+    cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def gen_rgbmyc_color_bar(img, width, height):
@@ -1211,10 +1275,14 @@ def gen_rec2020_clip_csf_pattern(img, width, height):
     csf_start_h = width // 2 - 1024
     csf_start_v = 1450
     csf_width = 640
-    csf_height = 360
+    csf_height = 340
     csf_h_space = 64
     csf_h_offset = csf_width + csf_h_space
     bar_num = 16
+    text_scale = 0.5
+    text_offset_v = 16
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_color = (0x8000, 0x8000, 0x0000)
 
     # get native gamut
     # -----------------
@@ -1240,9 +1308,9 @@ def gen_rec2020_clip_csf_pattern(img, width, height):
                                      white=ccv.const_d65_large_xyz)
         # apply oetf
         # ---------------------------
-        native_rgb = ccv.linear_to_pq(native_rgb)  # div 2 means 512 level
+        native_rgb = ccv.linear_to_pq(native_rgb / 20)  # div 2 means 512 level
         native_rgb = np.uint16(np.round(native_rgb * 0xFFFF))
-        rec2020_rgb = ccv.linear_to_pq(rec2020_rgb)  # div 2 means 512 lv
+        rec2020_rgb = ccv.linear_to_pq(rec2020_rgb / 20)  # div 2 means 512 lv
         rec2020_rgb = np.uint16(np.round(rec2020_rgb * 0xFFFF))
 
         # make csf pattern
@@ -1257,6 +1325,12 @@ def gen_rec2020_clip_csf_pattern(img, width, height):
         h_start = csf_start_h + csf_h_offset * idx
         h_end = csf_start_h + csf_h_offset * idx + csf_width
         img[csf_start_v:csf_start_v+csf_height, h_start:h_end] = csf
+
+        # add text information
+        # -------------------------------
+        pos = (h_start, csf_start_v - text_offset_v)
+        text = "rec20200 clip check"
+        cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def make_m_and_e_test_pattern(size='uhd'):
@@ -1315,7 +1389,7 @@ def make_m_and_e_test_pattern(size='uhd'):
 
     # 画面下にRGBMYCのカラーバーを表示
     # ----------------------------------------
-    # gen_rgbmyc_color_bar(img, width, height)
+    gen_rgbmyc_color_bar(img, width, height)
 
     # img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
     preview_image(img, 'rgb')
