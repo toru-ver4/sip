@@ -2,6 +2,7 @@ import os
 import imp
 import numpy as np
 from scipy import linalg
+from scipy import integrate
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import cv2
@@ -293,6 +294,23 @@ def plot_normal_distribution(mu_list, sigma_list):
     plt.show()
 
 
+def integral_d_illuminant():
+    wl_d65, s = lit.get_d65_spectrum()
+    wl_xyz, xyz = lit.get_cie1931_color_matching_function()
+    idx = np.in1d(wl_d65, wl_xyz)
+    wl = wl_d65[idx]
+    s = s[idx]
+    large_xyz = np.array([integrate.simps(s * xyz[idx], wl)
+                          for idx in range(3)])
+    print(large_xyz)
+    print(large_xyz/large_xyz[1])
+
+    large_xyz = np.array([np.sum(s * xyz[idx])
+                          for idx in range(3)])
+    print(large_xyz)
+    print(large_xyz/large_xyz[1] * 3)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # show_color_patch_spectral_data()
@@ -303,6 +321,7 @@ if __name__ == '__main__':
     # x = np.arange(9).reshape(3, 3, 1)
     # print(np.var(x))
     # get_normal_distribution(a=1.0, mu=590, sigma=30)
-    mu_list = [500, 525, 550, 575, 600]
-    sigma_list = [3, 5, 7, 10, 15, 20]
-    plot_normal_distribution(mu_list, sigma_list)
+    # mu_list = [500, 525, 550, 575, 600]
+    # sigma_list = [3, 5, 7, 10, 15, 20]
+    # plot_normal_distribution(mu_list, sigma_list)
+    integral_d_illuminant()

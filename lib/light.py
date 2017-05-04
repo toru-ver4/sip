@@ -7,6 +7,10 @@
 
 # 使い方
 
+# references
+these data have been downloaded from following site.
+[Munsell Color Science Laboratory](https://www.rit.edu/cos/colorscience/rc_useful_data.php)
+
 """
 
 import os
@@ -82,16 +86,44 @@ def get_d_illuminants_spectrum(temperature):
         s.append(s0 + m1[idx] * s1 + m2[idx] * s2)
     s = np.array(s)
 
-    return wavelength, s.flatten()
+    return wavelength, s
+
+
+def get_d65_spectrum():
+    """
+    # brief
+    return (wavelength, spectrum) pair.
+    """
+
+    filename = os.path.dirname(os.path.abspath(__file__))\
+        + os.path.normpath("/data/d65_spectrum.csv")
+    data = np.loadtxt(filename, delimiter=',', skiprows=1).T
+
+    return np.uint16(data[0]), data[1]
+
+
+def get_cie1931_color_matching_function():
+    """
+    # brief
+    return (wavelength, spectrum) pair.
+    """
+
+    filename = os.path.dirname(os.path.abspath(__file__))\
+        + os.path.normpath("/data/cie_1931_color_matching_function.csv")
+    data = np.loadtxt(filename, delimiter=',', skiprows=1).T
+
+    return np.uint16(data[0]), data[1:]
 
 
 if __name__ == '__main__':
     t = np.arange(4000, 10100, 100, dtype=np.float64)
     x, y = color_temp_to_small_xy(t)
-    # print(x)
-    # print(y)
     data = _get_d_illuminants_s_coef()
     m1, m2 = _get_d_illuminants_m_coef(x, y)
-    # print(m1)
-    # print(m2)
     wl, s = get_d_illuminants_spectrum(t)
+    wl1, s = get_d65_spectrum()
+    wl2, xyz = get_cie1931_color_matching_function()
+    ababa = np.in1d(wl1, wl2)
+    print(ababa)
+    print(wl1)
+    print(wl1[ababa])
