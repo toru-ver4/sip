@@ -5,12 +5,14 @@ from scipy import linalg
 from scipy import integrate
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import plot_utility as pu
 import cv2
 import color_convert as ccv
 import light as lit
 
 imp.reload(ccv)
 imp.reload(lit)
+imp.reload(pu)
 
 const_lambda = np.arange(380, 785, 5)
 
@@ -295,7 +297,11 @@ def plot_normal_distribution(mu_list, sigma_list):
 
 
 def integral_d_illuminant():
-    wl_d65, s = lit.get_d65_spectrum()
+    # wl_d65, s = lit.get_d65_spectrum()
+    t = np.array([6500.0])
+    wl_d65, s = lit.get_d_illuminants_spectrum(t)
+    s = s[0]
+
     wl_xyz, xyz = lit.get_cie1931_color_matching_function()
     idx = np.in1d(wl_d65, wl_xyz)
     wl = wl_d65[idx]
@@ -305,10 +311,31 @@ def integral_d_illuminant():
     print(large_xyz)
     print(large_xyz/large_xyz[1])
 
+    large_xyz = np.array([integrate.cumtrapz(s * xyz[idx], wl)[-1]
+                          for idx in range(3)])
+    print(large_xyz)
+    print(large_xyz/large_xyz[1])
+
     large_xyz = np.array([np.sum(s * xyz[idx])
                           for idx in range(3)])
     print(large_xyz)
-    print(large_xyz/large_xyz[1] * 3)
+    print(large_xyz/large_xyz[1])
+
+
+def plot_d65_and_calculated_d65():
+    """
+    計算で出した D65 と エクセルに値が書かれていた D65 で
+    スペクトル分が違うのかプロットしてみる。
+    """
+    t = np.array([6500.0])
+    wl_org, s_org = lit.get_d_illuminants_spectrum(t)
+    wl_calc, s_calc = lit.get_d65_spectrum()
+    s_org = s_org[0]
+    ax1 = pu.plot_1_graph()
+    ax1.plot(wl_org, s_org, '-o', label="org")
+    ax1.plot(wl_calc, s_calc, '-o', label="calc")
+    plt.legend(loc='upper left')
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -325,3 +352,4 @@ if __name__ == '__main__':
     # sigma_list = [3, 5, 7, 10, 15, 20]
     # plot_normal_distribution(mu_list, sigma_list)
     integral_d_illuminant()
+    # plot_d65_and_calculated_d65()

@@ -46,7 +46,7 @@ def _get_d_illuminants_s_coef():
     """
 
     filename = os.path.dirname(os.path.abspath(__file__))\
-        + os.path.normpath("/data/DIlluminants.csv")
+        + os.path.normpath("/data/d_illuminant_s0s1s2_components.csv")
     data = np.loadtxt(filename, delimiter=',', skiprows=1).T
 
     return data
@@ -93,6 +93,9 @@ def get_d65_spectrum():
     """
     # brief
     return (wavelength, spectrum) pair.
+    # source
+    Selected Colorimetric Tables(cie)
+    http://www.cie.co.at/index.php/LEFTMENUE/DOWNLOADS
     """
 
     filename = os.path.dirname(os.path.abspath(__file__))\
@@ -106,6 +109,9 @@ def get_cie1931_color_matching_function():
     """
     # brief
     return (wavelength, spectrum) pair.
+    # src
+    Selected Colorimetric Tables(cie)
+    http://www.cie.co.at/index.php/LEFTMENUE/DOWNLOADS
     """
 
     filename = os.path.dirname(os.path.abspath(__file__))\
@@ -121,9 +127,8 @@ if __name__ == '__main__':
     data = _get_d_illuminants_s_coef()
     m1, m2 = _get_d_illuminants_m_coef(x, y)
     wl, s = get_d_illuminants_spectrum(t)
+    print(wl.shape)
+    print(s[10].shape)
     wl1, s = get_d65_spectrum()
     wl2, xyz = get_cie1931_color_matching_function()
-    ababa = np.in1d(wl1, wl2)
-    print(ababa)
-    print(wl1)
-    print(wl1[ababa])
+    idx = np.in1d(wl1, wl2)
