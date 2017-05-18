@@ -27,4 +27,8 @@ signal_generation/ffmpeg_tiff/*.mkv
 signal_generation/ffmpeg_tiff/*.hevc
 signal_generation/ffmpeg_tiff/*.mp4
 signal_generation/ffmpeg_tiff/*.y4m
-
+signal_generation/test_pattern/figure/*.png
+signal_generation/test_pattern/doc/~$test_pattern_spec.pptx
+lib/data/6500K.icc
+lib/hoge.tif
+.vscode/c_cpp_properties.json
