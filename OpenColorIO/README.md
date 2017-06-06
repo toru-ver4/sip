@@ -15,7 +15,7 @@ $ sudo apt-get install python3-all-dev
 
 ### libboost for python3
 ```
-$ git clone --recursive https://github.com/boostorg/boost.git
+$ git clone --recursive -b boost-1.60.0 https://github.com/boostorg/boost.git
 $ cd boost
 $ git checkout develop
 $ ./bootstrap.sh --with-libraries=python --with-python=python3 --with-python-version=3.5
