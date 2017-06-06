@@ -21,7 +21,7 @@ $ git checkout develop
 $ ./bootstrap.sh --with-libraries=python --with-python=python3 --with-python-version=3.5
 $ ./b2
 $ ./b2 headers
-$ sudo ./b2 install --prefix=$HOME/local/python3
+$ sudo ./b2 install
 
 ```
 
