@@ -1398,13 +1398,4 @@ def make_m_and_e_test_pattern(size='uhd'):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # fire.Fire()
-    # change_bit_depth(src=8, dst=10, data=np.array(1024))
-    # gen_csf_pattern(debug=True)
-    # get_primary_data()
-    make_m_and_e_test_pattern(size='uhd')
-    # x = np.linspace(0, 1, 1024)
-    # y = ccv.linear_to_hlg(x)
-    # plt.plot(x, y)
-    # plt.show()
-
+    # make_m_and_e_test_pattern(size='uhd')
