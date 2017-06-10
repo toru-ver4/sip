@@ -82,6 +82,15 @@ class CommontestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             common.is_numpy_color_module(data6)
 
+    @raises(TypeError)
+    def test_is_xy_array_shape_raise_exception(self):
+        ng_xy = [[0.1, 0.2], [0.3, 0.3]]
+        common.is_small_xy_array_shape(ng_xy)
+
+    def test_is_xy_array_shape_ok(self):
+        xy = np.array([[0.1, 0.2], [0.3, 0.3]])
+        ok_(common.is_small_xy_array_shape(xy))
+
 
 if __name__ == '__main__':
     pass
