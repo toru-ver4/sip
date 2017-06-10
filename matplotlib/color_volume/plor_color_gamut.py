@@ -2,6 +2,7 @@ import os
 import imp
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.patches as patches
 import common
 import plot_utility as pu
@@ -71,18 +72,29 @@ def get_xy_inside_gamut(gamut=ccv.const_rec2020_xy, div_num=110):
 
 
 def get_max_rgb_from_xy(xy, gamut=ccv.const_rec2020_xy,
-                        white=ccv.const_d65_large_xyz):
-    xyY = ccv.small_xy_to_xyY(xy=xy, large_y=1.0)
+                        white=ccv.const_d65_large_xyz, large_y=1.0):
+    xyY = ccv.small_xy_to_xyY(xy=xy, large_y=large_y)
     rgb = ccv.xyY_to_RGB(xyY=xyY, gamut=gamut, white=white)
 
-    print(rgb)
     n = np.max(rgb, axis=2)  # normalize val
     normalize_val = np.dstack((n, n, n))
     outline_rgb = rgb / normalize_val
+    print(outline_rgb)
 
     return outline_rgb
 
 
+def get_large_xyz(rgb, large_y_rate,
+                  gamut=ccv.const_rec2020_xy,
+                  white=ccv.const_d65_large_xyz):
+    large_xyz = ccv.rgb_to_large_xyz(rgb=rgb, gamut=gamut)
+    x = large_xyz[:, :, 0][0]
+    y = large_xyz[:, :, 1][0]
+    large_y = large_xyz[:, :, 2][0]
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.scatter3D(x, y, large_y)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -92,5 +104,10 @@ if __name__ == '__main__':
                    [0.708, 0.292], [0.170, 0.797], [0.131, 0.046],
                    [0.709, 0.292], [0.170, 0.798], [0.131, 0.045]])
     ccv.is_inside_gamut(xy=xy)
-    xy = get_xy_inside_gamut(div_num=100)
-    rgb = get_max_rgb_from_xy(xy)
+    gamut = ccv.const_rec2020_xy
+    white = ccv.const_d65_large_xyz
+    div_num = 100
+    large_y = 100
+    xy = get_xy_inside_gamut(gamut=gamut, div_num=div_num)
+    rgb = get_max_rgb_from_xy(xy, gamut=gamut, white=white, large_y=0.01)
+    get_large_xyz(rgb, large_y_rate=large_y, gamut=gamut, white=white)
