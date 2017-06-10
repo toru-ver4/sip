@@ -403,6 +403,47 @@ def large_xyz_to_lab(large_xyz, white=const_d50_large_xyz):
     return np.dstack((l, a, b))
 
 
+def is_inside_gamut(xy, gamut=np.array(const_rec2020_xy)):
+    """
+    # 概要
+    xy座標が gamut 内部にあるか判別する
+    # In/Out
+    xy は (N, 2) の numpy 配列であること
+    # 参考
+    http://www.sousakuba.com/Programming/gs_hittest_point_triangle.html
+    """
+    # parameter check
+    # -----------------------------------------
+    if not common.is_small_xy_array_shape(xy):
+        print('parameer "xy" is invalid.')
+        return False
+
+    if not common.is_small_xy_array_shape(gamut):
+        print('parameer "gamut" is invalid.')
+        return False
+
+    if gamut.shape[0] != 3:
+        print('parameer "gamut" is invalid.')
+        return False
+
+    # calc vector
+    # -----------------------------------------
+    rg = gamut[1] - gamut[0]
+    gw = xy - gamut[1]
+    gb = gamut[2] - gamut[1]
+    bw = xy - gamut[2]
+    br = gamut[0] - gamut[2]
+    rw = xy - gamut[0]
+
+    r_result = np.cross(rg, gw)
+    g_result = np.cross(gb, bw)
+    b_result = np.cross(br, rw)
+
+    result = (r_result >= 0) & (g_result >= 0) & (b_result >= 0)
+
+    return result
+
+
 if __name__ == '__main__':
     # lab = np.ones((1, 1, 3))
     # lab[0][0][0] = 42.101
