@@ -403,7 +403,7 @@ def large_xyz_to_lab(large_xyz, white=const_d50_large_xyz):
     return np.dstack((l, a, b))
 
 
-def is_inside_gamut(xy, gamut=np.array(const_rec2020_xy)):
+def is_inside_gamut(xy, gamut=const_rec2020_xy):
     """
     # 概要
     xy座標が gamut 内部にあるか判別する
@@ -414,6 +414,8 @@ def is_inside_gamut(xy, gamut=np.array(const_rec2020_xy)):
     """
     # parameter check
     # -----------------------------------------
+    gamut = np.array(gamut.copy())
+
     if not common.is_small_xy_array_shape(xy):
         print('parameer "xy" is invalid.')
         return False

@@ -119,8 +119,9 @@ class ColorConvertTestCase(unittest.TestCase):
             self.assertAlmostEqual(result4[0][0][i], expected4[i], 3)
 
     def test_is_inside_gamut(self):
-        gamut = np.array(ccv.const_rec2020_xy)
-        ng_gamut = ccv.const_rec2020_xy
+        gamut = ccv.const_rec2020_xy
+        ng_gamut_1 = np.array([0, 1, 2])
+        ng_gamut_2 = np.array([[0, 1, 2], [2, 3, 4], [5, 6, 7]])
         xy = np.array([[0.1, 0.3], [0.3, 0.3], [0.9, 0.3], [0.3, 0.5],
                        [0.708, 0.292], [0.170, 0.797], [0.131, 0.046],
                        [0.709, 0.292], [0.170, 0.798], [0.131, 0.045]])
@@ -130,8 +131,8 @@ class ColorConvertTestCase(unittest.TestCase):
         result = ccv.is_inside_gamut(xy=xy, gamut=gamut)
         self.assertTrue(np.array_equal(result, expected))
         self.assertFalse(ccv.is_inside_gamut(xy=xy, gamut=xy))
-        self.assertRaises(TypeError, ccv.is_inside_gamut,
-                          xy=xy, gamut=ng_gamut)
+        self.assertFalse(ccv.is_inside_gamut(xy=xy, gamut=ng_gamut_1))
+        self.assertFalse(ccv.is_inside_gamut(xy=xy, gamut=ng_gamut_2))
 
 
 if __name__ == '__main__':
