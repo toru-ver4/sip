@@ -446,6 +446,19 @@ def is_inside_gamut(xy, gamut=const_rec2020_xy):
     return result
 
 
+def small_xy_to_xyY(xy, large_y):
+    if not common.is_small_xy_array_shape(xy):
+        print('parameer "xy" is invalid.')
+        return False
+
+    x = xy[:, 0]
+    y = xy[:, 1]
+    large_y = np.ones_like(x) * large_y
+    xyY = np.dstack((x, y, large_y))
+
+    return xyY
+
+
 if __name__ == '__main__':
     # lab = np.ones((1, 1, 3))
     # lab[0][0][0] = 42.101

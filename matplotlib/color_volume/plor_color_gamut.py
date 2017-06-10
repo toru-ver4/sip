@@ -63,15 +63,26 @@ def get_xy_inside_gamut(gamut=ccv.const_rec2020_xy, div_num=110):
     ok_idx = ccv.is_inside_gamut(xy, gamut=ccv.const_rec2020_xy)
     xy = xy[ok_idx]
 
-    ax1 = pu.plot_1_graph()
-    ax1.plot(xy[:, 0], xy[:, 1], '.', markersize=10)
-    plt.show()
+    # ax1 = pu.plot_1_graph()
+    # ax1.plot(xy[:, 0], xy[:, 1], '.', markersize=10)
+    # plt.show()
 
     return xy
 
 
-def get_max_rgb_from_xy(xy, gamut=ccv.const_rec2020_xy):
-    pass
+def get_max_rgb_from_xy(xy, gamut=ccv.const_rec2020_xy,
+                        white=ccv.const_d65_large_xyz):
+    xyY = ccv.small_xy_to_xyY(xy=xy, large_y=1.0)
+    rgb = ccv.xyY_to_RGB(xyY=xyY, gamut=gamut, white=white)
+
+    print(rgb)
+    n = np.max(rgb, axis=2)  # normalize val
+    normalize_val = np.dstack((n, n, n))
+    outline_rgb = rgb / normalize_val
+
+    return outline_rgb
+
+
 
 
 if __name__ == '__main__':
@@ -81,4 +92,5 @@ if __name__ == '__main__':
                    [0.708, 0.292], [0.170, 0.797], [0.131, 0.046],
                    [0.709, 0.292], [0.170, 0.798], [0.131, 0.045]])
     ccv.is_inside_gamut(xy=xy)
-    get_xy_inside_gamut(div_num=100)
+    xy = get_xy_inside_gamut(div_num=100)
+    rgb = get_max_rgb_from_xy(xy)
