@@ -37,6 +37,38 @@ def cross_test():
     print(r, g, b, w)
 
 
+def get_xy_inside_gamut(gamut=ccv.const_rec2020_xy, div_num=110):
+    """
+    # 概要
+    gamut の領域に入ってる xy値を得る
+    # 詳細
+    div_num は 各次元の分割数。
+    div_num=100 の場合 100x100=10000 グリッドで計算する。
+    """
+    # 大元の xy データ作成
+    # ----------------------------
+    x = np.linspace(0, 1, div_num)
+    x = x[np.newaxis, :]
+    ones_x = np.ones((div_num, 1))
+    y = np.linspace(0, 1, div_num)
+    y = y[:, np.newaxis]
+    ones_y = np.ones((1, div_num))
+    x = x * ones_x
+    y = y * ones_y
+    xy = np.dstack((x, y))
+    xy = xy.reshape((xy.shape[0] * xy.shape[1], xy.shape[2]))
+
+    # 判定
+    # ----------------------------
+    ok_idx = ccv.is_inside_gamut(xy, gamut=np.array(ccv.const_rec2020_xy))
+    print(ok_idx)
+    xy = xy[ok_idx]
+
+    ax1 = pu.plot_1_graph()
+    ax1.plot(xy[:, 0], xy[:, 1], '.', markersize=10)
+    plt.show()
+
+    return xy
 
 
 if __name__ == '__main__':
@@ -45,4 +77,5 @@ if __name__ == '__main__':
     xy = np.array([[0.1, 0.3], [0.3, 0.3], [0.9, 0.3], [0.3, 0.5],
                    [0.708, 0.292], [0.170, 0.797], [0.131, 0.046],
                    [0.709, 0.292], [0.170, 0.798], [0.131, 0.045]])
-    is_inside_gamut(xy=xy)
+    ccv.is_inside_gamut(xy=xy)
+    get_xy_inside_gamut(div_num=100)
