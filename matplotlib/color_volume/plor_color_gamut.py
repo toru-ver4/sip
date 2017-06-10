@@ -64,7 +64,20 @@ def get_xy_inside_gamut(gamut=ccv.const_rec2020_xy, div_num=110):
     ok_idx = ccv.is_inside_gamut(xy, gamut=ccv.const_rec2020_xy)
     xy = xy[ok_idx]
 
-    # ax1 = pu.plot_1_graph()
+    # ax1 = pu.plot_1_graph(fontsize=20,
+    #                       figsize=(10, 8),
+    #                       graph_title="Title",
+    #                       graph_title_size=None,
+    #                       xlabel="X Axis Label", ylabel="Y Axis Label",
+    #                       axis_label_size=None,
+    #                       legend_size=17,
+    #                       xlim=(0, 0.8),
+    #                       ylim=(0, 0.9),
+    #                       xtick=None,
+    #                       ytick=None,
+    #                       xtick_size=None, ytick_size=None,
+    #                       linewidth=3,
+    #                       prop_cycle=None)
     # ax1.plot(xy[:, 0], xy[:, 1], '.', markersize=10)
     # plt.show()
 
@@ -78,22 +91,57 @@ def get_max_rgb_from_xy(xy, gamut=ccv.const_rec2020_xy,
 
     n = np.max(rgb, axis=2)  # normalize val
     normalize_val = np.dstack((n, n, n))
+    # outline_rgb = rgb
     outline_rgb = rgb / normalize_val
-    print(outline_rgb)
 
     return outline_rgb
 
 
-def get_large_xyz(rgb, large_y_rate,
-                  gamut=ccv.const_rec2020_xy,
-                  white=ccv.const_d65_large_xyz):
-    large_xyz = ccv.rgb_to_large_xyz(rgb=rgb, gamut=gamut)
-    x = large_xyz[:, :, 0][0]
-    y = large_xyz[:, :, 1][0]
-    large_y = large_xyz[:, :, 2][0]
+def get_large_xyz_from_rgb(rgb, large_y_rate,
+                           gamut=ccv.const_rec2020_xy,
+                           white=ccv.const_d65_large_xyz):
+    large_xyz = ccv.rgb_to_large_xyz(rgb=rgb, gamut=gamut, white=white)
+
+    return large_xyz
+
+
+def get_xyY_from_large_xyz(large_xyz):
+    large_x, large_y, large_z = np.dsplit(large_xyz, 3)
+    sum_xyz = large_x + large_y + large_z
+    x = large_x / sum_xyz
+    y = large_y / sum_xyz
+
+    return np.dstack((x, y, large_y))
+
+
+def plot_xyY(xyY):
+    x = xyY[:, :, 0].flatten()
+    y = xyY[:, :, 1].flatten()
+    large_y = xyY[:, :, 2].flatten()
     fig = plt.figure()
     ax = Axes3D(fig)
     ax.scatter3D(x, y, large_y)
+    plt.show()
+
+
+def plot_rgb_patch(rgb):
+    rgb = np.uint8(rgb.copy() * 0xFF)
+    v_num = 4
+    h_num = 11
+    plt.rcParams["font.size"] = 18
+    f, axarr = plt.subplots(v_num, h_num, sharex='col', sharey='row',
+                            figsize=(h_num * 3, v_num * 3))
+    for idx in range(v_num * h_num):
+        color = "#{:02X}{:02X}{:02X}".format(rgb[0][idx][0],
+                                             rgb[0][idx][1],
+                                             rgb[0][idx][2])
+        h_idx = idx % h_num
+        v_idx = idx // h_num
+        axarr[v_idx, h_idx].add_patch(
+            patches.Rectangle(
+                (0, 0), 1.0, 1.0, facecolor=color
+            )
+        )
     plt.show()
 
 
@@ -110,4 +158,8 @@ if __name__ == '__main__':
     large_y = 100
     xy = get_xy_inside_gamut(gamut=gamut, div_num=div_num)
     rgb = get_max_rgb_from_xy(xy, gamut=gamut, white=white, large_y=0.01)
-    get_large_xyz(rgb, large_y_rate=large_y, gamut=gamut, white=white)
+    large_xyz = get_large_xyz_from_rgb(rgb, large_y_rate=large_y,
+                                       gamut=gamut, white=white)
+    xyY = get_xyY_from_large_xyz(large_xyz)
+    plot_xyY(xyY)
+    # print(xyY)
