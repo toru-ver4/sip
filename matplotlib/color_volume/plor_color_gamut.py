@@ -120,7 +120,12 @@ def plot_xyY(xyY):
     large_y = xyY[:, :, 2].flatten()
     fig = plt.figure()
     ax = Axes3D(fig)
-    ax.scatter3D(x, y, large_y)
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    # ax.scatter3D(x, y, large_y)
+    # ax.plot_wireframe(x, y, large_y)
+    ax.plot_surface(x, y, large_y)
     plt.show()
 
 
@@ -130,7 +135,7 @@ def plot_rgb_patch(rgb):
     h_num = 11
     plt.rcParams["font.size"] = 18
     f, axarr = plt.subplots(v_num, h_num, sharex='col', sharey='row',
-                            figsize=(h_num * 3, v_num * 3))
+                            figsize=(h_num * 5, v_num * 5))
     for idx in range(v_num * h_num):
         color = "#{:02X}{:02X}{:02X}".format(rgb[0][idx][0],
                                              rgb[0][idx][1],
@@ -139,9 +144,19 @@ def plot_rgb_patch(rgb):
         v_idx = idx // h_num
         axarr[v_idx, h_idx].add_patch(
             patches.Rectangle(
-                (0, 0), 1.0, 1.0, facecolor=color
+                (0, 0), 1.0, 1.0, edgecolor='#A0A0A0', facecolor=color
             )
         )
+        axarr[v_idx, h_idx].spines['right'].set_color('None')
+        axarr[v_idx, h_idx].spines['left'].set_color('None')
+        axarr[v_idx, h_idx].spines['top'].set_color('None')
+        axarr[v_idx, h_idx].spines['bottom'].set_color('None')
+        axarr[v_idx, h_idx].tick_params(axis='x', which='both',
+                                        top='off', bottom='off',
+                                        labelbottom='off')
+        axarr[v_idx, h_idx].tick_params(axis='y', which='both',
+                                        left='off', right='off',
+                                        labelleft='off')
     plt.show()
 
 
