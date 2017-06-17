@@ -38,16 +38,7 @@ def cross_test():
     print(r, g, b, w)
 
 
-def get_xy_inside_gamut(gamut=ccv.const_rec2020_xy, div_num=110):
-    """
-    # 概要
-    gamut の領域に入ってる xy値を得る
-    # 詳細
-    div_num は 各次元の分割数。
-    div_num=100 の場合 100x100=10000 グリッドで計算する。
-    """
-    # 大元の xy データ作成
-    # ----------------------------
+def get_xy_gamut(div_num=5):
     x = np.linspace(0, 1, div_num)
     x = x[np.newaxis, :]
     ones_x = np.ones((div_num, 1))
@@ -59,27 +50,43 @@ def get_xy_inside_gamut(gamut=ccv.const_rec2020_xy, div_num=110):
     xy = np.dstack((x, y))
     xy = xy.reshape((xy.shape[0] * xy.shape[1], xy.shape[2]))
 
+    return xy
+
+
+def get_xy_inside_gamut(gamut=ccv.const_rec2020_xy, div_num=110, plot=False):
+    """
+    # 概要
+    gamut の領域に入ってる xy値を得る
+    # 詳細
+    div_num は 各次元の分割数。
+    div_num=100 の場合 100x100=10000 グリッドで計算する。
+    """
+    # 大元の xy データ作成
+    # ----------------------------
+    xy = get_xy_gamut(div_num)
+
     # 判定
     # ----------------------------
     ok_idx = ccv.is_inside_gamut(xy, gamut=ccv.const_rec2020_xy)
     xy = xy[ok_idx]
 
-    # ax1 = pu.plot_1_graph(fontsize=20,
-    #                       figsize=(10, 8),
-    #                       graph_title="Title",
-    #                       graph_title_size=None,
-    #                       xlabel="X Axis Label", ylabel="Y Axis Label",
-    #                       axis_label_size=None,
-    #                       legend_size=17,
-    #                       xlim=(0, 0.8),
-    #                       ylim=(0, 0.9),
-    #                       xtick=None,
-    #                       ytick=None,
-    #                       xtick_size=None, ytick_size=None,
-    #                       linewidth=3,
-    #                       prop_cycle=None)
-    # ax1.plot(xy[:, 0], xy[:, 1], '.', markersize=10)
-    # plt.show()
+    if plot:
+        ax1 = pu.plot_1_graph(fontsize=20,
+                              figsize=(10, 8),
+                              graph_title="Title",
+                              graph_title_size=None,
+                              xlabel="X Axis Label", ylabel="Y Axis Label",
+                              axis_label_size=None,
+                              legend_size=17,
+                              xlim=(0, 0.8),
+                              ylim=(0, 0.9),
+                              xtick=None,
+                              ytick=None,
+                              xtick_size=None, ytick_size=None,
+                              linewidth=3,
+                              prop_cycle=None)
+        ax1.plot(xy[:, 0], xy[:, 1], '.', markersize=10)
+        plt.show()
 
     return xy
 
@@ -114,18 +121,32 @@ def get_xyY_from_large_xyz(large_xyz):
     return np.dstack((x, y, large_y))
 
 
-def plot_xyY(xyY):
-    x = xyY[:, :, 0].flatten()
-    y = xyY[:, :, 1].flatten()
-    large_y = xyY[:, :, 2].flatten()
+def plot_xyY(xyY, rgb=None, grid_num=16):
+    # x = xyY[:, :, 0].flatten()
+    # y = xyY[:, :, 1].flatten()
+    # large_y = xyY[:, :, 2].flatten()
     fig = plt.figure()
     ax = Axes3D(fig)
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
+    # for idx in range(x.shape[0]):
+    #     if rgb is not None:
+    #         val = np.uint8(np.round(rgb[0][idx] * 0xFF))
+    #         color = "#{:02X}{:02X}{:02X}".format(val[0], val[1], val[2])
+    #     else:
+    #         color = "#000000"
+    #     ax.plot([x[idx], x[idx]],
+    #             [y[idx], y[idx]],
+    #             [0, large_y[idx]], '-', linewidth=3, color=color)
+
     # ax.scatter3D(x, y, large_y)
-    # ax.plot_wireframe(x, y, large_y)
-    ax.plot_surface(x, y, large_y)
+    # ax.plot_wireframe(x_2d, y_2d, large_y)
+    xyY = np.reshape(xyY, (grid_num, grid_num, 3))
+    x = xyY[:, :, 0]
+    y = xyY[:, :, 1]
+    large_y = xyY[:, :, 2]
+    ax.plot_surface(x, y, large_y, rstride=3, cstride=3)
     plt.show()
 
 
@@ -169,12 +190,18 @@ if __name__ == '__main__':
     ccv.is_inside_gamut(xy=xy)
     gamut = ccv.const_rec2020_xy
     white = ccv.const_d65_large_xyz
-    div_num = 100
+    div_num = 128
     large_y = 100
-    xy = get_xy_inside_gamut(gamut=gamut, div_num=div_num)
+    # xy = get_xy_inside_gamut(gamut=gamut, div_num=div_num)
+    xy = get_xy_gamut(div_num=div_num)
+    ok_idx = ccv.is_inside_gamut(xy, gamut=ccv.const_rec2020_xy)
+    ng_idx = np.logical_not(ok_idx)
     rgb = get_max_rgb_from_xy(xy, gamut=gamut, white=white, large_y=0.01)
     large_xyz = get_large_xyz_from_rgb(rgb, large_y_rate=large_y,
                                        gamut=gamut, white=white)
     xyY = get_xyY_from_large_xyz(large_xyz)
-    plot_xyY(xyY)
+    xyY[0, :,  0] = xy[:, 0]
+    xyY[0, :,  1] = xy[:, 1]
+    xyY[:, ng_idx, 2] = 0
+    plot_xyY(xyY, rgb, div_num)
     # print(xyY)

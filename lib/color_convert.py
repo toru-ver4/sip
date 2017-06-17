@@ -186,8 +186,17 @@ def xyY_to_XYZ(xyY):
     """
     small_x, small_y, large_y = np.dsplit(xyY, 3)
     small_z = 1 - small_x - small_y
-    large_x = large_y / small_y * small_x
-    large_z = large_y / small_y * small_z
+    small_yx = small_y * small_x
+    small_yz = small_y * small_z
+    if np.sum(small_yx == 0) or np.sum(small_yz == 0):
+        print("WARNING")
+        print("    ZERO DIV ERROR IS PREVENTED at xyY_to_XYZ()")
+
+    small_yx[small_yx == 0] = 1
+    small_yz[small_yz == 0] = 1
+
+    large_x = large_y / small_yx
+    large_z = large_y / small_yz
 
     return np.dstack((large_x, large_y, large_z))
 
