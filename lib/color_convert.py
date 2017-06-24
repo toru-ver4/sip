@@ -468,6 +468,21 @@ def small_xy_to_xyY(xy, large_y):
     return xyY
 
 
+def large_xyz_to_small_xy(large_xyz):
+    large_x, large_y, large_z = np.dsplit(large_xyz, 3)
+    xyz_sum = large_x + large_y + large_z
+
+    if np.sum(xyz_sum == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at large_xyz_to_small_xy()")
+        xyz_sum[xyz_sum == 0] = 1
+
+    small_x = large_x / xyz_sum
+    small_y = large_y / xyz_sum
+
+    return np.dstack((small_x, small_y))
+
+
 if __name__ == '__main__':
     # lab = np.ones((1, 1, 3))
     # lab[0][0][0] = 42.101

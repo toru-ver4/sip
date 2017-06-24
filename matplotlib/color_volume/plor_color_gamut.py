@@ -122,31 +122,27 @@ def get_xyY_from_large_xyz(large_xyz):
 
 
 def plot_xyY(xyY, rgb=None, grid_num=16):
-    # x = xyY[:, :, 0].flatten()
-    # y = xyY[:, :, 1].flatten()
-    # large_y = xyY[:, :, 2].flatten()
+    x = xyY[:, :, 0].flatten()
+    y = xyY[:, :, 1].flatten()
+    large_y = xyY[:, :, 2].flatten()
     fig = plt.figure()
     ax = Axes3D(fig)
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
-    # for idx in range(x.shape[0]):
-    #     if rgb is not None:
-    #         val = np.uint8(np.round(rgb[0][idx] * 0xFF))
-    #         color = "#{:02X}{:02X}{:02X}".format(val[0], val[1], val[2])
-    #     else:
-    #         color = "#000000"
-    #     ax.plot([x[idx], x[idx]],
-    #             [y[idx], y[idx]],
-    #             [0, large_y[idx]], '-', linewidth=3, color=color)
+    color_array = []
+    for idx in range(x.shape[0]):
+        if rgb is not None:
+            val = np.uint8(np.round(rgb[0][idx] * 0xFF))
+            color = "#{:02X}{:02X}{:02X}".format(val[0], val[1], val[2])
+            color_array.append(color)
+        else:
+            color = "#000000"
+            color_array.append(color)
 
-    # ax.scatter3D(x, y, large_y)
+    ax.scatter3D(x, y, large_y, c=color_array, edgecolors='face', alpha=0.5)
     # ax.plot_wireframe(x_2d, y_2d, large_y)
-    xyY = np.reshape(xyY, (grid_num, grid_num, 3))
-    x = xyY[:, :, 0]
-    y = xyY[:, :, 1]
-    large_y = xyY[:, :, 2]
-    ax.plot_surface(x, y, large_y, rstride=3, cstride=3)
+    # xyY = np.reshape(xyY, (grid_num, grid_num, 3))
     plt.show()
 
 
@@ -181,27 +177,39 @@ def plot_rgb_patch(rgb):
     plt.show()
 
 
+def get_3d_grid(grid_num=4):
+    """
+    # 概要
+    (0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1), (1, 0, 0), ...
+    みたいな配列を返す。
+    RGB全値が欲しい時とかに使えるよ！
+    """
+
+    base = np.linspace(0, 1, grid_num)
+    ones_x = np.ones((grid_num, grid_num, 1))
+    ones_y = np.ones((grid_num, 1, grid_num))
+    ones_z = np.ones((1, grid_num, grid_num))
+    r_3d = base[np.newaxis, np.newaxis, :] * ones_x
+    g_3d = base[np.newaxis, :, np.newaxis] * ones_y
+    b_3d = base[:, np.newaxis, np.newaxis] * ones_z
+    r_3d = r_3d.flatten()
+    g_3d = g_3d.flatten()
+    b_3d = b_3d.flatten()
+
+    return np.dstack((b_3d, g_3d, r_3d))
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # cross_test()
-    xy = np.array([[0.1, 0.3], [0.3, 0.3], [0.9, 0.3], [0.3, 0.5],
-                   [0.708, 0.292], [0.170, 0.797], [0.131, 0.046],
-                   [0.709, 0.292], [0.170, 0.798], [0.131, 0.045]])
-    ccv.is_inside_gamut(xy=xy)
     gamut = ccv.const_rec2020_xy
     white = ccv.const_d65_large_xyz
-    div_num = 128
+    div_num = 32
     large_y = 100
-    # xy = get_xy_inside_gamut(gamut=gamut, div_num=div_num)
-    xy = get_xy_gamut(div_num=div_num)
-    ok_idx = ccv.is_inside_gamut(xy, gamut=ccv.const_rec2020_xy)
-    ng_idx = np.logical_not(ok_idx)
-    rgb = get_max_rgb_from_xy(xy, gamut=gamut, white=white, large_y=0.01)
-    large_xyz = get_large_xyz_from_rgb(rgb, large_y_rate=large_y,
-                                       gamut=gamut, white=white)
-    xyY = get_xyY_from_large_xyz(large_xyz)
-    xyY[0, :,  0] = xy[:, 0]
-    xyY[0, :,  1] = xy[:, 1]
-    xyY[:, ng_idx, 2] = 0
-    plot_xyY(xyY, rgb, div_num)
-    # print(xyY)
+    rgb = get_3d_grid(grid_num=div_num)
+    large_xyz = ccv.rgb_to_large_xyz(rgb, gamut=gamut, white=white)
+    large_y = large_xyz[:, :, 2]
+    xy = ccv.large_xyz_to_small_xy(large_xyz)
+    xy[:, 0, :] = 0
+    xyY = np.dstack((xy, large_y))
+    plot_xyY(xyY, rgb)
