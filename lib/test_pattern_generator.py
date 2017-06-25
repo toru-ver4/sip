@@ -349,7 +349,7 @@ def _croshatch_fragment(width=256, height=128, linewidth=1,
     cv2.line(fragment, (0, 0), (width - 1, 0), fg_color, linewidth)
 
     if debug:
-        preview_image(fragment[:, :, ::-1])
+        preview_image(fragment, 'rgb')
 
     return fragment
 
@@ -428,7 +428,7 @@ def make_crosshatch(width=1920, height=1080,
     cv2.putText(img, text, (15, 40), font, 0.35, fg_color, 1, cv2.LINE_AA)
 
     if debug:
-        preview_image(img[:, :, ::-1])
+        preview_image(img, 'rgb')
 
     return img
 
@@ -1396,6 +1396,28 @@ def make_m_and_e_test_pattern(size='uhd'):
     cv2.imwrite('hoge.tif', img[:, :, ::-1])
 
 
+def make_dot_mesh(width=1920, height=1080,
+                  fg_color=const_white, bg_color=const_black):
+    img = np.zeros((height, width, 3))
+
+    # replace fg_color
+    # -------------------------
+    img[::2, ::2, :] = fg_color
+    img[1::2, 1::2, :] = fg_color
+
+    # replace bg_color
+    # -------------------------
+    img[::2, 1::2, :] = bg_color
+    img[1::2, ::2, :] = bg_color
+
+    # print(img)
+    preview_image(img, 'rgb')
+    img = np.uint8(np.round(img * 0xFF))
+    cv2.imwrite("dot_mesh.tif", img[:, :, ::-1])
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # make_m_and_e_test_pattern(size='uhd')
+    # _croshatch_fragment(debug=True)
+    make_dot_mesh(fg_color=const_white, bg_color=const_black)
