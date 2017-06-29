@@ -806,8 +806,7 @@ def gen_csf_pattern(width=640, height=480, bar_num=17,
 
     # v方向にも stack して 1次元画像を2次元画像にする
     # --------------------------------------------
-    line_stack = [line for x in range(height)]
-    img = np.vstack(line_stack)
+    img = line * np.ones((height, 1, 3))
 
     if debug:
         preview_image(img, 'rgb')
@@ -919,7 +918,7 @@ def get_primary_data():
 
 
 def composite_gray_scale(img, width, height):
-    rate = height / 2048
+    rate = height / 2160
     grad_width = int(2048 * rate)
     grad_height = int(128 * rate)
     grad_start_v = int(128 * rate)
@@ -986,15 +985,16 @@ def composite_gray_scale(img, width, height):
 
 
 def composite_csf_pattern(img, width, height):
-    csf_start_h = width // 2 - 1024
-    csf_start_v = 600
-    csf_width = 640
-    csf_height = 340
-    csf_h_space = 64
+    rate = height / 2160
+    csf_start_h = width // 2 - int(1024 * rate)
+    csf_start_v = int(600 * rate)
+    csf_width = int(640 * rate)
+    csf_height = int(340 * rate)
+    csf_h_space = int(64 * rate)
     csf_h_offset = csf_width + csf_h_space
     bar_num = 16
-    text_scale = 0.5
-    text_offset_v = 16
+    text_scale = 0.5 * (rate ** 0.6)
+    text_offset_v = int(16 * rate)
     font = cv2.FONT_HERSHEY_DUPLEX
     font_color = (0x8000, 0x8000, 0x0000)
 
@@ -1044,15 +1044,16 @@ def composite_csf_pattern(img, width, height):
 
 
 def composite_limited_full_pattern(img, width, height):
-    csf_start_h = width // 2 - 1024
-    csf_start_v = 1024
-    csf_width = 640
-    csf_height = 340
-    csf_h_space = 64
+    rate = height / 2160
+    csf_start_h = width // 2 - int(1024 * rate)
+    csf_start_v = int(1024 * rate)
+    csf_width = int(640 * rate)
+    csf_height = int(340 * rate)
+    csf_h_space = int(64 * rate)
     csf_h_offset = csf_width + csf_h_space
     bar_num = 16
-    text_scale = 0.5
-    text_offset_v = 16
+    text_scale = 0.5 * (rate ** 0.6)
+    text_offset_v = int(16 * rate)
     font = cv2.FONT_HERSHEY_DUPLEX
     font_color = (0x8000, 0x8000, 0x0000)
 
@@ -1264,10 +1265,15 @@ def gen_hlg_sdr_color_checker(img, width, height):
 def gen_rgbmyc_color_bar(img, width, height):
     # パラメータ設定
     # ----------------------
-    bar_width = 2048
-    bar_total_height = 256
+    rate = height / 2160
+    bar_width = int(2048 * rate)
+    bar_total_height = int(256 * rate)
     h_st = width // 2 - bar_width // 2
     v_st = height - bar_total_height - 1
+    marker_width = int(30 * rate) + 1
+    marker_height = int(20 * rate) + 1
+    mk_space_v = int(32 * rate)
+    scale_step = 65
     color_list = [(1, 0, 0), (0, 1, 0), (0, 0, 1),
                   (1, 0, 1), (1, 1, 0), (0, 1, 1)]
 
@@ -1277,7 +1283,7 @@ def gen_rgbmyc_color_bar(img, width, height):
     bar_img_list = []
     for color, bar_height in zip(color_list, bar_height_list):
         color_bar = gen_step_gradation(width=bar_width, height=bar_height,
-                                       step_num=1025, bit_depth=10,
+                                       step_num=scale_step, bit_depth=10,
                                        color=color, direction='h')
         bar_img_list.append(color_bar)
     color_bar = np.vstack(bar_img_list)
@@ -1286,24 +1292,17 @@ def gen_rgbmyc_color_bar(img, width, height):
 
     # marker用意
     # ----------------------
-    grad_space_v = 64
-    grad_start_v = v_st
-    rect_h_len = 20
-    rect_v_len = 20
-    marker_color = (32768, 32768, 32768)
-    ptrs_1 = np.array([(h_st - rect_h_len, grad_start_v - grad_space_v),
-                       (h_st, rect_v_len + grad_start_v - grad_space_v),
-                       (h_st + rect_h_len, grad_start_v - grad_space_v)],
-                      np.int32)
-    ptrs_2 = np.array([(h_st - rect_h_len + bar_width,
-                        grad_start_v - grad_space_v),
-                       (h_st + bar_width,
-                        rect_v_len + grad_start_v - grad_space_v),
-                       (h_st + rect_h_len + bar_width,
-                        grad_start_v - grad_space_v)],
-                      np.int32)
-    cv2.fillConvexPoly(img, ptrs_1, marker_color, cv2.LINE_AA)
-    cv2.fillConvexPoly(img, ptrs_2, marker_color, cv2.LINE_AA)
+    marker = make_marker(marker_width, marker_height, rotate=0)
+    vst1 = v_st - mk_space_v
+    ved1 = v_st - mk_space_v + marker_height
+    hst1 = h_st - (marker_width // 2) - 1
+    hed1 = h_st - (marker_width // 2) - 1 + marker_width
+    img[vst1:ved1, hst1:hed1] = marker
+    vst3 = v_st - mk_space_v
+    ved3 = v_st - mk_space_v + marker_height
+    hst3 = h_st - (marker_width // 2) - 1 + bar_width
+    hed3 = h_st - (marker_width // 2) - 1 + marker_width + bar_width
+    img[vst3:ved3, hst3:hed3] = marker
 
 
 def gen_rec2020_clip_csf_pattern(img, width, height):
@@ -1400,13 +1399,13 @@ def make_m_and_e_test_pattern(size='uhd'):
     # -------------------------------
     composite_gray_scale(img, width, height)
 
-    # # CSFパターンを 8bit/10bit/12git の3種類用意
-    # # -----------------------------------------
-    # composite_csf_pattern(img, width, height)
+    # CSFパターンを 8bit/10bit/12git の3種類用意
+    # -----------------------------------------
+    composite_csf_pattern(img, width, height)
 
-    # # CSFパターンを limited/full 確認用に2パターン用意
-    # # -----------------------------------------
-    # composite_limited_full_pattern(img, width, height)
+    # CSFパターンを limited/full 確認用に2パターン用意
+    # -----------------------------------------
+    composite_limited_full_pattern(img, width, height)
 
     # 左側にST2084確認用のパターンを表示
     # ----------------------------------------
@@ -1424,13 +1423,9 @@ def make_m_and_e_test_pattern(size='uhd'):
     # ----------------------------------------
     gen_hlg_sdr_color_checker(img, width, height)
 
-    # # REC2020 のクリップ確認用の CSFパターンを用意
-    # # ------------------------------------------
-    # gen_rec2020_clip_csf_pattern(img, width, height)
-
-    # # 画面下にRGBMYCのカラーバーを表示
-    # # ----------------------------------------
-    # gen_rgbmyc_color_bar(img, width, height)
+    # 画面下にRGBMYCのカラーバーを表示
+    # ----------------------------------------
+    gen_rgbmyc_color_bar(img, width, height)
 
     # img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
     preview_image(img, 'rgb')
