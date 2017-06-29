@@ -17,6 +17,7 @@ from PIL import ImageCms
 import plot_utility as pu
 import matplotlib.pyplot as plt
 import color_convert as ccv
+from scipy import ndimage
 # import fire
 
 increment_8bit_16 = [x for x in range(0, 256, 16)]
@@ -105,6 +106,41 @@ const_color_checker_xyY = [
     [0.310, 0.316, 9.0],
     [0.310, 0.316, 3.1],
 ]
+
+
+def get_color_array(order='static', color=[1, 1, 1], min=0, max=255,
+                    div_num=8, endpoint=True):
+    """
+    # 概要
+    fg_color, bg_color に使うデータを作るのが大変面倒なので、
+    楽ちんに作れる関数を用意する。
+
+    # 入力
+    order    : 'static', 'increment', 'decrement' を指定
+    color    : [r, g, b] で指定。値域は 0.0 ～ 1.0
+    min      : increment, decrement の 最小値。最後に max で正規化する
+    max      : increment, decrement の 最大値。最後に max で正規化する
+    div_num  : 生成する配列の数
+    endpoint : np.linspace() 用の引数。使いたければご自由に。
+
+    # 出力
+    色情報が入った numpy 配列(N, 3)。
+    """
+
+    base_color = np.array(color)
+    if order == 'static':
+        color_array = np.array([base_color for x in range(div_num)],
+                               dtype=np.float)
+
+    elif order == 'increment' or order == 'decrement':
+        normalize_val = max
+        val_array = np.linspace(max, min, div_num, endpoint=endpoint)
+        color_array = np.array([base_color * x for x in val_array],
+                               dtype=np.float)
+        if order == 'increment':
+            color_array = color_array[::-1, :]
+        color_array = color_array / normalize_val
+    return color_array
 
 
 def preview_image(img, order=None):
@@ -478,7 +514,7 @@ def make_multi_crosshatch(width=1920, height=1080,
     img = cv2.vconcat((v_img_list))
 
     if debug:
-        preview_image(img[:, :, ::-1])
+        preview_image(img, 'rgb')
 
     return img
 
@@ -557,7 +593,7 @@ def make_circle_pattern(width=1920, height=1080,
                          fg_color=fg_color, bg_color=bg_color)
 
     if debug:
-        preview_image(img[:, :, ::-1])
+        preview_image(img, 'rgb')
 
     return img
 
@@ -635,7 +671,7 @@ def make_rectangle_pattern(width=1920, height=1080,
                          fg_color=fg_color, bg_color=bg_color)
 
     if debug:
-        preview_image(img[:, :, ::-1])
+        preview_image(img, 'rgb')
 
     return img
 
@@ -679,7 +715,7 @@ def make_multi_circle(width=1920, height=1080,
     img = cv2.vconcat((v_img_list))
 
     if debug:
-        preview_image(img[:, :, ::-1])
+        preview_image(img, 'rgb')
 
     return img
 
@@ -729,7 +765,7 @@ def make_multi_rectangle(width=1920, height=1080,
     img = cv2.vconcat((v_img_list))
 
     if debug:
-        preview_image(img[:, :, ::-1])
+        preview_image(img, 'rgb')
 
     return img
 
@@ -841,13 +877,12 @@ def gen_step_gradation(width=1024, height=128, step_num=17,
             step_bar_list.append(step)
             step_bar = np.vstack(step_bar_list)
 
-    # LineをV方向に束ねて画像にする
-    # ------------------------------
-    bar_stack = [step_bar for x in range(height)]
+    # ブロードキャストを利用して2次元に拡張する
+    # ------------------------------------------
     if direction == 'h':
-        img = np.vstack(bar_stack)
+        img = step_bar * np.ones((height, 1, 3))
     else:
-        img = np.hstack(bar_stack)
+        img = step_bar * np.ones((1, height, 3))
 
     # np.uint16 にコンバート
     # ------------------------------
@@ -884,14 +919,18 @@ def get_primary_data():
 
 
 def composite_gray_scale(img, width, height):
+    rate = height / 2048
+    grad_width = int(2048 * rate)
+    grad_height = int(128 * rate)
+    grad_start_v = int(128 * rate)
+    grad_space_v = int(64 * rate)
+    mk_space_v = int(32 * rate)
+    marker_width = int(30 * rate) + 1
+    marker_height = int(20 * rate) + 1
+    text_offset_h = int(56 * rate)
+    text_offset_v = int(16 * rate)
 
-    grad_width = 2048
-    grad_height = 128
-    grad_start_v = 128
-    grad_space_v = 64
-    mk_space_v = 48
-
-    text_scale = 0.5
+    text_scale = 0.5 * (rate ** 0.4)
     font = cv2.FONT_HERSHEY_DUPLEX
     font_color = (0x8000, 0x8000, 0x0000)
 
@@ -911,47 +950,37 @@ def composite_gray_scale(img, width, height):
 
     # グラデーションの横に端点を示すマーカーを用意
     # ----------------------------------------
-    rect_h_len = 20
-    rect_v_len = 20
-    marker_color = (32768, 32768, 32768)
-    ptrs_1 = np.array([(start_h - rect_h_len, grad_start_v - mk_space_v),
-                       (start_h, rect_v_len + grad_start_v - mk_space_v),
-                       (start_h + rect_h_len, grad_start_v - mk_space_v)],
-                      np.int32)
-    ptrs_2 = np.array([(start_h - rect_h_len + grad_width,
-                        grad_start_v - mk_space_v),
-                       (start_h + grad_width,
-                        rect_v_len + grad_start_v - mk_space_v),
-                       (start_h + rect_h_len + grad_width,
-                        grad_start_v - mk_space_v)],
-                      np.int32)
-    ptrs_3 = np.array([(start_h - rect_h_len,
-                        grad_start_v + grad_height * 2 + mk_space_v * 2.35),
-                       (start_h,
-                        grad_start_v + grad_height * 2 + mk_space_v * 2.35 -
-                        rect_v_len),
-                       (start_h + rect_h_len,
-                        grad_start_v + grad_height * 2 + mk_space_v * 2.35)],
-                      np.int32)
-    ptrs_4 = np.array([(start_h - rect_h_len + grad_width,
-                        grad_start_v + grad_height * 2 + mk_space_v * 2.35),
-                       (start_h + grad_width,
-                        grad_start_v + grad_height * 2 + mk_space_v * 2.35 -
-                        rect_v_len),
-                       (start_h + rect_h_len + grad_width,
-                        grad_start_v + grad_height * 2 + mk_space_v * 2.35)],
-                      np.int32)
-    cv2.fillConvexPoly(img, ptrs_1, marker_color, cv2.LINE_AA)
-    cv2.fillConvexPoly(img, ptrs_2, marker_color, cv2.LINE_AA)
-    cv2.fillConvexPoly(img, ptrs_3, marker_color, cv2.LINE_AA)
-    cv2.fillConvexPoly(img, ptrs_4, marker_color, cv2.LINE_AA)
+    marker = make_marker(marker_width, marker_height, rotate=0)
+    vst1 = grad_start_v - mk_space_v
+    ved1 = grad_start_v - mk_space_v + marker_height
+    hst1 = start_h - (marker_width // 2) - 1
+    hed1 = start_h - (marker_width // 2) - 1 + marker_width
+    img[vst1:ved1, hst1:hed1] = marker
+    vst2 = grad_start_v - mk_space_v + grad_height + grad_space_v
+    ved2 = grad_start_v - mk_space_v + marker_height + grad_height\
+        + grad_space_v
+    hst2 = start_h - (marker_width // 2) - 1
+    hed2 = start_h - (marker_width // 2) - 1 + marker_width
+    img[vst2:ved2, hst2:hed2] = marker
+
+    vst3 = grad_start_v - mk_space_v
+    ved3 = grad_start_v - mk_space_v + marker_height
+    hst3 = start_h - (marker_width // 2) - 1 + grad_width
+    hed3 = start_h - (marker_width // 2) - 1 + marker_width + grad_width
+    img[vst3:ved3, hst3:hed3] = marker
+    vst4 = grad_start_v - mk_space_v + grad_height + grad_space_v
+    ved4 = grad_start_v - mk_space_v + marker_height + grad_height\
+        + grad_space_v
+    hst4 = start_h - (marker_width // 2) - 1 + grad_width
+    hed4 = start_h - (marker_width // 2) - 1 + marker_width + grad_width
+    img[vst4:ved4, hst4:hed4] = marker
 
     # マーカーの横に説明テキスト付与
     # -------------------------------
-    pos = (ptrs_1[0][0] + 64, ptrs_1[0][1] + 16)
+    pos = (hst1 + text_offset_h, vst1 + text_offset_v)
     text = "8bit gradation"
     cv2.putText(img, text, pos, font, text_scale, font_color)
-    pos = (ptrs_3[0][0] + 64, ptrs_3[0][1] - 8)
+    pos = (hst2 + text_offset_h, vst2 + text_offset_v)
     text = "10bit gradation"
     cv2.putText(img, text, pos, font, text_scale, font_color)
 
@@ -1061,14 +1090,16 @@ def composite_limited_full_pattern(img, width, height):
 
 
 def gen_ST2084_gray_scale(img, width, height):
-    scale_width = 96
+    rate = height / 2160
+    scale_width = int(96 * rate)
     scale_height = height - 2  # "-2" is for pixels of frame.
     scale_step = 65
     bit_depth = 10
     scale_color = (1.0, 1.0, 1.0)
-    text_offset_h = 12
-    text_offset_v = 26
-    text_scale = 0.5
+    text_offset_h = int(12 * rate)
+    text_offset_v = int(26 * rate)
+    text_scale = 0.5 * (rate ** 0.6)
+    text_d_offset = int(128 * (rate ** 0.6))
 
     # グレースケール設置
     # --------------------------
@@ -1099,20 +1130,22 @@ def gen_ST2084_gray_scale(img, width, height):
 
     # 説明用のマーカー＆テキスト付与
     # -------------------------------
-    pos = (scale_width + text_offset_h + 128, text_offset_v)
+    pos = (scale_width + text_offset_h + text_d_offset, text_offset_v)
     text = "<-- VideoLevel, Brightness for PQ Curve."
     cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def gen_hlg_gray_scale(img, width, height):
-    scale_width = 96
+    rate = height / 2160
+    scale_width = int(96 * rate)
     scale_height = height - 2  # "-2" is for pixels of frame.
     scale_step = 65
     bit_depth = 10
     scale_color = (1.0, 1.0, 1.0)
-    text_offset_h = 256 - 40 - 96
-    text_offset_v = 26
-    text_scale = 0.5
+    text_offset_h = int((118) * (rate ** 0.6))
+    text_offset_v = int(26 * rate)
+    text_scale = 0.5 * (rate ** 0.6)
+    text_d_offset = int(532 * (rate ** 0.7))
 
     # グレースケール設置
     # --------------------------
@@ -1147,22 +1180,23 @@ def gen_hlg_gray_scale(img, width, height):
 
     # 説明用のマーカー＆テキスト付与
     # -------------------------------
-    pos = (width - 532, text_offset_v)
+    pos = (width - text_d_offset, text_offset_v)
     text = "VideoLevel, Brightness for HLG. -->"
     cv2.putText(img, text, pos, font, text_scale, font_color)
 
 
 def gen_pq_sdr_color_checker(img, width, height):
-    patch_width = 112
-    patch_height = 112
-    patch_space = 24
-    h_offset = width // 14
-    v_offset = 128
+    rate = width / 4096
+    patch_width = int(112 * rate)
+    patch_height = int(112 * rate)
+    patch_space = int(24 * rate)
+    h_offset = int(292 * rate)
+    v_offset = int(128 * rate)
     h_num = 4
     v_num = 6
 
-    text_scale = 0.5
-    text_offset_v = 16
+    text_scale = 0.5 * (rate ** 0.6)
+    text_offset_v = int(16 * rate)
     font = cv2.FONT_HERSHEY_DUPLEX
     font_color = (0x8000, 0x8000, 0x0000)
 
@@ -1191,16 +1225,17 @@ def gen_pq_sdr_color_checker(img, width, height):
 
 
 def gen_hlg_sdr_color_checker(img, width, height):
-    patch_width = 112
-    patch_height = 112
-    patch_space = 24
-    h_offset = width // 1.5 + (width // 8)
-    v_offset = 128
+    rate = width / 4096
+    patch_width = int(112 * rate)
+    patch_height = int(112 * rate)
+    patch_space = int(24 * rate)
+    h_offset = int((2755 + 512) * rate)
+    v_offset = int(128 * rate)
     h_num = 4
     v_num = 6
 
-    text_scale = 0.5
-    text_offset_v = 16
+    text_scale = 0.5 * (rate ** 0.6)
+    text_offset_v = int(16 * rate)
     font = cv2.FONT_HERSHEY_DUPLEX
     font_color = (0x8000, 0x8000, 0x0000)
 
@@ -1346,9 +1381,15 @@ def make_m_and_e_test_pattern(size='uhd'):
     # -------------------------
     if size == 'uhd':
         width = 3840
+        height = 2160
     elif size == 'dci4k':
         width = 4096
-    height = 2160
+        height = 2160
+    elif size == 'fhd':
+        width = 1920
+        height = 1080
+    else:
+        print("error. 'size' parameter is invalid.")
 
     # 黒ベタの背景にグレー枠を付ける
     # ----------------------------
@@ -1359,13 +1400,13 @@ def make_m_and_e_test_pattern(size='uhd'):
     # -------------------------------
     composite_gray_scale(img, width, height)
 
-    # CSFパターンを 8bit/10bit/12git の3種類用意
-    # -----------------------------------------
-    composite_csf_pattern(img, width, height)
+    # # CSFパターンを 8bit/10bit/12git の3種類用意
+    # # -----------------------------------------
+    # composite_csf_pattern(img, width, height)
 
-    # CSFパターンを limited/full 確認用に2パターン用意
-    # -----------------------------------------
-    composite_limited_full_pattern(img, width, height)
+    # # CSFパターンを limited/full 確認用に2パターン用意
+    # # -----------------------------------------
+    # composite_limited_full_pattern(img, width, height)
 
     # 左側にST2084確認用のパターンを表示
     # ----------------------------------------
@@ -1383,13 +1424,13 @@ def make_m_and_e_test_pattern(size='uhd'):
     # ----------------------------------------
     gen_hlg_sdr_color_checker(img, width, height)
 
-    # REC2020 のクリップ確認用の CSFパターンを用意
-    # ------------------------------------------
-    gen_rec2020_clip_csf_pattern(img, width, height)
+    # # REC2020 のクリップ確認用の CSFパターンを用意
+    # # ------------------------------------------
+    # gen_rec2020_clip_csf_pattern(img, width, height)
 
-    # 画面下にRGBMYCのカラーバーを表示
-    # ----------------------------------------
-    gen_rgbmyc_color_bar(img, width, height)
+    # # 画面下にRGBMYCのカラーバーを表示
+    # # ----------------------------------------
+    # gen_rgbmyc_color_bar(img, width, height)
 
     # img = cv2.resize(img, (img.shape[1]//2, img.shape[0]//2))
     preview_image(img, 'rgb')
@@ -1410,14 +1451,37 @@ def make_dot_mesh(width=1920, height=1080,
     img[::2, 1::2, :] = bg_color
     img[1::2, ::2, :] = bg_color
 
-    # print(img)
     preview_image(img, 'rgb')
     img = np.uint8(np.round(img * 0xFF))
     cv2.imwrite("dot_mesh.tif", img[:, :, ::-1])
 
 
+def make_marker(width=101, height=50, rotate=0, preview=False):
+    """
+    # 概要
+    画像を指し示すマーカーを作る
+    """
+    img = np.zeros((height, width, 3), dtype=np.uint16)
+    ptrs = np.array([(0, 0), (width-1, 0), (width//2, height-1)])
+    marker_color = (32768, 32768, 32768)
+    cv2.fillConvexPoly(img, ptrs, marker_color, cv2.LINE_AA)
+    if rotate is not 0:
+        img = ndimage.rotate(img, rotate, reshape=True)
+
+    if preview:
+        preview_image(img, 'rgb')
+        # save
+
+    return img
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # make_m_and_e_test_pattern(size='uhd')
+    make_m_and_e_test_pattern(size="fhd")
     # _croshatch_fragment(debug=True)
-    make_dot_mesh(fg_color=const_white, bg_color=const_black)
+    # make_dot_mesh(fg_color=const_white, bg_color=const_black)
+    # result = get_color_array(order='decrement', color=[0, 1, 0.5],
+    #                          min=0, max=255, div_num=8, endpoint=True)
+    # print(result)
+    # img = make_marker(width=1001, height=500, rotate=0, preview=True)
+

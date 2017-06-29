@@ -55,6 +55,10 @@ def make_rgbk_crosshatch(fg_array=fg_array_sample,
         tpg.preview_image(img[:, :, ::-1])
 
 
+def make_crosshatch_easily():
+    pass
+
+
 def make_crosshatch(width=4096, height=2160,
                     h_block=16, v_block=8,
                     fragment_width=64, fragment_height=64,

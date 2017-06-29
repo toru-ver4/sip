@@ -186,8 +186,8 @@ def xyY_to_XYZ(xyY):
     """
     small_x, small_y, large_y = np.dsplit(xyY, 3)
     small_z = 1 - small_x - small_y
-    small_yx = small_y * small_x
-    small_yz = small_y * small_z
+    small_yx = small_y / small_x
+    small_yz = small_y / small_z
     if np.sum(small_yx == 0) or np.sum(small_yz == 0):
         print("WARNING")
         print("    ZERO DIV ERROR IS PREVENTED at xyY_to_XYZ()")
@@ -308,6 +308,7 @@ def xyY_to_RGB(xyY, gamut=const_sRGB_xy, white=const_d65_large_xyz):
         raise TypeError('xyY shape must be (N, M, 3)')
 
     large_xyz = xyY_to_XYZ(xyY)
+    print(large_xyz)
     rgb = large_xyz_to_rgb(large_xyz=large_xyz, gamut=gamut, white=white)
     return rgb
 
