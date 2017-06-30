@@ -335,8 +335,32 @@ def make_complex_rectangle_pattern():
             cv2.imwrite(file_name, img[:, :, ::-1])
 
 
+def get_krgbcmy_array(h_block=16, order='decrement', gain=1.0):
+    color_set = [(1, 1, 1), (1, 0, 0), (0, 1, 0), (0, 0, 1),
+                 (0, 1, 1), (1, 0, 1), (1, 1, 0)]
+    a = [tpg.get_color_array(order=order,
+                             color=color,
+                             div_num=h_block) for color in color_set]
+    a = np.array(a)
+    a = np.reshape(a, (a.shape[0] * a.shape[1], a.shape[2]))
+    a = a * gain
+
+    return a
+
+
+def test_complex_crosshatch():
+    width = 1920
+    height = 1080
+    h_block = 16
+    v_block = 7
+    fg_array = get_krgbcmy_array(h_block=h_block, order='static', gain=1.0)
+    bg_array = get_krgbcmy_array(h_block=h_block, order='decrement', gain=0.5)
+    print(bg_array)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # make_and_save_crosshatch()
     # make_complex_circle_pattern()
     # make_complex_rectangle_pattern()
+    test_complex_crosshatch()

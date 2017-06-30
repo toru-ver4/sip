@@ -108,7 +108,7 @@ const_color_checker_xyY = [
 ]
 
 
-def get_color_array(order='static', color=[1, 1, 1], min=0, max=255,
+def get_color_array(order='static', color=[1, 1, 1],
                     div_num=8, endpoint=True):
     """
     # 概要
@@ -133,13 +133,12 @@ def get_color_array(order='static', color=[1, 1, 1], min=0, max=255,
                                dtype=np.float)
 
     elif order == 'increment' or order == 'decrement':
-        normalize_val = max
-        val_array = np.linspace(max, min, div_num, endpoint=endpoint)
+        val_array = np.linspace(1.0, 0.0, div_num, endpoint=endpoint)
         color_array = np.array([base_color * x for x in val_array],
                                dtype=np.float)
         if order == 'increment':
             color_array = color_array[::-1, :]
-        color_array = color_array / normalize_val
+        color_array = color_array
     return color_array
 
 
@@ -1472,11 +1471,10 @@ def make_marker(width=101, height=50, rotate=0, preview=False):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    make_m_and_e_test_pattern(size="fhd")
+    # make_m_and_e_test_pattern(size="dci4k")
     # _croshatch_fragment(debug=True)
     # make_dot_mesh(fg_color=const_white, bg_color=const_black)
-    # result = get_color_array(order='decrement', color=[0, 1, 0.5],
-    #                          min=0, max=255, div_num=8, endpoint=True)
-    # print(result)
-    # img = make_marker(width=1001, height=500, rotate=0, preview=True)
+    result = get_color_array(order='decrement', color=[0, 1, 0.5],
+                             min=0, max=255, div_num=8, endpoint=True)
+    print(result)
 
