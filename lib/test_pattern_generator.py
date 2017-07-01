@@ -454,13 +454,16 @@ def make_crosshatch(width=1920, height=1080,
 
     # add information of the video level.
     # ------------------------------------
-    font = cv2.FONT_HERSHEY_DUPLEX
-    text_format = "bg:({:03d}, {:03d}, {:03d})"
-    text = text_format.format(bg_color[0], bg_color[1], bg_color[2])
-    cv2.putText(img, text, (15, 20), font, 0.35, fg_color, 1, cv2.LINE_AA)
-    text_format = "fg:({:03.0f}, {:03.0f}, {:03.0f})"
-    text = text_format.format(fg_color[0], fg_color[1], fg_color[2])
-    cv2.putText(img, text, (15, 40), font, 0.35, fg_color, 1, cv2.LINE_AA)
+    _add_text_infomation(img,
+                         bg_pos=(15, 20), fg_pos=(15, 40),
+                         fg_color=fg_color, bg_color=bg_color)
+    # font = cv2.FONT_HERSHEY_DUPLEX
+    # text_format = "bg:({:03d}, {:03d}, {:03d})"
+    # text = text_format.format(bg_color[0], bg_color[1], bg_color[2])
+    # cv2.putText(img, text, (15, 20), font, 0.35, fg_color, 1, cv2.LINE_AA)
+    # text_format = "fg:({:03.0f}, {:03.0f}, {:03.0f})"
+    # text = text_format.format(fg_color[0], fg_color[1], fg_color[2])
+    # cv2.putText(img, text, (15, 40), font, 0.35, fg_color, 1, cv2.LINE_AA)
 
     if debug:
         preview_image(img, 'rgb')
@@ -492,13 +495,17 @@ def make_multi_crosshatch(width=1920, height=1080,
     if fg_color_array.shape[0] != (h_block * v_block):
         raise TypeError("fg_color_array.shape is invalid.")
 
-    block_width = width // h_block
-    block_height = height // v_block
+    # block_width = width // h_block
+    # block_height = height // v_block
+    block_width_array = common.equal_devision(width, h_block)
+    block_height_array = common.equal_devision(height, v_block)
 
     v_img_list = []
     for v_idx in range(v_block):
         h_img_list = []
+        block_height = block_height_array[v_idx] 
         for h_idx in range(h_block):
+            block_width = block_width_array[h_idx]
             idx = (v_idx * h_block) + h_idx
             img = make_crosshatch(width=block_width, height=block_height,
                                   linewidth=linewidth, linetype=linetype,
@@ -545,14 +552,14 @@ def _add_text_infomation(img,
     # add information of the video level.
     # ------------------------------------
     text_color = np.array([256, 256, 256]) - (fg_color + bg_color) / 2
-    text_color = text_color / np.max(text_color) * 128
+    text_color = text_color / np.max(text_color) * 80
     font = cv2.FONT_HERSHEY_DUPLEX
     text_format = "bg:({:03d}, {:03d}, {:03d})"
     text = text_format.format(bg_color[0], bg_color[1], bg_color[2])
-    cv2.putText(img, text, (15, 20), font, 0.35, text_color, 1, cv2.LINE_AA)
+    cv2.putText(img, text, (15, 20), font, 0.30, text_color, 1, cv2.LINE_AA)
     text_format = "fg:({:03.0f}, {:03.0f}, {:03.0f})"
     text = text_format.format(fg_color[0], fg_color[1], fg_color[2])
-    cv2.putText(img, text, (15, 40), font, 0.35, text_color, 1, cv2.LINE_AA)
+    cv2.putText(img, text, (15, 40), font, 0.30, text_color, 1, cv2.LINE_AA)
 
 
 def make_circle_pattern(width=1920, height=1080,

@@ -348,14 +348,96 @@ def get_krgbcmy_array(h_block=16, order='decrement', gain=1.0):
     return a
 
 
+def get_gray_array(h_block=16, order='decrement', gain=1.0):
+    color_set = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1),
+                 (1, 1, 1), (1, 1, 1), (1, 1, 1)]
+    a = [tpg.get_color_array(order=order,
+                             color=color,
+                             div_num=h_block) for color in color_set]
+    a = np.array(a)
+    a = np.reshape(a, (a.shape[0] * a.shape[1], a.shape[2]))
+    a = a * gain
+
+    return a
+
+
 def test_complex_crosshatch():
     width = 1920
     height = 1080
     h_block = 16
     v_block = 7
-    fg_array = get_krgbcmy_array(h_block=h_block, order='static', gain=1.0)
-    bg_array = get_krgbcmy_array(h_block=h_block, order='decrement', gain=0.5)
-    print(bg_array)
+    linewidth = 1
+    fragment_width = 64
+    fragment_height = 64
+    angle = 0
+    if angle == 0:
+        linetype = cv2.LINE_8
+    else:
+        linetype = cv2.LINE_AA
+
+    # 背景が暗い場合
+    # ------------------------
+    # fg_array = get_krgbcmy_array(h_block=h_block, order='static', gain=1.0)
+    # bg_array = get_gray_array(h_block=h_block, order='decrement', gain=0.5)
+
+    # 背景が明るい場合
+    # ------------------------
+    fg_array = get_gray_array(h_block=h_block, order='static', gain=0.0)
+    bg_array = get_krgbcmy_array(h_block=h_block, order='decrement', gain=1.0)
+
+    img = tpg.make_multi_crosshatch(width=width, height=height,
+                                    h_block=h_block, v_block=v_block,
+                                    fragment_width=fragment_width,
+                                    fragment_height=fragment_height,
+                                    linewidth=linewidth, linetype=linetype,
+                                    bg_color_array=bg_array,
+                                    fg_color_array=fg_array,
+                                    angle=angle, debug=False)
+    tpg.preview_image(img, 'rgb')
+    print(img.shape)
+
+
+def make_complex_crosshatch():
+    h_block = 16
+    v_block = 7
+    fg_normal = get_krgbcmy_array(h_block=h_block, order='static', gain=1.0)
+    fg_reverse = get_gray_array(h_block=h_block, order='static', gain=0.0)
+    bg_normal = get_gray_array(h_block=h_block, order='decrement', gain=0.5)
+    bg_reverse = get_krgbcmy_array(h_block=h_block, order='decrement',
+                                   gain=1.0)
+    fg_bg_array = [('normal', fg_normal, bg_normal),
+                   ('reverse', fg_reverse, bg_reverse)]
+    size_list = [(1920, 1080), (3840, 2160), (4096, 2160)]
+    linewidth_list = [1, 2, 4, 8]
+    fragment_size = [2, 4, 8, 16, 32, 64]
+    angle_list = [0, 30, 45, 60]
+    f_str = "./figure/chrosshatch_{}x{}_fsize-{}_lwidth-{}_angle-{}_{}.png"
+    for fg_bg in fg_bg_array:
+        for size in size_list:
+            for fsize in fragment_size:
+                for angle in angle_list:
+                    if angle == 0:
+                        linetype = cv2.LINE_8
+                    else:
+                        linetype = cv2.LINE_AA
+                    for linewidth in linewidth_list[::-1]:
+                        if linewidth >= fsize:
+                            continue
+                        fname = f_str.format(size[0], size[1], fsize,
+                                             linewidth, angle, fg_bg[0])
+                        img = tpg.make_multi_crosshatch(width=size[0],
+                                                        height=size[1],
+                                                        h_block=h_block,
+                                                        v_block=v_block,
+                                                        fragment_width=fsize,
+                                                        fragment_height=fsize,
+                                                        linewidth=linewidth,
+                                                        linetype=linetype,
+                                                        fg_color_array=fg_bg[1],
+                                                        bg_color_array=fg_bg[2],
+                                                        angle=angle,
+                                                        debug=False)
+                        cv2.imwrite(fname, img[:, :, ::-1])
 
 
 if __name__ == '__main__':
@@ -363,4 +445,5 @@ if __name__ == '__main__':
     # make_and_save_crosshatch()
     # make_complex_circle_pattern()
     # make_complex_rectangle_pattern()
-    test_complex_crosshatch()
+    # test_complex_crosshatch()
+    make_complex_crosshatch()
