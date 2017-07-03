@@ -440,10 +440,50 @@ def make_complex_crosshatch():
                         cv2.imwrite(fname, img[:, :, ::-1])
 
 
+def test_complex_rectangle():
+    width = 1920
+    height = 1080
+    h_block = 16
+    v_block = 7
+    linewidth = 1
+    fragment_size = 64
+    angle = 0
+    if angle == 0:
+        linetype = cv2.LINE_8
+        # linetype = cv2.LINE_AA
+    else:
+        linetype = cv2.LINE_AA
+
+    # 背景が暗い場合
+    # ------------------------
+    fg_array = get_krgbcmy_array(h_block=h_block, order='static', gain=1.0)
+    bg_array = get_gray_array(h_block=h_block, order='decrement', gain=0.5)
+
+    # 背景が明るい場合
+    # ------------------------
+    # fg_array = get_gray_array(h_block=h_block, order='static', gain=0.0)
+    # bg_array = get_krgbcmy_array(h_block=h_block, order='decrement', gain=1.0)
+
+    img = tpg.make_multi_rectangle(width=width, height=height,
+                                   h_block=h_block, v_block=v_block,
+                                   h_side_len=linewidth, v_side_len=linewidth,
+                                   angle=angle,
+                                   linetype=linetype,
+                                   fragment_width=fragment_size,
+                                   fragment_height=fragment_size,
+                                   bg_color_array=bg_array,
+                                   fg_color_array=fg_array,
+                                   debug=False)
+
+    tpg.preview_image(img, 'rgb')
+    cv2.imwrite("hoge.png", img[:, :, ::-1])
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # make_and_save_crosshatch()
     # make_complex_circle_pattern()
     # make_complex_rectangle_pattern()
     # test_complex_crosshatch()
-    make_complex_crosshatch()
+    # make_complex_crosshatch()
+    test_complex_rectangle()

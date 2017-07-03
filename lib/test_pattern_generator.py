@@ -759,7 +759,7 @@ def make_multi_rectangle(width=1920, height=1080,
                                          h_side_len=h_side_len,
                                          v_side_len=v_side_len,
                                          angle=angle,
-                                         linetype=cv2.LINE_AA,
+                                         linetype=linetype,
                                          fragment_width=fragment_width,
                                          fragment_height=fragment_height,
                                          bg_color=bg_color_array[idx],
@@ -1481,7 +1481,8 @@ if __name__ == '__main__':
     # make_m_and_e_test_pattern(size="dci4k")
     # _croshatch_fragment(debug=True)
     # make_dot_mesh(fg_color=const_white, bg_color=const_black)
-    result = get_color_array(order='decrement', color=[0, 1, 0.5],
-                             min=0, max=255, div_num=8, endpoint=True)
-    print(result)
+    make_marker(preview=True)
+    # result = get_color_array(order='decrement', color=[0, 1, 0.5],
+    #                          min=0, max=255, div_num=8, endpoint=True)
+    # print(result)
 
