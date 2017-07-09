@@ -52,7 +52,7 @@ Metadata の 「SMPTE ST 2086, MaxFALL, MaxCLL」に関しては [リンク先](
 ※ crf=0 は検証のためである。0である必要性は無い。
 
 ## 引数の意味
-[x265レファレンス](https://x265.readthedocs.io/en/default/cli.html#cmdoption-colorprim)を参照
+[x265のドキュメント](https://x265.readthedocs.io/en/default/cli.html#cmdoption-colorprim)を参照
 
 ## master-display パラメータ
 master-display のパラメータは計算するのが面倒なので、よく使うものを下に挙げておく。
