@@ -6,9 +6,9 @@
 """
 
 import os
-import sys
 import shutil
 import cv2
+
 
 def make_source_tiff():
     fps = 24
@@ -31,7 +31,6 @@ def verify_10bit_data():
     gray_img = img[v_st:v_ed, h_st:h_ed, 0]
     for data in gray_img[0]:
         print("{:04X}".format(data))
-
 
 
 if __name__ == '__main__':
