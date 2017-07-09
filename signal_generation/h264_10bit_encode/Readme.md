@@ -11,7 +11,7 @@ import test_pattern_generator as tpg
 tpg.make_m_and_e_test_pattern(size="fhd")
 ```
 
-![hoge](img/source.png)
+![hoge](img/source.jpg)
 
 ## 静止画の連番ファイルを作成
 
