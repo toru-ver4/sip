@@ -43,6 +43,10 @@ const_rec601_xy = const_ntsc_xy
 
 const_rec709_xy = const_sRGB_xy
 
+const_dci_p3_xy = [[0.680, 0.320],
+                   [0.265, 0.690],
+                   [0.150, 0.060]]
+
 const_rec2020_xy = [[0.708, 0.292],
                     [0.170, 0.797],
                     [0.131, 0.046]]
@@ -61,6 +65,7 @@ const_rgb_to_large_xyz = [[2.7689, 1.7517, 1.1302],
 
 const_d65_xy = [0.31271, 0.32902]
 const_d50_xy = [0.34567, 0.35850]
+const_dci_white_xy = [0.314, 0.351]
 
 const_rec601_y_coef = [0.2990, 0.5870, 0.1140]
 const_rec709_y_coef = [0.2126, 0.7152, 0.0722]
