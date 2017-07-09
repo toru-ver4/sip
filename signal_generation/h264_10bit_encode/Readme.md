@@ -26,7 +26,7 @@ h1m.make_source_tiff()
 以下のコマンドを実行
 
 ```
-> ffmpeg -r 24 -i img/test_img_%04d.tif -r 24 -c:v libx264 -crf 10 -pix_fmt yuv420p10le test_img_10bit.mp4
+> ffmpeg -r 24 -i img/test_img_%04d.tif -r 24 -c:v libx264 -crf 0 -pix_fmt yuv420p10le test_img_10bit.mp4
 ```
 
 # エンコードされたデータの解析

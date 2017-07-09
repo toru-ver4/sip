@@ -32,7 +32,7 @@ signal_generation/test_pattern/doc/~$test_pattern_spec.pptx
 lib/data/6500K.icc
 lib/hoge.tif
 .vscode/c_cpp_properties.json
-signal_generation/h264_10bit_encode/img/*
+signal_generation/h264_10bit_encode/img/test_img*
 signal_generation/h264_10bit_encode/verify/*
 **/_build/*
 **/_static/*
