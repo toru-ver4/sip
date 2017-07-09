@@ -926,7 +926,7 @@ def get_primary_data():
 def composite_gray_scale(img, width, height):
     rate = height / 2160
     grad_width = int(2048 * rate)
-    grad_height = int(128 * rate)
+    grad_height = int(256 * rate)
     grad_start_v = int(128 * rate)
     grad_space_v = int(64 * rate)
     mk_space_v = int(32 * rate)
@@ -941,12 +941,16 @@ def composite_gray_scale(img, width, height):
 
     # 8bit, 10bit のグラデーション表示
     # -------------------------------
-    grad_8 = gen_step_gradation(width=grad_width, height=grad_height,
+    grad_8 = gen_step_gradation(width=grad_width*2, height=grad_height,
                                 step_num=257, bit_depth=8,
                                 color=(1.0, 1.0, 1.0), direction='h')
-    grad_10 = gen_step_gradation(width=grad_width, height=grad_height,
+    grad_10 = gen_step_gradation(width=grad_width*2, height=grad_height,
                                  step_num=1025, bit_depth=10,
                                  color=(1.0, 1.0, 1.0), direction='h')
+    width_st = grad_width // 2
+    width_ed = width_st + grad_width
+    grad_8 = grad_8[:, width_st:width_ed]
+    grad_10 = grad_10[:, width_st:width_ed]
     start_h = width // 2 - grad_width // 2
     start_v = grad_start_v
     img[start_v:start_v+grad_height, start_h:start_h+grad_width] = grad_8
@@ -993,12 +997,12 @@ def composite_gray_scale(img, width, height):
 def composite_csf_pattern(img, width, height):
     rate = height / 2160
     csf_start_h = width // 2 - int(1024 * rate)
-    csf_start_v = int(600 * rate)
+    csf_start_v = int(800 * rate)
     csf_width = int(640 * rate)
-    csf_height = int(340 * rate)
+    csf_height = int(256 * rate)
     csf_h_space = int(64 * rate)
     csf_h_offset = csf_width + csf_h_space
-    bar_num = 16
+    bar_num = 24
     text_scale = 0.5 * (rate ** 0.6)
     text_offset_v = int(16 * rate)
     font = cv2.FONT_HERSHEY_DUPLEX
@@ -1052,12 +1056,12 @@ def composite_csf_pattern(img, width, height):
 def composite_limited_full_pattern(img, width, height):
     rate = height / 2160
     csf_start_h = width // 2 - int(1024 * rate)
-    csf_start_v = int(1024 * rate)
+    csf_start_v = int(1150 * rate)
     csf_width = int(640 * rate)
-    csf_height = int(340 * rate)
+    csf_height = int(256 * rate)
     csf_h_space = int(64 * rate)
     csf_h_offset = csf_width + csf_h_space
-    bar_num = 16
+    bar_num = 24
     text_scale = 0.5 * (rate ** 0.6)
     text_offset_v = int(16 * rate)
     font = cv2.FONT_HERSHEY_DUPLEX
@@ -1478,10 +1482,10 @@ def make_marker(width=101, height=50, rotate=0, preview=False):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # make_m_and_e_test_pattern(size="dci4k")
+    make_m_and_e_test_pattern(size="fhd")
     # _croshatch_fragment(debug=True)
     # make_dot_mesh(fg_color=const_white, bg_color=const_black)
-    make_marker(preview=True)
+    # make_marker(preview=True)
     # result = get_color_array(order='decrement', color=[0, 1, 0.5],
     #                          min=0, max=255, div_num=8, endpoint=True)
     # print(result)
