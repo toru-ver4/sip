@@ -501,7 +501,7 @@ def make_complex_rectangle():
     linewidth_list = [1, 2, 4, 8]
     fragment_size = [2, 4, 8, 16, 32, 64]
     angle_list = [0, 30, 45, 60]
-    f_str = "./figure/chrosshatch_{}x{}_fsize-{}_lwidth-{}_angle-{}_{}.png"
+    f_str = "./figure/rectangle_{}x{}_fsize-{}_lwidth-{}_angle-{}_{}.png"
     for fg_bg in fg_bg_array:
         for size in size_list:
             for fsize in fragment_size:
@@ -519,14 +519,12 @@ def make_complex_rectangle():
                                                         height=size[1],
                                                         h_block=h_block,
                                                         v_block=v_block,
-                                                        h_side_len=linewidth,
-                                                        v_side_len=linewidth,
                                                         angle=angle,
                                                         linetype=linetype,
-                                                        fragment_width=fragment_size,
-                                                        fragment_height=fragment_size,
-                                                        bg_color_array=bg_array,
-                                                        fg_color_array=fg_array,
+                                                        fragment_width=fsize,
+                                                        fragment_height=fsize,
+                                                        bg_color_array=fg_bg[2],
+                                                        fg_color_array=fg_bg[1],
                                                         debug=False)
                         cv2.imwrite(fname, img[:, :, ::-1])
 
@@ -537,5 +535,6 @@ if __name__ == '__main__':
     # make_complex_circle_pattern()
     # make_complex_rectangle_pattern()
     # test_complex_crosshatch()
-    make_complex_crosshatch()
+    # make_complex_crosshatch()
     # test_complex_rectangle()
+    make_complex_rectangle()
