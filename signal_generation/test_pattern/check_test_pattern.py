@@ -529,6 +529,78 @@ def make_complex_rectangle():
                         cv2.imwrite(fname, img[:, :, ::-1])
 
 
+def test_complex_circle():
+    width = 1920
+    height = 1080
+    h_block = 16
+    v_block = 7
+    circle_size = 8
+    fragment_size = 64
+
+    # 背景が暗い場合
+    # ------------------------
+    fg_array = get_krgbcmy_array(h_block=h_block, order='static', gain=1.0)
+    bg_array = get_gray_array(h_block=h_block, order='decrement', gain=0.5)
+
+    # 背景が明るい場合
+    # ------------------------
+    # fg_array = get_gray_array(h_block=h_block, order='static', gain=0.0)
+    # bg_array = get_krgbcmy_array(h_block=h_block, order='decrement', gain=1.0)
+
+    img = tpg.make_multi_circle(width=width,
+                                height=height,
+                                h_block=h_block,
+                                v_block=v_block,
+                                circle_size=circle_size,
+                                fragment_width=fragment_size,
+                                fragment_height=fragment_size,
+                                bg_color_array=bg_array,
+                                fg_color_array=fg_array,
+                                debug=False)
+
+    tpg.preview_image(img, 'rgb')
+    cv2.imwrite("hoge.png", img[:, :, ::-1])
+
+
+def make_complex_circle():
+    h_block = 16
+    v_block = 7
+
+    color_fixed = get_krgbcmy_array(h_block=h_block, order='static', gain=1.0)
+    color_dec = get_krgbcmy_array(h_block=h_block, order='decrement',
+                                  gain=1.0)
+    black_fixed = get_gray_array(h_block=h_block, order='static', gain=0.0)
+    white_dec_half = get_gray_array(h_block=h_block, order='decrement',
+                                    gain=0.5)
+    fg_bg_array = [('fg_fix_bg_dec', color_fixed, white_dec_half),
+                   ('fg_dec_bg_fix', color_dec, black_fixed),
+                   ('reverse_fg_fix_bg_dec', white_dec_half, color_fixed),
+                   ('reverse_fg_dec_bg_fix', black_fixed, color_dec)]
+    size_list = [(1920, 1080), (3840, 2160), (4096, 2160)]
+    linewidth_list = [1, 2, 4, 8]
+    fragment_size = [2, 4, 8, 16, 32, 64]
+    f_str = "./figure/rectangle_{}x{}_fsize-{}_lwidth-{}_{}.png"
+    for fg_bg in fg_bg_array:
+        for size in size_list:
+            for fsize in fragment_size:
+                for linewidth in linewidth_list[::-1]:
+                    if linewidth >= fsize:
+                        continue
+                    fname = f_str.format(size[0], size[1], fsize,
+                                         linewidth, fg_bg[0])
+                    img = tpg.make_multi_circle(width=size[0],
+                                                height=size[1],
+                                                h_block=h_block,
+                                                v_block=v_block,
+                                                circle_size=linewidth,
+                                                fragment_width=fsize,
+                                                fragment_height=fsize,
+                                                bg_color_array=fg_bg[2],
+                                                fg_color_array=fg_bg[1],
+                                                debug=False)
+                    cv2.imwrite(fname, img[:, :, ::-1])
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # make_and_save_crosshatch()
@@ -537,4 +609,6 @@ if __name__ == '__main__':
     # test_complex_crosshatch()
     # make_complex_crosshatch()
     # test_complex_rectangle()
-    make_complex_rectangle()
+    # make_complex_rectangle()
+    # test_complex_circle()
+    make_complex_circle()
