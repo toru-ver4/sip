@@ -1,5 +1,5 @@
 ====================
-The Art of Community
+Signal Generation
 ====================
 
 :著者: Jono Bacon(Ubuntu Linuxのコミュニティマネージャ)
