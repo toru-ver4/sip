@@ -14,6 +14,8 @@ Contents:
    setup_numpy
    color_transform
    signal_generation
+   jupyter/Sample_Coode
+
 
 Indices and tables
 ==================

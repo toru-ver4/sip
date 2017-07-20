@@ -30,9 +30,9 @@ OpenCV のインストール
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 OpenCV は Anaconda のインストールだけだと入らないので、別途コマンドを叩く必要がある。
 
-.. code:: bash
+.. code:: bat
 
-    $ conda install -c https://conda.anaconda.org/menpo opencv3 
+    > conda install -c https://conda.anaconda.org/menpo opencv3 
 
 基本的には上記コマンドで上手くいくはずだが失敗することもある。
 その場合は、現在の ``Python`` の Version が新しすぎて、OpenCV のライブラリが
@@ -53,11 +53,11 @@ OpenCV は Anaconda のインストールだけだと入らないので、別途
 
 ライブラリのダウンロード
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-.. code-block:: bash
+.. code-block:: bat
 
-    $ git clone https://github.com/toru-ver4/sip.git
-    $ cd sip
-    $ git checkout develop
+    > git clone https://github.com/toru-ver4/sip.git
+    > cd sip
+    > git checkout develop
 
 
 環境変数の設定
@@ -66,7 +66,18 @@ OpenCV は Anaconda のインストールだけだと入らないので、別途
 
 .. code-block:: bash
 
+    # 本当は Windows 環境を想定してるけど、書き方が分からないので Bash風に書いた
     $ export PYTHONPATH=${PYTHONPATH}:${WORKING_DIRECTORY}sip/lib
 
 
-``WORKING_DIRECTORY`` は ``git clone`` したディレクトリを意味する(分かると思うけど)。
+``WORKING_DIRECTORY`` は ``git clone`` したディレクトリを意味する。
+
+
+番外：sphinxのセットアップ
+--------------------------------
+.. code-block:: bat
+
+    > pip install nbsphinx
+    > conda update ipython -c conda-forge
+    > conda update ipykernel
+

@@ -302,6 +302,58 @@ def linear_to_srgb(img):
     return out_img
 
 
+def linear_to_rec709(img, plot=False):
+    """
+    # 概要
+    REC709でガンマを掛けます
+
+    # 参考資料
+    https://en.wikipedia.org/wiki/Rec._709
+    """
+    threshold = 0.018
+    if np.sum(img > 1) > 0:
+        raise ValueError('img must be normalized to 0 .. 1')
+
+    lower_img = 4.5 * img
+    upper_img = (1.099 * (img ** 0.45)) - 0.099
+
+    out_img = lower_img * (img < threshold)\
+        + upper_img * (img >= threshold)
+
+    if plot:
+        ax = pu.plot_1_graph()
+        ax.plot(out_img.flatten())
+        plt.show()
+
+    return out_img
+
+
+def rec709_to_linear(img, plot=False):
+    """
+    # 概要
+    REC709のガンマを解除してLinearな特性にします
+
+    # 参考資料
+    https://en.wikipedia.org/wiki/Rec._709
+    """
+    threshold = 0.081
+    if np.sum(img > 1) > 0:
+        raise ValueError('img must be normalized to 0 .. 1')
+
+    lower_img = img / 4.5
+    upper_img = ((img + 0.099) / 1.099) ** (1/0.45)
+
+    out_img = lower_img * (img < threshold)\
+        + upper_img * (img >= threshold)
+
+    if plot:
+        ax = pu.plot_1_graph()
+        ax.plot(out_img.flatten())
+        plt.show()
+
+    return out_img
+
+
 def xyY_to_RGB(xyY, gamut=const_sRGB_xy, white=const_d65_large_xyz):
     """
     # 概要
@@ -520,4 +572,6 @@ if __name__ == '__main__':
     # print(xyz)
     # lab = large_xyz_to_lab(large_xyz=xyz, white=const_d50_large_xyz)
     # print(lab)
+    out = linear_to_rec709(np.linspace(0, 1, 1024), plot=True)
+    rec709_to_linear(out, plot=True)
     pass
