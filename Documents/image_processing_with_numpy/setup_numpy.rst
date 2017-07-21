@@ -80,4 +80,4 @@ OpenCV は Anaconda のインストールだけだと入らないので、別途
     > pip install nbsphinx
     > conda update ipython -c conda-forge
     > conda update ipykernel
-
+    > pip install sphinx-autobuild
