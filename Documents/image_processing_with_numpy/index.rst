@@ -15,6 +15,7 @@ Contents:
    color_transform
    signal_generation
    jupyter/Sample_Coode
+   jupyter/Signal_Generation
 
 
 Indices and tables
