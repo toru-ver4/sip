@@ -15,6 +15,8 @@ from scipy import linalg
 import common
 import plot_utility as pu
 import matplotlib.pyplot as plt
+from PIL import ImageCms
+from PIL import Image
 
 
 const_lab_delta = 6.0/29.0
@@ -540,6 +542,16 @@ def large_xyz_to_small_xy(large_xyz):
     return np.dstack((small_x, small_y))
 
 
+def extract_profile(in_name, out_name):
+    filename = in_name
+    img = Image.open(filename)
+    out_file_name = out_name
+    # print(img.info.keys())
+
+    with open(out_file_name, 'wb') as f:
+        f.write(img.info['icc_profile'])
+
+
 if __name__ == '__main__':
     # lab = np.ones((1, 1, 3))
     # lab[0][0][0] = 42.101
@@ -572,6 +584,7 @@ if __name__ == '__main__':
     # print(xyz)
     # lab = large_xyz_to_lab(large_xyz=xyz, white=const_d50_large_xyz)
     # print(lab)
-    out = linear_to_rec709(np.linspace(0, 1, 1024), plot=True)
-    rec709_to_linear(out, plot=True)
+    # out = linear_to_rec709(np.linspace(0, 1, 1024), plot=True)
+    # rec709_to_linear(out, plot=True)
+    extract_profile("C:\home\DSC00419.jpg", "C:\home\DSC00419.icc")
     pass
