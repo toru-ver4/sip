@@ -404,7 +404,9 @@ def large_xyz_to_rgb(large_xyz, gamut=const_sRGB_xy,
         raise TypeError('XYZ shape must be (N, M, 3)')
     cvt_mtx = get_rgb_to_xyz_matrix(gamut=gamut, white=white)
     cvt_mtx = linalg.inv(cvt_mtx)
-    rgb = color_cvt(large_xyz, cvt_mtx) / white[1]
+    # rgb = color_cvt(large_xyz, cvt_mtx) / white[1]
+    print(white)
+    rgb = color_cvt(large_xyz, cvt_mtx)
 
     if (np.sum(rgb < 0) > 0) or (np.sum(rgb > 1) > 0):
         print("function : large_xyz_to_rgb")
@@ -429,7 +431,7 @@ def _func_t_inverse(t):
     return upper + lower
 
 
-def lab_to_large_xyz(lab, white=const_d50_large_xyz):
+def lab_star_to_large_xyz(lab, white=const_d50_large_xyz):
     """
     # 概要
     L*a*b* から XYZ値を算出する
@@ -442,6 +444,7 @@ def lab_to_large_xyz(lab, white=const_d50_large_xyz):
         raise TypeError('lab shape must be (N, M, 3)')
 
     l, a, b = np.dsplit(lab, 3)
+    white = [x / white[1] for x in white]
     large_x = white[0] * _func_t_inverse((l + 16)/116 + a/500)
     large_y = white[1] * _func_t_inverse((l + 16)/116)
     large_z = white[2] * _func_t_inverse((l + 16)/116 - b/200)
@@ -449,7 +452,7 @@ def lab_to_large_xyz(lab, white=const_d50_large_xyz):
     return np.dstack((large_x, large_y, large_z))
 
 
-def large_xyz_to_lab(large_xyz, white=const_d50_large_xyz):
+def large_xyz_to_lab_star(large_xyz, white=const_d50_large_xyz):
     """
     # 概要
     L*a*b* から XYZ値を算出する
@@ -462,6 +465,7 @@ def large_xyz_to_lab(large_xyz, white=const_d50_large_xyz):
         raise TypeError('large_xyz shape must be (N, M, 3)')
 
     x, y, z = np.dsplit(large_xyz, 3)
+    white = [x / white[1] for x in white]
     l = 116 * _func_t(y/white[1]) - 16
     a = 500 * (_func_t(x/white[0]) - _func_t(y/white[1]))
     b = 200 * (_func_t(y/white[1]) - _func_t(z/white[2]))
@@ -615,6 +619,8 @@ def large_xyz_to_luv_star(large_xyz, white_xyz):
     https://en.wikipedia.org/wiki/CIELUV
     """
     large_x, large_y, large_z = np.dsplit(large_xyz, 3)
+    white_xyz = np.array(white_xyz)
+    white_xyz = (white_xyz / white_xyz[1]).reshape((1, 1, 3))
     x_n, y_n, z_n = np.dsplit(white_xyz, 3)
     threshold = (6/29) ** 3
     judge = (large_y / y_n)
@@ -622,8 +628,8 @@ def large_xyz_to_luv_star(large_xyz, white_xyz):
     l_upper = (judge > threshold) * (116 * ((large_y / y_n) ** (1/3)) - 16)
     l_star = l_lower + l_upper
 
-    u_dash, v_dash = np.dsplit(large_xyz_to_uv_dash(large_xyz), 3)
-    u_n_dash, v_n_dash = np.dsplit(large_xyz_to_uv_dash(white_xyz), 3)
+    u_dash, v_dash = np.dsplit(large_xyz_to_uv_dash(large_xyz), 2)
+    u_n_dash, v_n_dash = np.dsplit(large_xyz_to_uv_dash(white_xyz), 2)
     u_star = 13 * l_star * (u_dash - u_n_dash)
     v_star = 13 * l_star * (v_dash - v_n_dash)
 
@@ -637,8 +643,10 @@ def luv_star_to_large_xyz(luv_star, white_xyz):
     # 参考
     https://en.wikipedia.org/wiki/CIELUV
     """
-    l_star, u_star, v_star = np.dsplit(luv_star)
-    u_n_dash, v_n_dash = np.dsplit(large_xyz_to_uv_dash(white_xyz), 3)
+    l_star, u_star, v_star = np.dsplit(luv_star, 3)
+    white_xyz = np.array(white_xyz)
+    white_xyz = (white_xyz / white_xyz[1]).reshape((1, 1, 3))
+    u_n_dash, v_n_dash = np.dsplit(large_xyz_to_uv_dash(white_xyz), 2)
     if np.sum(l_star == 0) > 0:
         print("Warning:")
         print("  ZERO DIVISION HAS OCCURED at luv_star_to_large_xyz()")
@@ -695,5 +703,41 @@ if __name__ == '__main__':
     # out = linear_to_rec709(np.linspace(0, 1, 1024), plot=True)
     # rec709_to_linear(out, plot=True)
     # extract_profile("C:\home\DSC00419.jpg", "C:\home\DSC00419.icc")
-    set_icc_device_class("C:\home\sip\lib\data\SGamut3_SLog3_base.icc",
-                         "C:\home\sip\lib\data\out.icc")
+    src_rgb_array = np.array([[255, 255, 255],
+                              [255, 192, 128],
+                              [4, 2, 8]]).reshape((1, 3, 3))
+    dst_luv_array = np.array([[100.0, 0.0, 0.0],
+                              [82.4637, 46.0138, 49.7742],
+                              [0.7701, 0.2070, -0.9121]]).reshape((1, 3, 3))
+    dst_lab_array = np.array([[100.0, 0.0, 0.0],
+                              [82.9028, 17.3804, 41.2727],
+                              [0.0636, 0.2354, -0.5612]]).reshape((1, 3, 3))
+    normalize_rgb = (src_rgb_array / 0xFF) ** 2.2
+    large_xyz = rgb_to_large_xyz(rgb=normalize_rgb,
+                                 gamut=const_sRGB_xy,
+                                 white=const_d65_large_xyz)
+    d65_to_d50_mtx = get_white_point_conv_matrix(src=const_d65_large_xyz,
+                                                 dst=const_d50_large_xyz)
+    large_xyz_d50 = color_cvt(large_xyz, d65_to_d50_mtx)
+    luv_star = large_xyz_to_luv_star(large_xyz, const_d65_large_xyz)
+    lab_star = large_xyz_to_lab_star(large_xyz_d50, const_d50_large_xyz)
+    print(luv_star)
+    print(lab_star)
+
+    # inverse
+    # ----------------------------------
+    large_xyz = luv_star_to_large_xyz(luv_star, const_d65_large_xyz)
+    large_xyz_d50 = lab_star_to_large_xyz(lab_star, const_d50_large_xyz)
+    d50_to_d65_mtx = get_white_point_conv_matrix(src=const_d50_large_xyz,
+                                                 dst=const_d65_large_xyz)
+    large_xyz_d65 = color_cvt(large_xyz_d50, d50_to_d65_mtx)
+    rgb_luv = large_xyz_to_rgb(large_xyz=large_xyz,
+                               gamut=const_sRGB_xy,
+                               white=const_d65_large_xyz)
+    rgb_lab = large_xyz_to_rgb(large_xyz=large_xyz_d65,
+                               gamut=const_sRGB_xy,
+                               white=const_d65_large_xyz)
+    rgb_luv = (rgb_luv ** (1/2.2)) * 0xFF
+    rgb_lab = (rgb_lab ** (1/2.2)) * 0xFF
+    print(rgb_luv)
+    print(rgb_lab)
