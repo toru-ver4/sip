@@ -703,41 +703,4 @@ if __name__ == '__main__':
     # out = linear_to_rec709(np.linspace(0, 1, 1024), plot=True)
     # rec709_to_linear(out, plot=True)
     # extract_profile("C:\home\DSC00419.jpg", "C:\home\DSC00419.icc")
-    src_rgb_array = np.array([[255, 255, 255],
-                              [255, 192, 128],
-                              [4, 2, 8]]).reshape((1, 3, 3))
-    dst_luv_array = np.array([[100.0, 0.0, 0.0],
-                              [82.4637, 46.0138, 49.7742],
-                              [0.7701, 0.2070, -0.9121]]).reshape((1, 3, 3))
-    dst_lab_array = np.array([[100.0, 0.0, 0.0],
-                              [82.9028, 17.3804, 41.2727],
-                              [0.0636, 0.2354, -0.5612]]).reshape((1, 3, 3))
-    normalize_rgb = (src_rgb_array / 0xFF) ** 2.2
-    large_xyz = rgb_to_large_xyz(rgb=normalize_rgb,
-                                 gamut=const_sRGB_xy,
-                                 white=const_d65_large_xyz)
-    d65_to_d50_mtx = get_white_point_conv_matrix(src=const_d65_large_xyz,
-                                                 dst=const_d50_large_xyz)
-    large_xyz_d50 = color_cvt(large_xyz, d65_to_d50_mtx)
-    luv_star = large_xyz_to_luv_star(large_xyz, const_d65_large_xyz)
-    lab_star = large_xyz_to_lab_star(large_xyz_d50, const_d50_large_xyz)
-    print(luv_star)
-    print(lab_star)
-
-    # inverse
-    # ----------------------------------
-    large_xyz = luv_star_to_large_xyz(luv_star, const_d65_large_xyz)
-    large_xyz_d50 = lab_star_to_large_xyz(lab_star, const_d50_large_xyz)
-    d50_to_d65_mtx = get_white_point_conv_matrix(src=const_d50_large_xyz,
-                                                 dst=const_d65_large_xyz)
-    large_xyz_d65 = color_cvt(large_xyz_d50, d50_to_d65_mtx)
-    rgb_luv = large_xyz_to_rgb(large_xyz=large_xyz,
-                               gamut=const_sRGB_xy,
-                               white=const_d65_large_xyz)
-    rgb_lab = large_xyz_to_rgb(large_xyz=large_xyz_d65,
-                               gamut=const_sRGB_xy,
-                               white=const_d65_large_xyz)
-    rgb_luv = (rgb_luv ** (1/2.2)) * 0xFF
-    rgb_lab = (rgb_lab ** (1/2.2)) * 0xFF
-    print(rgb_luv)
-    print(rgb_lab)
+    pass
