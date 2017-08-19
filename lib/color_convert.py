@@ -15,9 +15,7 @@ from scipy import linalg
 import common
 import plot_utility as pu
 import matplotlib.pyplot as plt
-from PIL import ImageCms
 from PIL import Image
-
 
 const_lab_delta = 6.0/29.0
 const_lab_xn_d65 = 95.047
@@ -552,6 +550,116 @@ def extract_profile(in_name, out_name):
         f.write(img.info['icc_profile'])
 
 
+def large_xyz_to_uv_dash(large_xyz):
+    """
+    # 概要
+    XYZ から u'v' を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    large_x, large_y, large_z = np.dsplit(large_xyz, 3)
+    denominator = large_x + (15 * large_y) + (3 * large_z)
+    if np.sum(denominator == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at large_xyz_to_uv_dash()")
+        denominator[denominator == 0] = 1
+    u_dash = (4 * large_x) / denominator
+    v_dash = (9 * large_y) / denominator
+
+    return np.dstack((u_dash, v_dash))
+
+
+def small_xy_to_uv_dash(small_xy):
+    """
+    # 概要
+    xy から u'v' を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    x, y = np.dsplit(small_xy, 2)
+    denominator = (-2 * x) + (12 * y) + 3
+    if np.sum(denominator == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at small_xy_to_uv_dash()")
+        denominator[denominator == 0] = 1
+    u_dash = (4 * x) / denominator
+    v_dash = (9 * y) / denominator
+
+    return np.dstack((u_dash, v_dash))
+
+
+def uv_dash_to_small_xy(uv):
+    """
+    # 概要
+    u'v' から xy を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    u_dash, v_dash = np.dsplit(uv)
+    denominator = (6 * u_dash) + (-16 * v_dash) + 12
+    if np.sum(denominator == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at small_xy_to_uv_dash()")
+        denominator[denominator == 0] = 1
+    x = (9 * u_dash) / denominator
+    y = (4 * v_dash) / denominator
+
+    return np.dstack((x, y))
+
+
+def large_xyz_to_luv_star(large_xyz, white_xyz):
+    """
+    # 概要
+    XYZ から L*u*v* を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    large_x, large_y, large_z = np.dsplit(large_xyz, 3)
+    x_n, y_n, z_n = np.dsplit(white_xyz, 3)
+    threshold = (6/29) ** 3
+    judge = (large_y / y_n)
+    l_lower = (judge <= threshold) * (((29/3) ** 3) * (large_y / y_n))
+    l_upper = (judge > threshold) * (116 * ((large_y / y_n) ** (1/3)) - 16)
+    l_star = l_lower + l_upper
+
+    u_dash, v_dash = np.dsplit(large_xyz_to_uv_dash(large_xyz), 3)
+    u_n_dash, v_n_dash = np.dsplit(large_xyz_to_uv_dash(white_xyz), 3)
+    u_star = 13 * l_star * (u_dash - u_n_dash)
+    v_star = 13 * l_star * (v_dash - v_n_dash)
+
+    return np.dstack((l_star, u_star, v_star))
+
+
+def luv_star_to_large_xyz(luv_star, white_xyz):
+    """
+    # 概要
+    L*u*v* から XYZ を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    l_star, u_star, v_star = np.dsplit(luv_star)
+    u_n_dash, v_n_dash = np.dsplit(large_xyz_to_uv_dash(white_xyz), 3)
+    if np.sum(l_star == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at luv_star_to_large_xyz()")
+        l_star[l_star == 0] = 1
+    u_dash = (u_star / (13 * l_star)) + u_n_dash
+    v_dash = (v_star / (13 * l_star)) + v_n_dash
+
+    """
+    u', v' は white が適切なら 0 にならないので ZERO DIVISION の
+    チェックしません(手抜き)
+    """
+    x_n, y_n, z_n = np.dsplit(white_xyz, 3)
+    y_lower = (l_star <= 8) * (y_n * l_star * ((3/29)**3))
+    y_upper = (l_star > 8) * (y_n * (((l_star + 16)/116)**3))
+    large_y = y_lower + y_upper
+    large_x = large_y * (9 * u_dash) / (4 * v_dash)
+    large_z = large_y * (12 + (-3 * u_dash) + (-20 * v_dash)) / (4 * v_dash)
+
+    return np.dstack((large_x, large_y, large_z))
+
+
 if __name__ == '__main__':
     # lab = np.ones((1, 1, 3))
     # lab[0][0][0] = 42.101
@@ -586,5 +694,6 @@ if __name__ == '__main__':
     # print(lab)
     # out = linear_to_rec709(np.linspace(0, 1, 1024), plot=True)
     # rec709_to_linear(out, plot=True)
-    extract_profile("C:\home\DSC00419.jpg", "C:\home\DSC00419.icc")
-    pass
+    # extract_profile("C:\home\DSC00419.jpg", "C:\home\DSC00419.icc")
+    set_icc_device_class("C:\home\sip\lib\data\SGamut3_SLog3_base.icc",
+                         "C:\home\sip\lib\data\out.icc")
