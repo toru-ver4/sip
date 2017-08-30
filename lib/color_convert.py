@@ -15,7 +15,7 @@ from scipy import linalg
 import common
 import plot_utility as pu
 import matplotlib.pyplot as plt
-
+from PIL import Image
 
 const_lab_delta = 6.0/29.0
 const_lab_xn_d65 = 95.047
@@ -43,6 +43,10 @@ const_rec601_xy = const_ntsc_xy
 
 const_rec709_xy = const_sRGB_xy
 
+const_dci_p3_xy = [[0.680, 0.320],
+                   [0.265, 0.690],
+                   [0.150, 0.060]]
+
 const_rec2020_xy = [[0.708, 0.292],
                     [0.170, 0.797],
                     [0.131, 0.046]]
@@ -61,6 +65,7 @@ const_rgb_to_large_xyz = [[2.7689, 1.7517, 1.1302],
 
 const_d65_xy = [0.31271, 0.32902]
 const_d50_xy = [0.34567, 0.35850]
+const_dci_white_xy = [0.314, 0.351]
 
 const_rec601_y_coef = [0.2990, 0.5870, 0.1140]
 const_rec709_y_coef = [0.2126, 0.7152, 0.0722]
@@ -186,8 +191,17 @@ def xyY_to_XYZ(xyY):
     """
     small_x, small_y, large_y = np.dsplit(xyY, 3)
     small_z = 1 - small_x - small_y
-    large_x = large_y / small_y * small_x
-    large_z = large_y / small_y * small_z
+    small_yx = small_y / small_x
+    small_yz = small_y / small_z
+    if np.sum(small_yx == 0) or np.sum(small_yz == 0):
+        print("WARNING")
+        print("    ZERO DIV ERROR IS PREVENTED at xyY_to_XYZ()")
+
+    small_yx[small_yx == 0] = 1
+    small_yz[small_yz == 0] = 1
+
+    large_x = large_y / small_yx
+    large_z = large_y / small_yz
 
     return np.dstack((large_x, large_y, large_z))
 
@@ -288,6 +302,58 @@ def linear_to_srgb(img):
     return out_img
 
 
+def linear_to_rec709(img, plot=False):
+    """
+    # 概要
+    REC709でガンマを掛けます
+
+    # 参考資料
+    https://en.wikipedia.org/wiki/Rec._709
+    """
+    threshold = 0.018
+    if np.sum(img > 1) > 0:
+        raise ValueError('img must be normalized to 0 .. 1')
+
+    lower_img = 4.5 * img
+    upper_img = (1.099 * (img ** 0.45)) - 0.099
+
+    out_img = lower_img * (img < threshold)\
+        + upper_img * (img >= threshold)
+
+    if plot:
+        ax = pu.plot_1_graph()
+        ax.plot(out_img.flatten())
+        plt.show()
+
+    return out_img
+
+
+def rec709_to_linear(img, plot=False):
+    """
+    # 概要
+    REC709のガンマを解除してLinearな特性にします
+
+    # 参考資料
+    https://en.wikipedia.org/wiki/Rec._709
+    """
+    threshold = 0.081
+    if np.sum(img > 1) > 0:
+        raise ValueError('img must be normalized to 0 .. 1')
+
+    lower_img = img / 4.5
+    upper_img = ((img + 0.099) / 1.099) ** (1/0.45)
+
+    out_img = lower_img * (img < threshold)\
+        + upper_img * (img >= threshold)
+
+    if plot:
+        ax = pu.plot_1_graph()
+        ax.plot(out_img.flatten())
+        plt.show()
+
+    return out_img
+
+
 def xyY_to_RGB(xyY, gamut=const_sRGB_xy, white=const_d65_large_xyz):
     """
     # 概要
@@ -338,7 +404,9 @@ def large_xyz_to_rgb(large_xyz, gamut=const_sRGB_xy,
         raise TypeError('XYZ shape must be (N, M, 3)')
     cvt_mtx = get_rgb_to_xyz_matrix(gamut=gamut, white=white)
     cvt_mtx = linalg.inv(cvt_mtx)
-    rgb = color_cvt(large_xyz, cvt_mtx) / white[1]
+    # rgb = color_cvt(large_xyz, cvt_mtx) / white[1]
+    print(white)
+    rgb = color_cvt(large_xyz, cvt_mtx)
 
     if (np.sum(rgb < 0) > 0) or (np.sum(rgb > 1) > 0):
         print("function : large_xyz_to_rgb")
@@ -363,7 +431,7 @@ def _func_t_inverse(t):
     return upper + lower
 
 
-def lab_to_large_xyz(lab, white=const_d50_large_xyz):
+def lab_star_to_large_xyz(lab, white=const_d50_large_xyz):
     """
     # 概要
     L*a*b* から XYZ値を算出する
@@ -376,6 +444,7 @@ def lab_to_large_xyz(lab, white=const_d50_large_xyz):
         raise TypeError('lab shape must be (N, M, 3)')
 
     l, a, b = np.dsplit(lab, 3)
+    white = [x / white[1] for x in white]
     large_x = white[0] * _func_t_inverse((l + 16)/116 + a/500)
     large_y = white[1] * _func_t_inverse((l + 16)/116)
     large_z = white[2] * _func_t_inverse((l + 16)/116 - b/200)
@@ -383,7 +452,7 @@ def lab_to_large_xyz(lab, white=const_d50_large_xyz):
     return np.dstack((large_x, large_y, large_z))
 
 
-def large_xyz_to_lab(large_xyz, white=const_d50_large_xyz):
+def large_xyz_to_lab_star(large_xyz, white=const_d50_large_xyz):
     """
     # 概要
     L*a*b* から XYZ値を算出する
@@ -396,11 +465,207 @@ def large_xyz_to_lab(large_xyz, white=const_d50_large_xyz):
         raise TypeError('large_xyz shape must be (N, M, 3)')
 
     x, y, z = np.dsplit(large_xyz, 3)
+    white = [x / white[1] for x in white]
     l = 116 * _func_t(y/white[1]) - 16
     a = 500 * (_func_t(x/white[0]) - _func_t(y/white[1]))
     b = 200 * (_func_t(y/white[1]) - _func_t(z/white[2]))
 
     return np.dstack((l, a, b))
+
+
+def is_inside_gamut(xy, gamut=const_rec2020_xy):
+    """
+    # 概要
+    xy座標が gamut 内部にあるか判別する
+    # In/Out
+    xy は (N, 2) の numpy 配列であること
+    # 参考
+    http://www.sousakuba.com/Programming/gs_hittest_point_triangle.html
+    """
+    # parameter check
+    # -----------------------------------------
+    gamut = np.array(gamut.copy())
+
+    if not common.is_small_xy_array_shape(xy):
+        print('parameer "xy" is invalid.')
+        return False
+
+    if not common.is_small_xy_array_shape(gamut):
+        print('parameer "gamut" is invalid.')
+        return False
+
+    if gamut.shape[0] != 3:
+        print('parameer "gamut" is invalid.')
+        return False
+
+    # calc vector
+    # -----------------------------------------
+    rg = gamut[1] - gamut[0]
+    gw = xy - gamut[1]
+    gb = gamut[2] - gamut[1]
+    bw = xy - gamut[2]
+    br = gamut[0] - gamut[2]
+    rw = xy - gamut[0]
+
+    r_result = np.cross(rg, gw)
+    g_result = np.cross(gb, bw)
+    b_result = np.cross(br, rw)
+
+    result = (r_result >= 0) & (g_result >= 0) & (b_result >= 0)
+
+    return result
+
+
+def small_xy_to_xyY(xy, large_y):
+    if not common.is_small_xy_array_shape(xy):
+        print('parameer "xy" is invalid.')
+        return False
+
+    x = xy[:, 0]
+    y = xy[:, 1]
+    large_y = np.ones_like(x) * large_y
+    xyY = np.dstack((x, y, large_y))
+
+    return xyY
+
+
+def large_xyz_to_small_xy(large_xyz):
+    large_x, large_y, large_z = np.dsplit(large_xyz, 3)
+    xyz_sum = large_x + large_y + large_z
+
+    if np.sum(xyz_sum == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at large_xyz_to_small_xy()")
+        xyz_sum[xyz_sum == 0] = 1
+
+    small_x = large_x / xyz_sum
+    small_y = large_y / xyz_sum
+
+    return np.dstack((small_x, small_y))
+
+
+def extract_profile(in_name, out_name):
+    filename = in_name
+    img = Image.open(filename)
+    out_file_name = out_name
+    # print(img.info.keys())
+
+    with open(out_file_name, 'wb') as f:
+        f.write(img.info['icc_profile'])
+
+
+def large_xyz_to_uv_dash(large_xyz):
+    """
+    # 概要
+    XYZ から u'v' を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    large_x, large_y, large_z = np.dsplit(large_xyz, 3)
+    denominator = large_x + (15 * large_y) + (3 * large_z)
+    if np.sum(denominator == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at large_xyz_to_uv_dash()")
+        denominator[denominator == 0] = 1
+    u_dash = (4 * large_x) / denominator
+    v_dash = (9 * large_y) / denominator
+
+    return np.dstack((u_dash, v_dash))
+
+
+def small_xy_to_uv_dash(small_xy):
+    """
+    # 概要
+    xy から u'v' を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    x, y = np.dsplit(small_xy, 2)
+    denominator = (-2 * x) + (12 * y) + 3
+    if np.sum(denominator == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at small_xy_to_uv_dash()")
+        denominator[denominator == 0] = 1
+    u_dash = (4 * x) / denominator
+    v_dash = (9 * y) / denominator
+
+    return np.dstack((u_dash, v_dash))
+
+
+def uv_dash_to_small_xy(uv):
+    """
+    # 概要
+    u'v' から xy を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    u_dash, v_dash = np.dsplit(uv)
+    denominator = (6 * u_dash) + (-16 * v_dash) + 12
+    if np.sum(denominator == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at small_xy_to_uv_dash()")
+        denominator[denominator == 0] = 1
+    x = (9 * u_dash) / denominator
+    y = (4 * v_dash) / denominator
+
+    return np.dstack((x, y))
+
+
+def large_xyz_to_luv_star(large_xyz, white_xyz):
+    """
+    # 概要
+    XYZ から L*u*v* を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    large_x, large_y, large_z = np.dsplit(large_xyz, 3)
+    white_xyz = np.array(white_xyz)
+    white_xyz = (white_xyz / white_xyz[1]).reshape((1, 1, 3))
+    x_n, y_n, z_n = np.dsplit(white_xyz, 3)
+    threshold = (6/29) ** 3
+    judge = (large_y / y_n)
+    l_lower = (judge <= threshold) * (((29/3) ** 3) * (large_y / y_n))
+    l_upper = (judge > threshold) * (116 * ((large_y / y_n) ** (1/3)) - 16)
+    l_star = l_lower + l_upper
+
+    u_dash, v_dash = np.dsplit(large_xyz_to_uv_dash(large_xyz), 2)
+    u_n_dash, v_n_dash = np.dsplit(large_xyz_to_uv_dash(white_xyz), 2)
+    u_star = 13 * l_star * (u_dash - u_n_dash)
+    v_star = 13 * l_star * (v_dash - v_n_dash)
+
+    return np.dstack((l_star, u_star, v_star))
+
+
+def luv_star_to_large_xyz(luv_star, white_xyz):
+    """
+    # 概要
+    L*u*v* から XYZ を計算する。
+    # 参考
+    https://en.wikipedia.org/wiki/CIELUV
+    """
+    l_star, u_star, v_star = np.dsplit(luv_star, 3)
+    white_xyz = np.array(white_xyz)
+    white_xyz = (white_xyz / white_xyz[1]).reshape((1, 1, 3))
+    u_n_dash, v_n_dash = np.dsplit(large_xyz_to_uv_dash(white_xyz), 2)
+    if np.sum(l_star == 0) > 0:
+        print("Warning:")
+        print("  ZERO DIVISION HAS OCCURED at luv_star_to_large_xyz()")
+        l_star[l_star == 0] = 1
+    u_dash = (u_star / (13 * l_star)) + u_n_dash
+    v_dash = (v_star / (13 * l_star)) + v_n_dash
+
+    """
+    u', v' は white が適切なら 0 にならないので ZERO DIVISION の
+    チェックしません(手抜き)
+    """
+    x_n, y_n, z_n = np.dsplit(white_xyz, 3)
+    y_lower = (l_star <= 8) * (y_n * l_star * ((3/29)**3))
+    y_upper = (l_star > 8) * (y_n * (((l_star + 16)/116)**3))
+    large_y = y_lower + y_upper
+    large_x = large_y * (9 * u_dash) / (4 * v_dash)
+    large_z = large_y * (12 + (-3 * u_dash) + (-20 * v_dash)) / (4 * v_dash)
+
+    return np.dstack((large_x, large_y, large_z))
 
 
 if __name__ == '__main__':
@@ -435,4 +700,7 @@ if __name__ == '__main__':
     # print(xyz)
     # lab = large_xyz_to_lab(large_xyz=xyz, white=const_d50_large_xyz)
     # print(lab)
+    # out = linear_to_rec709(np.linspace(0, 1, 1024), plot=True)
+    # rec709_to_linear(out, plot=True)
+    # extract_profile("C:\home\DSC00419.jpg", "C:\home\DSC00419.icc")
     pass

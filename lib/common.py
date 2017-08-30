@@ -15,6 +15,20 @@ def is_numpy_module(data):
     return type(data).__module__ == np.__name__
 
 
+def is_small_xy_array_shape(data):
+    """
+    # brief
+    check whether the shape of data is (N, 2).
+    """
+    if not is_numpy_module(data):
+        raise TypeError("data must be a numpy instance")
+    if len(data.shape) != 2:
+        return False
+    if data.shape[1] != 2:
+        return False
+    return True
+
+
 def is_img_shape(data):
     """
     # brief
