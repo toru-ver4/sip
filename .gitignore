@@ -38,3 +38,8 @@ signal_generation/h264_10bit_encode/verify/*
 **/_static/*
 **/_templates/*
 **/*.mp4
+**/__pycache__
+**/staticfiles
+**/local_settings.py
+**/db.sqlite3
+**/*.py[co]
