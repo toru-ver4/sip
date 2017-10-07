@@ -81,6 +81,21 @@ def gen_pq_to_1886_lut(target_bright=300, plot=False):
     return y
 
 
+def out_1dlut_cube(lut, filename="out.cube"):
+    """
+    # brief
+    output 1dlut at cube format.
+    """
+    with open(filename, 'w') as f:
+        f.write("# DaVinci Resolve Cube (1D shaper LUT).\n")
+        f.write("\n")
+        f.write("LUT_1D_SIZE {}\n".format(lut.shape[0]))
+        f.write("LUT_1D_INPUT_RANGE 0.0000000000 1.0000000000\n\n")
+        
+        for data in lut:
+            f.write("{0} {0} {0}\n".format(data))
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # gen_pq_to_1886_lut(1000)
