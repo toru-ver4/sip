@@ -11,6 +11,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import color_convert as cc
 import plot_utility as pu
+import common
+from scipy import linalg
 
 
 def st2084_test():
@@ -41,7 +43,7 @@ def st2084_test():
     plt.show()
 
 
-def gen_pq_to_1886_lut(target_bright=300, plot=False):
+def gen_pq_to_sdr_lut(target_bright=300, sdr_gamma=2.4, plot=False):
     x = np.linspace(0, 1, 1024)
 
     # ST2084 to Linear
@@ -54,7 +56,7 @@ def gen_pq_to_1886_lut(target_bright=300, plot=False):
     st2084_eotf = st2084_eotf / np.max(st2084_eotf)
 
     # Linear to REC1886
-    y = st2084_eotf ** (1/2.4)
+    y = st2084_eotf ** (1/sdr_gamma)
 
     # Plot
     if plot:
@@ -81,6 +83,41 @@ def gen_pq_to_1886_lut(target_bright=300, plot=False):
     return y
 
 
+def gen_pq2020_to_sdr_3dlut(target_bright=300, sdr_gamma=2.4):
+    """
+    ST2084 かつ 1000 or 300 nits かつ REC.2020 色域のディスプレイを
+    Gamma2.2 かつ 300nits かつ REC.709 色域のディスプレイにマッピングする
+    3DLUTを作成する
+    """
+    in_rgb = common.get_3d_grid_cube_format(33)
+    
+    # ST2084 to Linear
+    lut = cc.pq_to_linear(in_rgb)
+
+    # REC2020 gamut to REC709 gamut
+    rec2020_to_xyz_mtx = cc.get_rgb_to_xyz_matrix(gamut=cc.const_rec2020_xy,
+                                                  white=cc.const_d65_large_xyz)
+    rec709_to_xyz_mtx = cc.get_rgb_to_xyz_matrix(gamut=cc.const_rec709_xy,
+                                                 white=cc.const_d65_large_xyz)
+    xyz_to_rec709_mtx = linalg.inv(rec709_to_xyz_mtx)
+    rec2020_to_rec709_mtx = np.dot(rec2020_to_xyz_mtx, xyz_to_rec709_mtx)
+    lut = cc.color_cvt(lut, rec2020_to_rec709_mtx)
+    lut[lut > 1] = 1
+    lut[lut < 0] = 0
+
+    # Hard Clipping
+    lut = lut * 10000
+    lut[lut > target_bright] = target_bright
+
+    # Normalize
+    lut = lut / np.max(lut)
+
+    # Linear to Power Gamma
+    lut = lut ** (1/sdr_gamma)
+
+    return lut
+
+
 def out_1dlut_cube(lut, filename="out.cube"):
     """
     # brief
@@ -96,6 +133,24 @@ def out_1dlut_cube(lut, filename="out.cube"):
             f.write("{0} {0} {0}\n".format(data))
 
 
+def out_3dlut_cube(lut, target_bright=300, sdr_gamma=2.4, filename="out.cube"):
+    """
+    # brief
+    output 3dlut at cube format.
+    """
+    with open(filename, 'w') as f:
+        f.write("# TORU YOSHIHARA SPECIAL LUT\n")
+        f.write("\n")
+        f.write("TITLE PQ{}_REC2020_TO_Gamma{}_REC709\n".format(target_bright,
+                                                                sdr_gamma))
+        f.write("LUT_3D_SIZE {:.0f}\n".format(lut.shape[1] ** (1/3)))
+        f.write("\n")
+        for data in lut[0]:
+            f.write("{:.10f} {:.10f} {:.10f}\n".format(data[0], data[1], data[2]))
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # gen_pq_to_1886_lut(1000)
+    lut = gen_pq2020_to_sdr_3dlut(target_bright=300, sdr_gamma=2.2)
+    out_3dlut_cube(lut, target_bright=300, sdr_gamma=2.2)

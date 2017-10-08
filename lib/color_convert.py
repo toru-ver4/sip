@@ -385,7 +385,11 @@ def xyY_to_RGB(xyY, gamut=const_sRGB_xy, white=const_d65_large_xyz):
     if not common.is_img_shape(xyY):
         raise TypeError('xyY shape must be (N, M, 3)')
 
+    max_large_y = np.max(xyY[:, :, 2])
     large_xyz = xyY_to_XYZ(xyY)
+
+    # 正規化。俺のモジュールは [0:1] で入力する前提のため
+    large_xyz = large_xyz / max_large_y
     rgb = large_xyz_to_rgb(large_xyz=large_xyz, gamut=gamut, white=white)
     return rgb
 
