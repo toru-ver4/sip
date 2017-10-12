@@ -259,6 +259,27 @@ def linear_to_pq(img):
     return (numerator / denominator) ** m2
 
 
+def pq_to_linear(img):
+    """
+    # brief
+    convert pq data to linear data.
+    # reference
+    ITU-R BT.2100-0
+    """
+
+    m1 = 2610 / 16384
+    m2 = 2523 / 4096 * 128
+    c1 = 3424 / 4096
+    c2 = 2413 / 4096 * 32
+    c3 = 2392 / 4096 * 32
+
+    numerator = (img ** (1/m2)) - c1
+    numerator[numerator < 0] = 0
+    denominator = c2 - c3 * (img ** (1/m2))
+
+    return (numerator / denominator) ** (1/m1)
+
+
 def linear_to_hlg(img):
     """
     # brief
@@ -364,7 +385,11 @@ def xyY_to_RGB(xyY, gamut=const_sRGB_xy, white=const_d65_large_xyz):
     if not common.is_img_shape(xyY):
         raise TypeError('xyY shape must be (N, M, 3)')
 
+    max_large_y = np.max(xyY[:, :, 2])
     large_xyz = xyY_to_XYZ(xyY)
+
+    # 正規化。俺のモジュールは [0:1] で入力する前提のため
+    large_xyz = large_xyz / max_large_y
     rgb = large_xyz_to_rgb(large_xyz=large_xyz, gamut=gamut, white=white)
     return rgb
 

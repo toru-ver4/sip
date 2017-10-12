@@ -105,6 +105,28 @@ def equal_devision(length, div_num):
     return ret_array
 
 
+def get_3d_grid_cube_format(grid_num=4):
+    """
+    # 概要
+    (0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 1), ...
+    みたいな配列を返す。
+    CUBE形式の3DLUTを作成する時に便利。
+    """
+
+    base = np.linspace(0, 1, grid_num)
+    ones_x = np.ones((grid_num, grid_num, 1))
+    ones_y = np.ones((grid_num, 1, grid_num))
+    ones_z = np.ones((1, grid_num, grid_num))
+    r_3d = base[np.newaxis, np.newaxis, :] * ones_x
+    g_3d = base[np.newaxis, :, np.newaxis] * ones_y
+    b_3d = base[:, np.newaxis, np.newaxis] * ones_z
+    r_3d = r_3d.flatten()
+    g_3d = g_3d.flatten()
+    b_3d = b_3d.flatten()
+
+    return np.dstack((r_3d, g_3d, b_3d))
+
+
 if __name__ == '__main__':
     # print(equal_devision(10000, 1001))
     data = (100, 100, 3)
