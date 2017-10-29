@@ -81,3 +81,4 @@ signal_generation/h264_10bit_encode/verify/*
 **/db.sqlite3
 **/*.py[co]
 hdr_on_sdr/data/**
+misc/Markdown_de_Slide/
