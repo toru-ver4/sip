@@ -463,7 +463,7 @@ def plot_diff(a, b):
 
 
 def plot_log_graph():
-    stops = 19
+    stops = 29
     sample_num = 1024
 
     # Canon Log1
@@ -484,6 +484,12 @@ def plot_log_graph():
     logx3 = (1 / 2**(x)) * max_val3
     clog3 = canon_log3_oetf(logx3, plot=False)
 
+    # ACEScct
+    max_val_aces_cct = 65504
+    x = np.linspace(0, stops, sample_num)
+    logx_aces_cct = (1 / 2**(x)) * max_val_aces_cct
+    aces_cct = aces_cct_oetf(logx_aces_cct, plot=False)
+
     ax1 = pu.plot_1_graph(fontsize=20,
                           figsize=(16, 10),
                           graph_title="Characteristics of the OETF",
@@ -500,15 +506,127 @@ def plot_log_graph():
                           linewidth=3)
     x_axis = np.log2(logx1 / 0.20)
     y_axis = clog1 * 1023
-    ax1.plot(x_axis, y_axis, 'r-', label="Canon Log")
+    ax1.plot(x_axis, y_axis, 'r-', label="Hoge Log")
     x_axis = np.log2(logx2 / 0.20)
     y_axis = clog2 * 1023
-    ax1.plot(x_axis, y_axis, 'b-', label="Canon Log2")
+    ax1.plot(x_axis, y_axis, 'b-', label="Hoge Log2")
     x_axis = np.log2(logx3 / 0.20)
     y_axis = clog3 * 1023
-    ax1.plot(x_axis, y_axis, 'g-', label="Canon Log3")
+    ax1.plot(x_axis, y_axis, 'g-', label="Hoge Log3")
+    x_axis = np.log2(logx_aces_cct / aces_cct_oetf(0.18))
+    y_axis = aces_cct * 1023
+    ax1.plot(x_axis, y_axis, 'c-', label="ACEScct")
     plt.legend(loc='upper left')
     plt.show()
+
+
+def aces_cct_oetf(x, plot=False):
+    """
+    Defines the *ACEScct* log decoding curve / electro-optical transfer
+    function.
+
+    reference : http://j.mp/S-2016-001_
+
+    Parameters
+    ----------
+    x : numeric or ndarray
+        normalized code value. Interval is [0:65504] .
+
+    Returns
+    -------
+    numeric or ndarray
+        Linear data y.
+
+    Notes
+    -----
+    None
+
+    Examples
+    --------
+    >>> x = np.linspace(0, 1, 1024)
+    >>> y = aces_cct_eotf(x * 65504, plot=True)
+    """
+    y = np.select(
+        (x <= 0.0078125,
+         x > 0.0078125),
+        (10.5402377416545 * x + 0.0729055341958355,
+         (np.log2(x) + 9.72)/17.52))
+
+    if plot:
+        ax1 = pu.plot_1_graph(fontsize=20,
+                              figsize=(10, 8),
+                              graph_title="Title",
+                              graph_title_size=None,
+                              xlabel="X Axis Label", ylabel="Y Axis Label",
+                              axis_label_size=None,
+                              legend_size=17,
+                              xlim=None,
+                              ylim=None,
+                              xtick=None,
+                              ytick=None,
+                              xtick_size=None, ytick_size=None,
+                              linewidth=3)
+        ax1.plot(x, y, label="ACEScct OETF")
+        plt.legend(loc='upper left')
+        plt.show()
+
+    return y
+
+
+def aces_cct_eotf(x, plot=False):
+    """
+    Defines the *ACEScct* log decoding curve / electro-optical transfer
+    function. 
+
+    reference : http://j.mp/S-2016-001_
+
+    Parameters
+    ----------
+    x : numeric or ndarray
+        normalized code value. Interval is [0:1] .
+
+    Returns
+    -------
+    numeric or ndarray
+        Linear data y.
+
+    Notes
+    -----
+    None
+
+    Examples
+    --------
+    >>> max_val = aces_cct_oetf(65504)
+    >>> x = np.linspace(0, 1, 1024)
+    >>> y = aces_cct_eotf(x * max_val, plot=True)
+    """
+    y = np.select(
+        (x <= 0.155251141552511,
+         x < (np.log2(65504) + 9.72) / 17.52,
+         x >= (np.log2(65504) + 9.72) / 17.52),
+        ((x - 0.0729055341958355) / 10.5402377416545,
+         2 ** (x * 17.52 - 9.72),
+         65504))
+
+    if plot:
+        ax1 = pu.plot_1_graph(fontsize=20,
+                              figsize=(10, 8),
+                              graph_title="Title",
+                              graph_title_size=None,
+                              xlabel="X Axis Label", ylabel="Y Axis Label",
+                              axis_label_size=None,
+                              legend_size=17,
+                              xlim=None,
+                              ylim=None,
+                              xtick=None,
+                              ytick=None,
+                              xtick_size=None, ytick_size=None,
+                              linewidth=3)
+        ax1.plot(x, y, label="ACEScct EOTF")
+        plt.legend(loc='upper left')
+        plt.show()
+
+    return y
 
 
 if __name__ == '__main__':
@@ -526,3 +644,22 @@ if __name__ == '__main__':
     # lut = get_1dlut_from_cube_format("./data/cl1.cube")
     # plot_diff(y, lut)
     plot_log_graph()
+    # aces_cct = aces_cct_oetf(x * 65504, plot=True)
+    # result = aces_cct_eotf(aces_cct, plot=True)
+
+    # ax1 = pu.plot_1_graph(fontsize=20,
+    #                       figsize=(10, 8),
+    #                       graph_title="Title",
+    #                       graph_title_size=None,
+    #                       xlabel="X Axis Label", ylabel="Y Axis Label",
+    #                       axis_label_size=None,
+    #                       legend_size=17,
+    #                       xlim=None,
+    #                       ylim=None,
+    #                       xtick=None,
+    #                       ytick=None,
+    #                       xtick_size=None, ytick_size=None,
+    #                       linewidth=3)
+    # ax1.plot(x * 65504, result, label="ACEScct EOTF")
+    # plt.legend(loc='upper left')
+    # plt.show()
