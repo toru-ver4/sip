@@ -13,10 +13,12 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import plot_utility as pu
 import numpy as np
-
+import gamma_curve as gm
 
 gamma_list = ["2.4", "HLG", "PQ", "LOG3G10"]
-scale_default_value = 0.5
+scale_default_value = 3
+scale_max_value = 5
+scale_min_value = 0
 
 
 class TyStatus(ttk.LabelFrame):
@@ -91,7 +93,7 @@ class EotfControl(ttk.LabelFrame):
             widget['reset_button'].bind("<ButtonRelease-1>",
                                         lambda event, args=idx:
                                         reset_func(event, args))
-            widget['scale'].bind("<ButtonRelease-1>", lambda event, args=idx:
+            widget['scale'].bind("<B1-Motion>", lambda event, args=idx:
                                  pre_callback_func(event, args))
 
     def set_widgets(self, widgets_list, g_parent, r_parent, s_parent):
@@ -153,7 +155,8 @@ class EotfControl(ttk.LabelFrame):
             widget_list[idx]['reset_button'] \
                 = ttk.Button(r_parent, text="Reset")
             widget_list[idx]['scale'] \
-                = ttk.Scale(s_parent, orient='h', from_=0, to=1,
+                = ttk.Scale(s_parent, orient='h',
+                            from_=scale_min_value, to=scale_max_value,
                             value=scale_default_value)
 
         return widget_list
@@ -182,8 +185,10 @@ class EotfPlot(ttk.LabelFrame):
         self.first_draw(gamma="2.2")
 
     def first_draw(self, gamma="2.2"):
-        x = np.linspace(0, 1, 1024)
-        y = x ** 2.2
+        self.x = np.linspace(0, 1, 1024)
+        y = (self.x ** 2.2) * 100
+        xtick = [x * 128 for x in range((1024//128)+1)]
+        ytick = [x * 100 for x in range((1000//100)+1)]
         fig, ax1\
             = pu.plot_1_graph_ret_figure(fontsize=10,
                                          figsize=(5, 4),
@@ -193,13 +198,13 @@ class EotfPlot(ttk.LabelFrame):
                                          ylabel="Y Axis Label",
                                          axis_label_size=None,
                                          legend_size=10,
-                                         xlim=None,
-                                         ylim=None,
-                                         xtick=None,
-                                         ytick=None,
+                                         xlim=(0, 1024),
+                                         ylim=(0, 1050),
+                                         xtick=xtick,
+                                         ytick=ytick,
                                          xtick_size=None, ytick_size=None,
                                          linewidth=3)
-        ax1.plot(x, y, label=gamma)
+        self.line, = ax1.plot(self.x * 1024, y, label=gamma)
         plt.legend(loc='upper left')
 
         self.canvas = FigureCanvasTkAgg(fig, master=self)
@@ -207,11 +212,30 @@ class EotfPlot(ttk.LabelFrame):
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
+    def update_draw(self, gamma, gain):
+        y = self.calc_gamma(gamma, gain)
+        self.line.set_ydata(y)
+        self.canvas.show()
+
+    def calc_gamma(self, gamma, gain):
+        if gamma == "2.4":
+            y = (self.x ** 2.4) * gain/scale_default_value * 100
+        elif gamma == "PQ":
+            y = gm.get_bt2100_pq_curve(self.x) * gain/scale_default_value
+        elif gamma == "HLG":
+            y = (gm.get_bt2100_hlg_curve(self.x) ** 1.2) \
+                * gain/scale_default_value * 1000
+        else:
+            y = (self.x ** 2.4) * gain/scale_default_value * 100
+
+        y[y > 1000] = 1000
+        return y
 
     def get_callback_func(self):
         return self.update_parameters
 
-    def update_parameters(self, event, gamma='2.2', gain="0.5"):
+    def update_parameters(self, event, gamma='2.4',
+                          gain="scale_default_value"):
         """
         Update EOTF parameters and re-plot the graph.
 
@@ -233,6 +257,7 @@ class EotfPlot(ttk.LabelFrame):
 
         """
         print("gamma={}, gain={}".format(gamma, gain))
+        self.update_draw(gamma, gain)
 
 
 class GamutPlot(ttk.LabelFrame):
