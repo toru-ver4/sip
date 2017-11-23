@@ -3,10 +3,16 @@
 """
 EOTF and Gamut controller
 """
+import matplotlib
+matplotlib.use('TkAgg')
 
 import os
 import tkinter as tk
 from tkinter import ttk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import plot_utility as pu
+import numpy as np
 
 
 gamma_list = ["2.4", "HLG", "PQ", "LOG3G10"]
@@ -67,7 +73,8 @@ class EotfControl(ttk.LabelFrame):
         self.widgets_list[idx]['scale'].set(scale_default_value)
         self.pre_callback_func(event=None, args=args)
 
-    def set_callback_to_widgets(self, widgets_list, callback_func, reset_func):
+    def set_callback_to_widgets(self, widgets_list,
+                                pre_callback_func, reset_func):
         """
         Set callback function to widgets.
 
@@ -80,12 +87,12 @@ class EotfControl(ttk.LabelFrame):
         for idx, widget in enumerate(widgets_list):
             widget['gamma_button'].bind("<ButtonRelease-1>",
                                         lambda event, args=idx:
-                                        callback_func(event, args))
+                                        pre_callback_func(event, args))
             widget['reset_button'].bind("<ButtonRelease-1>",
                                         lambda event, args=idx:
                                         reset_func(event, args))
             widget['scale'].bind("<ButtonRelease-1>", lambda event, args=idx:
-                                 callback_func(event, args))
+                                 pre_callback_func(event, args))
 
     def set_widgets(self, widgets_list, g_parent, r_parent, s_parent):
         """
@@ -172,6 +179,34 @@ class EotfPlot(ttk.LabelFrame):
     def create_widgets(self):
         self.label = ttk.Label(self, text="plot eotf")
         self.label.pack(fill=tk.BOTH, expand=1)
+        self.first_draw(gamma="2.2")
+
+    def first_draw(self, gamma="2.2"):
+        x = np.linspace(0, 1, 1024)
+        y = x ** 2.2
+        fig, ax1\
+            = pu.plot_1_graph_ret_figure(fontsize=10,
+                                         figsize=(5, 4),
+                                         graph_title="Title",
+                                         graph_title_size=None,
+                                         xlabel="X Axis Label",
+                                         ylabel="Y Axis Label",
+                                         axis_label_size=None,
+                                         legend_size=10,
+                                         xlim=None,
+                                         ylim=None,
+                                         xtick=None,
+                                         ytick=None,
+                                         xtick_size=None, ytick_size=None,
+                                         linewidth=3)
+        ax1.plot(x, y, label=gamma)
+        plt.legend(loc='upper left')
+
+        self.canvas = FigureCanvasTkAgg(fig, master=self)
+        self.canvas.show()
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
 
     def get_callback_func(self):
         return self.update_parameters

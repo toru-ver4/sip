@@ -5,7 +5,10 @@ EOTF and Gamut controller
 """
 
 import os
-import tkinter
+import tkinter as tk
+from tkinter import ttk
+
+
 
 
 if __name__ == '__main__':

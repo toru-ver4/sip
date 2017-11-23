@@ -13,6 +13,7 @@ import ty_widgets as tyw
 class Application(ttk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
+        self.root = master
         self.pack()
         self.create_widgets()
 
@@ -30,6 +31,10 @@ class Application(ttk.Frame):
 
         # add additional pane
         # -------------------
+        quit_button = tk.Button(master=ctrl_pane, text='Quit',
+                                bg="#FF3333", command=self._quit)
+        ctrl_pane.add(quit_button)
+
         status_frame = tyw.TyStatus(master=ctrl_pane, text="status")
         ctrl_pane.add(status_frame)
 
@@ -51,6 +56,11 @@ class Application(ttk.Frame):
         # ------------------------
         eotf_callback_func = eotf_plot_frame.get_callback_func()
         eotf_ctrl_frame.set_callback_function(eotf_callback_func)
+
+
+    def _quit(self):
+        self.root.quit()     # stops mainloop
+        self.root.destroy()  # this is necessary on Windows to prevent
 
 
 def run():

@@ -128,6 +128,45 @@ def plot_1_graph(fontsize=12, **kwargs):
     return ax1
 
 
+def plot_1_graph_ret_figure(fontsize=12, **kwargs):
+    _set_common_parameters(fontsize=fontsize, **kwargs)
+
+    if 'figsize' in kwargs and kwargs['figsize']:
+        figsize = kwargs['figsize']
+    else:
+        figsize = (12, 8)
+
+    fig = plt.figure(figsize=figsize)
+    ax1 = fig.add_subplot(111)
+
+    if 'xlim' in kwargs and kwargs['xlim']:
+        ax1.set_xlim(kwargs['xlim'][0], kwargs['xlim'][1])
+
+    if 'ylim' in kwargs and kwargs['ylim']:
+        ax1.set_ylim(kwargs['ylim'][0], kwargs['ylim'][1])
+
+    if 'graph_title' in kwargs and kwargs['graph_title']:
+        ax1.set_title(kwargs['graph_title'])
+
+    if 'xlabel' in kwargs and kwargs['xlabel']:
+        ax1.set_xlabel(kwargs['xlabel'])
+
+    if 'ylabel' in kwargs and kwargs['ylabel']:
+        ax1.set_ylabel(kwargs['ylabel'])
+
+    if 'xtick' in kwargs and kwargs['xtick']:
+        ax1.set_xticks(kwargs['xtick'])
+
+    if 'ytick' in kwargs and kwargs['ytick']:
+        ax1.set_yticks(kwargs['ytick'])
+
+    # Adjust the position
+    # ------------------------------------
+    fig.tight_layout()
+
+    return fig, ax1
+
+
 def _check_hsv_space():
     """
     # 概要
