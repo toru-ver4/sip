@@ -10,6 +10,7 @@ from tkinter import ttk
 
 
 gamma_list = ["2.4", "HLG", "PQ", "LOG3G10"]
+scale_default_value = 0.5
 
 
 class TyStatus(ttk.LabelFrame):
@@ -44,17 +45,44 @@ class EotfControl(ttk.LabelFrame):
         base_pane.add(scale_pane)
 
         # put widgets
-        widgets_list = self.get_eotf_ctrl_widgets_array(g_button_pane,
-                                                        r_button_pane,
-                                                        scale_pane)
-        self.set_widgets(widgets_list, g_button_pane,
+        self.widgets_list\
+            = self.get_eotf_ctrl_widgets_array(g_button_pane, r_button_pane,
+                                               scale_pane)
+        self.set_widgets(self.widgets_list, g_button_pane,
                          r_button_pane, scale_pane)
-        # select_button = ttk.Button(line_pane, text="gamma=2.2")
-        # line_pane.add(select_button)
-        # reset_button = ttk.Button(line_pane, text="Reset")
-        # line_pane.add(reset_button)
-        # scale = ttk.Scale(line_pane, orient='h')
-        # line_pane.add(scale)
+        self.set_callback_to_widgets(self.widgets_list,
+                                     self.callback_func, self.reset_func)
+
+    def callback_func(self, event, args):
+        idx = args
+        gamma = self.widgets_list[idx]['name']
+        gain = self.widgets_list[idx]['scale'].get()
+        print("gamma={}, gain={}".format(gamma, gain))
+
+    def reset_func(self, event, args):
+        idx = args
+        self.widgets_list[idx]['scale'].set(scale_default_value)
+        self.callback_func(event=None, args=args)
+
+    def set_callback_to_widgets(self, widgets_list, callback_func, reset_func):
+        """
+        Set callback function to widgets.
+
+        Parameters
+        ----------
+        self : -
+        widgets_list : A list of dictionaries below.
+            [{"idx", "name", "gamma_button", "reset_button", "scale"}]
+        """
+        for idx, widget in enumerate(widgets_list):
+            widget['gamma_button'].bind("<ButtonRelease-1>",
+                                        lambda event, args=idx:
+                                        callback_func(event, args))
+            widget['reset_button'].bind("<ButtonRelease-1>",
+                                        lambda event, args=idx:
+                                        reset_func(event, args))
+            widget['scale'].bind("<ButtonRelease-1>", lambda event, args=idx:
+                                 callback_func(event, args))
 
     def set_widgets(self, widgets_list, g_parent, r_parent, s_parent):
         """
@@ -123,7 +151,8 @@ class EotfControl(ttk.LabelFrame):
             widget_list[idx]['reset_button'] \
                 = ttk.Button(r_parent, text="Reset")
             widget_list[idx]['scale'] \
-                = ttk.Scale(s_parent, orient='h', from_=0, to=1, value=0.5)
+                = ttk.Scale(s_parent, orient='h', from_=0, to=1,
+                            value=scale_default_value)
 
         return widget_list
 
@@ -161,9 +190,5 @@ class GamutPlot(ttk.LabelFrame):
         self.label.pack(fill=tk.BOTH, expand=1)
 
 
-
-
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    parts_array = get_parts_array()
-    print(parts_array)
