@@ -30,6 +30,9 @@ class EotfControl(ttk.LabelFrame):
         self.pack()
         self.create_widgets()
 
+    def set_callback_function(self, callback_func):
+        self.callback_func = callback_func
+
     def create_widgets(self):
         # prepare the basic pane
         base_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
@@ -51,18 +54,18 @@ class EotfControl(ttk.LabelFrame):
         self.set_widgets(self.widgets_list, g_button_pane,
                          r_button_pane, scale_pane)
         self.set_callback_to_widgets(self.widgets_list,
-                                     self.callback_func, self.reset_func)
+                                     self.pre_callback_func, self.reset_func)
 
-    def callback_func(self, event, args):
+    def pre_callback_func(self, event, args):
         idx = args
         gamma = self.widgets_list[idx]['name']
         gain = self.widgets_list[idx]['scale'].get()
-        print("gamma={}, gain={}".format(gamma, gain))
+        self.callback_func(event=event, gamma=gamma, gain=gain)
 
     def reset_func(self, event, args):
         idx = args
         self.widgets_list[idx]['scale'].set(scale_default_value)
-        self.callback_func(event=None, args=args)
+        self.pre_callback_func(event=None, args=args)
 
     def set_callback_to_widgets(self, widgets_list, callback_func, reset_func):
         """
@@ -99,14 +102,6 @@ class EotfControl(ttk.LabelFrame):
             parent for reset button.
         s_parent : widget class
             parent for scale.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        None
 
         """
         for parts in widgets_list:
@@ -177,6 +172,32 @@ class EotfPlot(ttk.LabelFrame):
     def create_widgets(self):
         self.label = ttk.Label(self, text="plot eotf")
         self.label.pack(fill=tk.BOTH, expand=1)
+
+    def get_callback_func(self):
+        return self.update_parameters
+
+    def update_parameters(self, event, gamma='2.2', gain="0.5"):
+        """
+        Update EOTF parameters and re-plot the graph.
+
+        Parameters
+        ----------
+        self : -
+        gamma : character
+            type of gamma curve.
+        gain : double
+            gain for gamma curve.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        None
+
+        """
+        print("gamma={}, gain={}".format(gamma, gain))
 
 
 class GamutPlot(ttk.LabelFrame):
