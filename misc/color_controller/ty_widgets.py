@@ -14,6 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import plot_utility as pu
 import numpy as np
 import gamma_curve as gm
+import color_convert as cc
 
 gamma_list = ["2.4", "HLG", "PQ", "LOG3G10"]
 scale_default_value = 3
@@ -180,13 +181,13 @@ class EotfPlot(ttk.LabelFrame):
         self.create_widgets()
 
     def create_widgets(self):
-        self.label = ttk.Label(self, text="plot eotf")
-        self.label.pack(fill=tk.BOTH, expand=1)
-        self.first_draw(gamma="2.2")
+        # self.label = ttk.Label(self, text="plot eotf")
+        # self.label.pack(fill=tk.BOTH, expand=1)
+        self.first_draw(gamma="2.4")
 
-    def first_draw(self, gamma="2.2"):
+    def first_draw(self, gamma="2.4"):
         self.x = np.linspace(0, 1, 1024)
-        y = (self.x ** 2.2) * 100
+        y = (self.x ** 2.4) * 100
         xtick = [x * 128 for x in range((1024//128)+1)]
         ytick = [x * 100 for x in range((1000//100)+1)]
         fig, ax1\
@@ -267,8 +268,46 @@ class GamutPlot(ttk.LabelFrame):
         self.create_widgets()
 
     def create_widgets(self):
-        self.label = ttk.Label(self, text="plot gamut")
-        self.label.pack(fill=tk.BOTH, expand=1)
+        # self.label = ttk.Label(self, text="plot gamut")
+        # self.label.pack(fill=tk.BOTH, expand=1)
+        self.first_draw()
+
+    def first_draw(self, gamma="2.4", csv_name="./data/xyz_value.csv"):
+        csv_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                csv_name)
+        large_xyz = np.loadtxt(csv_file, delimiter=',', usecols=(1, 2, 3))
+        large_xyz = np.reshape(large_xyz,
+                               (1, large_xyz.shape[0], large_xyz.shape[1]))
+        xy = cc.large_xyz_to_small_xy(large_xyz)
+        min_idx = np.argmin(xy, axis=1)[0][1]
+        max_idx = np.argmax(xy, axis=1)[0][0]
+        xy = np.append(xy, np.array([[xy[0][max_idx]]]), axis=1)
+        xy = np.append(xy, np.array([[xy[0][min_idx]]]), axis=1)
+
+        xtick = [x * 0.1 for x in range(-1, 10)]
+        ytick = [x * 0.1 for x in range(-1, 11)]
+        fig, ax1\
+            = pu.plot_1_graph_ret_figure(fontsize=10,
+                                         figsize=(5, 5),
+                                         graph_title="Title",
+                                         graph_title_size=None,
+                                         xlabel="X Axis Label",
+                                         ylabel="Y Axis Label",
+                                         axis_label_size=None,
+                                         legend_size=10,
+                                         xlim=(-0.1, 0.9),
+                                         ylim=(-0.1, 1.0),
+                                         xtick=xtick,
+                                         ytick=ytick,
+                                         xtick_size=None, ytick_size=None,
+                                         linewidth=1)
+        ax1.plot(xy[0, :, 0], xy[0, :, 1], 'k-', label="CIE2006")
+        plt.legend(loc='upper right')
+
+        self.canvas = FigureCanvasTkAgg(fig, master=self)
+        self.canvas.show()
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)        
 
 
 if __name__ == '__main__':

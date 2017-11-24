@@ -31,9 +31,7 @@ class Application(ttk.Frame):
 
         # add additional pane
         # -------------------
-        quit_button = tk.Button(master=ctrl_pane, text='Quit',
-                                bg="#FF3333", command=self._quit)
-        ctrl_pane.add(quit_button)
+        self.root.protocol("WM_DELETE_WINDOW", self._quit)
 
         status_frame = tyw.TyStatus(master=ctrl_pane, text="status")
         ctrl_pane.add(status_frame)
@@ -57,7 +55,6 @@ class Application(ttk.Frame):
         eotf_callback_func = eotf_plot_frame.get_callback_func()
         eotf_ctrl_frame.set_callback_function(eotf_callback_func)
 
-
     def _quit(self):
         self.root.quit()     # stops mainloop
         self.root.destroy()  # this is necessary on Windows to prevent
@@ -65,6 +62,7 @@ class Application(ttk.Frame):
 
 def run():
     root = tk.Tk()
+    root.geometry("1024x1024")
     app = Application(master=root)
     app.mainloop()
 
