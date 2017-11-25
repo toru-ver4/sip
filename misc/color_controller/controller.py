@@ -53,7 +53,10 @@ class Application(ttk.Frame):
         # manage callback fuctions
         # ------------------------
         eotf_callback_func = eotf_plot_frame.get_callback_func()
-        eotf_ctrl_frame.set_callback_function(eotf_callback_func)
+        eotf_ctrl_frame.set_callback_func(eotf_callback_func)
+
+        gamut_callback_func = gamut_plot_frame.get_callback_func()
+        gamut_ctrl_frame.set_callback_func(gamut_callback_func)
 
     def _quit(self):
         self.root.quit()     # stops mainloop
