@@ -15,8 +15,10 @@ import plot_utility as pu
 import numpy as np
 import gamma_curve as gm
 import color_convert as cc
+import sys
 
 gamma_list = ["2.4", "HLG", "PQ", "LOG3G10"]
+gamut_list = ["REC709, REC2020, DCI", "RWG"]
 scale_default_value = 3
 scale_max_value = 5
 scale_min_value = 0
@@ -46,14 +48,14 @@ class EotfControl(ttk.LabelFrame):
         # prepare the basic pane
         base_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         base_pane.pack(fill=tk.BOTH, expand=1)
-        g_button_pane = ttk.PanedWindow(base_pane, orient=tk.VERTICAL)
-        g_button_pane.pack(fill=tk.BOTH, expand=1)
+        g_button_pane = ttk.Frame(base_pane)
+        g_button_pane.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         base_pane.add(g_button_pane)
-        r_button_pane = ttk.PanedWindow(base_pane, orient=tk.VERTICAL)
-        r_button_pane.pack(fill=tk.BOTH, expand=1)
+        r_button_pane = ttk.Frame(base_pane)
+        r_button_pane.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         base_pane.add(r_button_pane)
-        scale_pane = ttk.PanedWindow(base_pane, orient=tk.VERTICAL)
-        scale_pane.pack(fill=tk.BOTH, expand=1)
+        scale_pane = ttk.Frame(base_pane)
+        scale_pane.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         base_pane.add(scale_pane)
 
         # put widgets
@@ -115,9 +117,9 @@ class EotfControl(ttk.LabelFrame):
 
         """
         for parts in widgets_list:
-            g_parent.add(parts['gamma_button'])
-            r_parent.add(parts['reset_button'])
-            s_parent.add(parts['scale'])
+            parts['gamma_button'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+            parts['reset_button'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+            parts['scale'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
     def get_eotf_ctrl_widgets_array(self, g_parent, r_parent, s_parent,
                                     gamma_list=gamma_list):
@@ -166,12 +168,69 @@ class EotfControl(ttk.LabelFrame):
 class GamutControl(ttk.LabelFrame):
     def __init__(self, master=None, text="", labelanchor=tk.NW):
         super().__init__(master, text=text, labelanchor=labelanchor)
+        self.rb_value = tk.StringVar()
         self.pack()
         self.create_widgets()
 
     def create_widgets(self):
-        self.label = ttk.Label(self, text="gamut control")
-        self.label.pack(fill=tk.BOTH, expand=1)
+        # self.label = ttk.Label(self, text="gamut control")
+        # self.label.pack(fill=tk.BOTH, expand=1)
+        base_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
+        base_pane.pack(fill=tk.BOTH, expand=1)
+        g_button_frame = ttk.Frame(base_pane)
+        g_button_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        base_pane.add(g_button_frame)
+        r_button_frame = ttk.Frame(base_pane)
+        r_button_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        base_pane.add(r_button_frame)
+        widgets_list = self.get_widgets_array(g_button_frame, r_button_frame)
+        print(widgets_list)
+
+    def set_widgets(self, g_parent, r_parent):
+        # for parts in widgets_list:
+        #     parts['gamma_button'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        #     parts['reset_button'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        #     parts['scale'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        pass
+
+    def get_widgets_array(self, g_parent, r_parent, gamut_list=gamut_list):
+        """
+        Get widgets array for control gamut.
+
+        Parameters
+        ----------
+        self : -
+        g_parent : widget class
+            parent for gamut button.
+        r_parent : widget class
+            parent for radio button.
+        gamut_list : array of character
+            a list contain supported gamut.
+
+        Returns
+        -------
+        A list of dictionaries below.
+            {"gamut_button"[], "radio_button"[off/on], "primary"[r/g/b]}
+
+        Notes
+        -----
+        None
+
+        """
+        widget_list = {"gamut_button": [], "radio_button": [], "primary": []}
+        widget_list["gamut_button"] = [0] * len(gamut_list)
+        widget_list["radio_button"] = [0] * 2
+        widget_list["primary"] = [0] * 3
+        for idx, gamut in enumerate(gamut_list):
+            widget_list["gamut_button"][idx] = ttk.Button(g_parent, text=gamut)
+        widget_list["radio_button"][0]\
+            = ttk.Radiobutton(r_parent, text='clip off',
+                              variable=self.rb_value, value="off")
+        widget_list["radio_button"][1]\
+            = ttk.Radiobutton(r_parent, text='clip on',
+                              variable=self.rb_value, value="on")
+
+        return widget_list
 
 
 class EotfPlot(ttk.LabelFrame):
@@ -258,6 +317,7 @@ class EotfPlot(ttk.LabelFrame):
 
         """
         print("gamma={}, gain={}".format(gamma, gain))
+        sys.stdout.flush()
         self.update_draw(gamma, gain)
 
 
