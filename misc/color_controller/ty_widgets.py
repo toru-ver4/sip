@@ -22,6 +22,7 @@ scale_default_value = 3
 scale_max_value = 5
 scale_min_value = 0
 
+d65_xy = [0.31271, 0.32902]
 rec709_xy = [[0.64, 0.33],
              [0.30, 0.60],
              [0.15, 0.06]]
@@ -437,7 +438,14 @@ class GamutPlot(ttk.LabelFrame):
                                          ytick=ytick,
                                          xtick_size=None, ytick_size=None,
                                          linewidth=1)
-        ax1.plot(xy[0, :, 0], xy[0, :, 1], 'k-', label="CIE 1931")
+        ax1.plot(xy[0, :, 0], xy[0, :, 1], '-', color="#404040",
+                 label="CIE 1931")
+        ax1.plot(d65_xy[0], d65_xy[1], 'kx', label="D65_White")
+        rec2020 = self.get_xy_primary(gamut="REC2020", clip="on")
+        ax1.plot(rec2020[0], rec2020[1], '--', color="#800080",
+                 label="REC2020")
+        dci = self.get_xy_primary(gamut="DCI", clip="on")
+        ax1.plot(dci[0], dci[1], '--', color="#008080", label="DCI-P3")
 
         # plot rec709 gamut
         # --------------------
