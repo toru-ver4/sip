@@ -70,6 +70,8 @@ class TyStatus(ttk.LabelFrame):
 class EotfControl(ttk.LabelFrame):
     def __init__(self, master=None, text="", labelanchor=tk.NW):
         super().__init__(master, text=text, labelanchor=labelanchor)
+        self.gamma_button_value = tk.StringVar(None, "2.4")
+        self.r_row_num = 3
         self.pack()
         self.create_widgets()
 
@@ -78,37 +80,47 @@ class EotfControl(ttk.LabelFrame):
 
     def create_widgets(self):
         # prepare the basic pane
-        base_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
+        base_pane = ttk.PanedWindow(self, orient=tk.VERTICAL)
         base_pane.pack(fill=tk.BOTH, expand=1)
-        g_button_pane = ttk.Frame(base_pane)
-        g_button_pane.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        base_pane.add(g_button_pane)
-        r_button_pane = ttk.Frame(base_pane)
-        r_button_pane.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        base_pane.add(r_button_pane)
-        scale_pane = ttk.Frame(base_pane)
-        scale_pane.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        base_pane.add(scale_pane)
+        g_button_frame = ttk.Frame(base_pane)
+        g_button_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        base_pane.add(g_button_frame)
+        gain_frame = ttk.PanedWindow(base_pane, orient=tk.HORIZONTAL)
+        gain_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        base_pane.add(gain_frame)
+        scale_frame = ttk.Frame(gain_frame)
+        scale_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        gain_frame.add(scale_frame)
+        r_button_frame = ttk.Frame(gain_frame)
+        r_button_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        gain_frame.add(r_button_frame)
 
         # put widgets
         self.widgets_list\
-            = self.get_eotf_ctrl_widgets_array(g_button_pane, r_button_pane,
-                                               scale_pane)
-        self.set_widgets(self.widgets_list, g_button_pane,
-                         r_button_pane, scale_pane)
+            = self.get_eotf_ctrl_widgets_array(g_button_frame, r_button_frame,
+                                               scale_frame)
+        self.set_widgets(self.widgets_list, g_button_frame,
+                         r_button_frame, scale_frame)
         self.set_callback_to_widgets(self.widgets_list,
                                      self.pre_callback_func, self.reset_func)
 
-    def pre_callback_func(self, event, args):
-        idx = args
-        gamma = self.widgets_list[idx]['name']
-        gain = self.widgets_list[idx]['scale'].get()
+    def idx_to_row_col(self, idx):
+        row = idx // self.r_row_num
+        col = idx % self.r_row_num
+
+        return row, col
+
+    def pre_callback_func(self, event, gamma_idx):
+        if gamma_idx is not None:
+            gamma = gamma_list[gamma_idx]
+        else:
+            gamma = self.gamma_button_value.get()
+        gain = self.widgets_list['scale'].get()
         self.callback_func(event=event, gamma=gamma, gain=gain)
 
-    def reset_func(self, event, args):
-        idx = args
-        self.widgets_list[idx]['scale'].set(scale_default_value)
-        self.pre_callback_func(event=None, args=args)
+    def reset_func(self, event):
+        self.widgets_list['scale'].set(scale_default_value)
+        self.pre_callback_func(event=None, gamma_idx=None)
 
     def set_callback_to_widgets(self, widgets_list,
                                 pre_callback_func, reset_func):
@@ -118,18 +130,20 @@ class EotfControl(ttk.LabelFrame):
         Parameters
         ----------
         self : -
-        widgets_list : A list of dictionaries below.
-            [{"idx", "name", "gamma_button", "reset_button", "scale"}]
+        widgets_list : A dictionaries below.
+            {"gamma_button"[], "reset_button", "scale"}
         """
-        for idx, widget in enumerate(widgets_list):
-            widget['gamma_button'].bind("<ButtonRelease-1>",
-                                        lambda event, args=idx:
-                                        pre_callback_func(event, args))
-            widget['reset_button'].bind("<ButtonRelease-1>",
-                                        lambda event, args=idx:
-                                        reset_func(event, args))
-            widget['scale'].bind("<B1-Motion>", lambda event, args=idx:
-                                 pre_callback_func(event, args))
+        for idx, g_button in enumerate(widgets_list["gamma_button"]):
+            g_button.bind("<ButtonRelease-1>", lambda event,
+                          gamma_idx=idx:
+                          self.pre_callback_func(event, gamma_idx))
+        widgets_list['reset_button'].bind("<ButtonRelease-1>",
+                                          lambda event:
+                                          self.reset_func(event))
+        widgets_list['scale'].bind("<B1-Motion>",
+                                   lambda event,
+                                   gamma_idx=None:
+                                   self.pre_callback_func(event, gamma_idx))
 
     def set_widgets(self, widgets_list, g_parent, r_parent, s_parent):
         """
@@ -138,8 +152,8 @@ class EotfControl(ttk.LabelFrame):
         Parameters
         ----------
         self : -
-        widgets_list : A list of dictionaries below.
-            [{"idx", "name", "gamma_button", "reset_button", "scale"}]
+        widgets_list : A dictionaries below.
+            {"gamma_button"[], "reset_button", "scale"}
         g_parent : widget class
             parent for gamma button.
         r_parent : widget class
@@ -148,10 +162,12 @@ class EotfControl(ttk.LabelFrame):
             parent for scale.
 
         """
-        for parts in widgets_list:
-            parts['gamma_button'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-            parts['reset_button'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-            parts['scale'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        for idx, g_button in enumerate(widgets_list["gamma_button"]):
+            row, col = self.idx_to_row_col(idx)
+            g_button.grid(row=row, column=col, sticky=tk.W)
+        
+        widgets_list['reset_button'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        widgets_list['scale'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
     def get_eotf_ctrl_widgets_array(self, g_parent, r_parent, s_parent,
                                     gamma_list=gamma_list):
@@ -172,8 +188,8 @@ class EotfControl(ttk.LabelFrame):
 
         Returns
         -------
-        A list of dictionaries below.
-            [{"idx", "name", "gamma_button", "reset_button", "scale"}]
+        A dictionaries below.
+            {"gamma_button"[], "reset_button", "scale"}
 
         Notes
         -----
@@ -181,18 +197,19 @@ class EotfControl(ttk.LabelFrame):
 
         """
         widget_list = [0] * len(gamma_list)
+        widget_list = {"gamma_button": []}
+        widget_list["gamma_button"] = [0] * len(gamma_list)
         for idx, gamma in enumerate(gamma_list):
-            widget_list[idx] = {}
-            widget_list[idx]['idx'] = idx
-            widget_list[idx]['name'] = gamma
-            widget_list[idx]['gamma_button'] \
-                = ttk.Button(g_parent, text=gamma)
-            widget_list[idx]['reset_button'] \
-                = ttk.Button(r_parent, text="Reset")
-            widget_list[idx]['scale'] \
-                = ttk.Scale(s_parent, orient='h',
-                            from_=scale_min_value, to=scale_max_value,
-                            value=scale_default_value)
+            widget_list['gamma_button'][idx] \
+                = ttk.Radiobutton(g_parent, text=gamma,
+                                  variable=self.gamma_button_value,
+                                  value=gamma)
+
+        widget_list['reset_button'] = ttk.Button(r_parent, text="Reset")
+        widget_list['scale']\
+            = ttk.Scale(s_parent, orient='h',
+                        from_=scale_min_value, to=scale_max_value,
+                        value=scale_default_value)
 
         return widget_list
 
@@ -200,7 +217,7 @@ class EotfControl(ttk.LabelFrame):
 class GamutControl(ttk.LabelFrame):
     def __init__(self, master=None, text="", labelanchor=tk.NW):
         super().__init__(master, text=text, labelanchor=labelanchor)
-        self.gb_value = tk.StringVar(None, "REC709")
+        self.gamut_button_value = tk.StringVar(None, "REC709")
         self.rb_value = tk.StringVar(None, "on")
         self.r_row_num = 3
         self.pack()
@@ -217,7 +234,6 @@ class GamutControl(ttk.LabelFrame):
 
     def set_callback_to_widgets(self, widgets_list):
         for idx, g_button in enumerate(widgets_list["gamut_button"]):
-            row, col = self.idx_to_row_col(idx)
             g_button.bind("<Button-1>",
                           lambda event, gamut=gamut_list[idx],
                           clip=self.rb_value:
@@ -279,7 +295,8 @@ class GamutControl(ttk.LabelFrame):
         for idx, gamut in enumerate(gamut_list):
             widget_list["gamut_button"][idx]\
                 = ttk.Radiobutton(g_parent, text=gamut,
-                                  variable=self.gb_value, value=gamut)
+                                  variable=self.gamut_button_value,
+                                  value=gamut)
         widget_list["radio_button"][0]\
             = ttk.Radiobutton(r_parent, text='clip off',
                               variable=self.rb_value, value="off")
@@ -332,6 +349,8 @@ class EotfPlot(ttk.LabelFrame):
     def update_draw(self, gamma, gain):
         y = self.calc_gamma(gamma, gain)
         self.line.set_ydata(y)
+        self.line.set_label(gamma)
+        plt.legend(loc='upper left')
         self.canvas.show()
 
     def calc_gamma(self, gamma, gain):
