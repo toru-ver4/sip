@@ -8,12 +8,14 @@ import os
 import tkinter as tk
 from tkinter import ttk
 import ty_widgets as tyw
+import parameter as prm
 
 
 class Application(ttk.Frame):
-    def __init__(self, master=None):
+    def __init__(self, master=None, width=prm.base_pane_width):
         super().__init__(master)
         self.root = master
+        self.root.geometry("{}x{}".format(prm.base_pane_width, 1024))
         self.pack()
         self.create_widgets()
 
@@ -22,10 +24,12 @@ class Application(ttk.Frame):
         # ----------------
         base_pane = ttk.PanedWindow(orient=tk.HORIZONTAL)
         base_pane.pack(fill=tk.BOTH, expand=1)
-        ctrl_pane = ttk.PanedWindow(base_pane, orient=tk.VERTICAL)
+        ctrl_pane = ttk.PanedWindow(base_pane, orient=tk.VERTICAL,
+                                    width=prm.ctrl_pane_width)
         ctrl_pane.pack(fill=tk.BOTH, expand=1)
         base_pane.add(ctrl_pane)
-        plot_pane = ttk.PanedWindow(base_pane, orient=tk.VERTICAL)
+        plot_pane = ttk.PanedWindow(base_pane, orient=tk.VERTICAL,
+                                    width=prm.plot_pane_width)
         plot_pane.pack(fill=tk.BOTH, expand=1)
         base_pane.add(plot_pane)
 
@@ -47,7 +51,7 @@ class Application(ttk.Frame):
         eotf_plot_frame = tyw.EotfPlot(master=plot_pane, text="plot eotf")
         plot_pane.add(eotf_plot_frame)
 
-        gamut_plot_frame = tyw.GamutPlot(master=plot_pane, text="gamut eotf")
+        gamut_plot_frame = tyw.GamutPlot(master=plot_pane, text="plot gamut")
         plot_pane.add(gamut_plot_frame)
 
         # manage callback fuctions

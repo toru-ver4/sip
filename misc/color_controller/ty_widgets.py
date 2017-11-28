@@ -6,6 +6,7 @@ EOTF and Gamut controller
 import matplotlib
 matplotlib.use('TkAgg')
 
+
 import os
 import tkinter as tk
 from tkinter import ttk
@@ -16,11 +17,13 @@ import numpy as np
 import gamma_curve as gm
 import color_convert as cc
 import sys
+import parameter as prm
+
 
 gamma_list = ["2.4", "HLG", "PQ", "LOG3G10"]
-scale_default_value = 3
-scale_max_value = 5
-scale_min_value = 0
+scale_default_value = prm.scale_default_value
+scale_max_value = prm.scale_max_value
+scale_min_value = prm.scale_min_value
 
 d65_xy = [0.31271, 0.32902]
 rec709_xy = [[0.64, 0.33],
@@ -71,7 +74,7 @@ class EotfControl(ttk.LabelFrame):
     def __init__(self, master=None, text="", labelanchor=tk.NW):
         super().__init__(master, text=text, labelanchor=labelanchor)
         self.gamma_button_value = tk.StringVar(None, "2.4")
-        self.r_row_num = 3
+        self.r_row_num = prm.eotf_row_num
         self.pack()
         self.create_widgets()
 
@@ -89,7 +92,7 @@ class EotfControl(ttk.LabelFrame):
         gain_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
         base_pane.add(gain_frame)
         scale_frame = ttk.Frame(gain_frame)
-        scale_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        scale_frame.pack(side=tk.LEFT, fill=tk.NONE, expand=1)
         gain_frame.add(scale_frame)
         r_button_frame = ttk.Frame(gain_frame)
         r_button_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
@@ -166,8 +169,8 @@ class EotfControl(ttk.LabelFrame):
             row, col = self.idx_to_row_col(idx)
             g_button.grid(row=row, column=col, sticky=tk.W)
         
-        widgets_list['reset_button'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        widgets_list['scale'].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        widgets_list['scale'].pack(side=tk.LEFT, fill=tk.NONE, expand=1)
+        widgets_list['reset_button'].pack(side=tk.LEFT, fill=tk.X, expand=1)
 
     def get_eotf_ctrl_widgets_array(self, g_parent, r_parent, s_parent,
                                     gamma_list=gamma_list):
@@ -209,7 +212,8 @@ class EotfControl(ttk.LabelFrame):
         widget_list['scale']\
             = ttk.Scale(s_parent, orient='h',
                         from_=scale_min_value, to=scale_max_value,
-                        value=scale_default_value)
+                        value=scale_default_value,
+                        length=prm.gamma_scale_width)
 
         return widget_list
 
@@ -219,7 +223,7 @@ class GamutControl(ttk.LabelFrame):
         super().__init__(master, text=text, labelanchor=labelanchor)
         self.gamut_button_value = tk.StringVar(None, "REC709")
         self.rb_value = tk.StringVar(None, "on")
-        self.r_row_num = 3
+        self.r_row_num = prm.gamut_row_num
         self.pack()
         self.create_widgets()
 
