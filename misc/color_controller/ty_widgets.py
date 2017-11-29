@@ -26,6 +26,7 @@ scale_max_value = prm.scale_max_value
 scale_min_value = prm.scale_min_value
 
 d65_xy = [0.31271, 0.32902]
+dci_white_xy = [0.314, 0.351]
 rec709_xy = [[0.64, 0.33],
              [0.30, 0.60],
              [0.15, 0.06]]
@@ -265,8 +266,8 @@ class GamutControl(ttk.LabelFrame):
             row, col = self.idx_to_row_col(idx)
             g_button.grid(row=row, column=col, sticky=tk.W)
 
-        widget_list["radio_button"][0].pack(anchor=tk.W, side=tk.LEFT)
-        widget_list["radio_button"][1].pack(anchor=tk.W, side=tk.LEFT)
+        # widget_list["radio_button"][0].pack(anchor=tk.W, side=tk.LEFT)
+        # widget_list["radio_button"][1].pack(anchor=tk.W, side=tk.LEFT)
 
     def get_widgets_array(self, g_parent, r_parent, gamut_list=gamut_list):
         """
@@ -328,14 +329,14 @@ class EotfPlot(ttk.LabelFrame):
         xtick = [x * 128 for x in range((1024//128)+1)]
         ytick = [x * 100 for x in range((1000//100)+1)]
         fig, ax1\
-            = pu.plot_1_graph_ret_figure(fontsize=10,
+            = pu.plot_1_graph_ret_figure(fontsize=prm.plot_font_size,
                                          figsize=(5, 4),
-                                         graph_title="Title",
+                                         graph_title=None,
                                          graph_title_size=None,
-                                         xlabel="X Axis Label",
-                                         ylabel="Y Axis Label",
+                                         xlabel="Video Level (10bit)",
+                                         ylabel="Output Brightness [nits]",
                                          axis_label_size=None,
-                                         legend_size=10,
+                                         legend_size=prm.plot_font_size,
                                          xlim=(0, 1024),
                                          ylim=(0, 1050),
                                          xtick=xtick,
@@ -343,7 +344,7 @@ class EotfPlot(ttk.LabelFrame):
                                          xtick_size=None, ytick_size=None,
                                          linewidth=3)
         self.line, = ax1.plot(self.x * 1024, y, label=gamma)
-        plt.legend(loc='upper left')
+        # plt.legend(loc='upper left')
 
         self.canvas = FigureCanvasTkAgg(fig, master=self)
         self.canvas.show()
@@ -354,7 +355,7 @@ class EotfPlot(ttk.LabelFrame):
         y = self.calc_gamma(gamma, gain)
         self.line.set_ydata(y)
         self.line.set_label(gamma)
-        plt.legend(loc='upper left')
+        # plt.legend(loc='upper left')
         self.canvas.show()
 
     def calc_gamma(self, gamma, gain):
@@ -447,23 +448,23 @@ class GamutPlot(ttk.LabelFrame):
         xtick = [x * 0.1 for x in range(-1, 9)]
         ytick = [x * 0.1 for x in range(-1, 16)]
         fig, ax1\
-            = pu.plot_1_graph_ret_figure(fontsize=10,
+            = pu.plot_1_graph_ret_figure(fontsize=prm.plot_font_size,
                                          figsize=(5, 8),
-                                         graph_title="Title",
+                                         graph_title=None,
                                          graph_title_size=None,
-                                         xlabel="X Axis Label",
-                                         ylabel="Y Axis Label",
+                                         xlabel=None,
+                                         ylabel=None,
                                          axis_label_size=None,
-                                         legend_size=10,
+                                         legend_size=prm.plot_font_size,
                                          xlim=(-0.11, 0.8),
                                          ylim=(-0.11, 1.5),
                                          xtick=xtick,
                                          ytick=ytick,
                                          xtick_size=None, ytick_size=None,
                                          linewidth=1)
-        ax1.plot(xy[0, :, 0], xy[0, :, 1], '-', color="#404040",
-                 label="CIE 1931")
+        ax1.plot(xy[0, :, 0], xy[0, :, 1], '-', color="#404040")
         ax1.plot(d65_xy[0], d65_xy[1], 'kx', label="D65_White")
+        ax1.plot(dci_white_xy[0], dci_white_xy[1], 'k+', label="DCI_White")
         rec2020 = self.get_xy_primary(gamut="REC2020", clip="on")
         ax1.plot(rec2020[0], rec2020[1], '--', color="#800080",
                  label="REC2020")
@@ -473,7 +474,8 @@ class GamutPlot(ttk.LabelFrame):
         # plot rec709 gamut
         # --------------------
         primary = self.get_xy_primary(gamut=gamut, clip="on")
-        self.line, = ax1.plot(primary[0], primary[1], 'k-', label=gamut)
+        self.line, = ax1.plot(primary[0], primary[1], 'r-', linewidth=2,
+                              label=gamut)
 
         # plot othres
         # ---------------
