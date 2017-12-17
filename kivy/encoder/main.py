@@ -17,47 +17,33 @@ Config.set('graphics', 'width', '400')
 Config.set('graphics', 'height', '600')
 
 
-class LoadDialog(FloatLayout):
-    load = ObjectProperty(None)
-    cancel = ObjectProperty(None)
-
-
-class SaveDialog(FloatLayout):
-    save = ObjectProperty(None)
+class GetFilePathDialog(FloatLayout):
+    set_text = ObjectProperty(None)
     cancel = ObjectProperty(None)
 
 
 class MainFrame(Widget):
-    # loadfile = ObjectProperty(None)
-    # savefile = ObjectProperty(None)
-    # text_input = ObjectProperty(None)
-
-    def get_input_file(self, dirpath="C:/Users/toruv/Downloads"):
-
-        print("selected")
-
-    def show_load(self):
-        content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Load file", content=content,
-                            size_hint=(0.95, 0.95))
-        self._popup.open()
-
-    def load(self, path, filename):
-        self.ids.text_input.text = os.path.join(path, filename[0])
-        self.dismiss_popup()
-
-    def show_save(self):
-        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
-        self._popup = Popup(title="Save file", content=content,
-                            size_hint=(0.95, 0.95))
-        self._popup.open()
-
-    def save(self, path, filename):
-        self.ids.text_output.text = os.path.join(path, filename[0])
-        self.dismiss_popup()
+    inout = ObjectProperty(None)
 
     def dismiss_popup(self):
         self._popup.dismiss()
+
+    def open_get_file_path_dialog(self, inout):
+        self.inout = inout
+        content = GetFilePathDialog(set_text=self.set_text,
+                                    cancel=self.dismiss_popup)
+        self._popup = Popup(title="Select file", content=content,
+                            size_hint=(0.95, 0.95))
+        self._popup.open()
+
+    def set_text(self, path, filename):
+        filepath = os.path.join(path, filename[0])
+        if self.inout == 'in':
+            self.ids.text_input.text = filepath
+        if self.inout == 'out':
+            self.ids.text_output.text = filepath
+
+        self.dismiss_popup()
 
 
 class EncoderApp(App):

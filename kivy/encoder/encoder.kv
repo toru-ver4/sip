@@ -19,7 +19,7 @@
 
             Button:
                 text: "Oepn"
-                on_release: root.show_load()
+                on_release: root.open_get_file_path_dialog("in")
 
         BoxLayout:
             size_hint: 1, 0.3
@@ -34,7 +34,7 @@
 
             Button:
                 text: "Oepn"
-                on_release: root.show_save()
+                on_release: root.open_get_file_path_dialog("out")
 
             Button:
                 text: "Transform Execute"
@@ -43,7 +43,7 @@
             TextInput:
                 text: "Debug Information"
 
-<LoadDialog>:
+<GetFilePathDialog>:
     BoxLayout:
         size: root.size
         pos: root.pos
@@ -59,25 +59,5 @@
                 on_release: root.cancel()
 
             Button:
-                text: "Load"
-                on_release: root.load(filechooser.path, filechooser.selection)
-
-<SaveDialog>:
-    BoxLayout:
-        size: root.size
-        pos: root.pos
-        orientation: "vertical"
-        FileChooserListView:
-            id: filechooser
-
-        BoxLayout:
-            size_hint_y: None
-            height: 30
-            Button:
-                text: "Cancel"
-                on_release: root.cancel()
-
-            Button:
-                text: "Save"
-                on_release: root.save(filechooser.path, filechooser.selection)
-
+                text: "Open"
+                on_release: root.set_text(filechooser.path, filechooser.selection)
