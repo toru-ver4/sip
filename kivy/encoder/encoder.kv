@@ -1,0 +1,83 @@
+#:kivy 1.10.0
+
+<MainFrame>:
+
+    BoxLayout:
+        orientation: 'vertical'
+        width: root.width
+        height: root.height
+
+        BoxLayout:
+            size_hint: 1, 0.2
+            orientation: 'vertical'
+            Label:
+                text: "Please select the m3u8 file."
+
+            TextInput:
+                id: text_input
+                text: ""
+
+            Button:
+                text: "Oepn"
+                on_release: root.show_load()
+
+        BoxLayout:
+            size_hint: 1, 0.3
+            orientation: 'vertical'
+
+            Label:
+                text: "Please input a output filename."
+
+            TextInput:
+                id: text_output
+                text: ""
+
+            Button:
+                text: "Oepn"
+                on_release: root.show_save()
+
+            Button:
+                text: "Transform Execute"
+
+        BoxLayout:
+            TextInput:
+                text: "Debug Information"
+
+<LoadDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)
+
+<SaveDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path, filechooser.selection)
+
