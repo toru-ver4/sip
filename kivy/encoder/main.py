@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
- 
+
 """
 kivyのHello World + alpha.
 """
@@ -12,9 +12,12 @@ from kivy.config import Config
 from kivy.properties import ObjectProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
+from kivy.resources import resource_add_path
 
-Config.set('graphics', 'width', '400')
+Config.set('graphics', 'width', '800')
 Config.set('graphics', 'height', '600')
+
+resource_add_path('./font')
 
 
 class GetFilePathDialog(FloatLayout):
@@ -40,6 +43,8 @@ class MainFrame(Widget):
         filepath = os.path.join(path, filename[0])
         if self.inout == 'in':
             self.ids.text_input.text = filepath
+            self.ids.text_output.text = filepath
+            print(filepath)
         if self.inout == 'out':
             self.ids.text_output.text = filepath
 
