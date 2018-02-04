@@ -82,3 +82,4 @@ signal_generation/h264_10bit_encode/verify/*
 **/*.py[co]
 hdr_on_sdr/data/**
 misc/Markdown_de_Slide/
+**/node_modules/
