@@ -8,10 +8,16 @@
 
 import os
 import cv2
+from scipy import linalg
 import numpy as np
+import color_convert as cc
 import test_pattern_generator as tpg
+import colour
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import imp
 imp.reload(tpg)
+imp.reload(cc)
 
 
 fg_array_sample = [tpg.const_gray_array_higher,
@@ -601,6 +607,105 @@ def make_complex_circle():
                     cv2.imwrite(fname, img[:, :, ::-1])
 
 
+def plot_color_patch(data, v_num=3, h_num=5):
+    figsize_base = 5
+    plt.rcParams["font.size"] = 18
+    f, axarr = plt.subplots(v_num, h_num, sharex='col', sharey='row',
+                            figsize=(figsize_base*h_num, 5*v_num))
+    for idx in range(v_num * h_num):
+        color = "#{:02X}{:02X}{:02X}".format(data[idx][0],
+                                             data[idx][1],
+                                             data[idx][2])
+        h_idx = idx % h_num
+        v_idx = idx // h_num
+        axarr[v_idx, h_idx].add_patch(
+            patches.Rectangle(
+                (0, 0), 1.0, 1.0, facecolor=color
+            )
+        )
+    plt.show()
+
+
+def make_ebu_test_colour_patch():
+    luv_file = "./doc/ebu_test_colour_value.csv"
+    luv_data = np.loadtxt(luv_file, delimiter=",",
+                          skiprows=1, usecols=(5, 6, 7))
+
+    # convert from Yu'v' to Yuv
+    luv_data[:, 2] = luv_data[:, 2] * 2/3
+    
+    # Yuv to XYZ
+    xy = colour.UCS_uv_to_xy(luv_data[:, 1:])
+    xyY = np.stack((xy[:, 0], xy[:, 1], (luv_data[:, 0] / 100.0))).T
+    # print(xyY)
+    large_xyz = colour.xyY_to_XYZ(xyY)
+    # print(large_xyz)
+    rgb_name = 'ITU-R BT.709'
+    illuminant_XYZ = colour.RGB_COLOURSPACES[rgb_name].whitepoint
+    illuminant_RGB = colour.RGB_COLOURSPACES[rgb_name].whitepoint
+    chromatic_adaptation_transform = 'Bradford'
+    xyz_to_rgb_mtx = colour.RGB_COLOURSPACES[rgb_name].XYZ_to_RGB_matrix
+    rgb_val = colour.XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
+                                xyz_to_rgb_mtx, chromatic_adaptation_transform)
+    print(rgb_val)
+    # rgb_val = np.uint16(np.round((rgb_val ** 1/2.35) * 0xFFFF))
+    # print(rgb_val)
+    # print(rgb_val ** (1/2.2))
+    rgb_val = np.uint8(np.round((rgb_val ** (1/2.35)) * 0xFF))
+    plot_color_patch(rgb_val, v_num=3, h_num=5)
+
+
+def make_ebu_color_patch_from_yuv():
+    yuv_file = "./doc/ebu_test_colour_value.csv"
+    ycbcr = np.loadtxt(yuv_file, delimiter=",",
+                       skiprows=1, usecols=(2, 3, 4))
+    yuv = cc.ycbcr_to_yuv(ycbcr, bit_depth=10)
+
+    rgb2yuv_mtx = [[0.2126, 0.7152, 0.0722],
+                   [-0.2126/1.8556, -0.7152/1.8556, 0.9278/1.8556],
+                   [0.7874/1.5748, -0.7152/1.5748, -0.0722/1.5748]]
+    yuv2rgb_mtx = linalg.inv(np.array(rgb2yuv_mtx))
+    print(yuv2rgb_mtx)
+    yuv2rgb_mtx = np.array(yuv2rgb_mtx)
+
+    rgb_dash = cc.color_cvt(yuv.reshape((1, yuv.shape[0], yuv.shape[1])),
+                            yuv2rgb_mtx)
+    rgb_dash = rgb_dash.reshape((rgb_dash.shape[1], rgb_dash.shape[2]))
+    # rgb_dash = np.uint8(np.round(rgb_dash * 0xFF))
+    # plot_color_patch(rgb_dash, v_num=3, h_num=5)
+
+    rgb = rgb_dash ** 2.35
+    rgb_name = 'ITU-R BT.709'
+    illuminant_XYZ = colour.RGB_COLOURSPACES[rgb_name].whitepoint
+    illuminant_RGB = colour.RGB_COLOURSPACES[rgb_name].whitepoint
+    chromatic_adaptation_transform = 'Bradford'
+    rgb_to_xyz_mtx = colour.RGB_COLOURSPACES[rgb_name].RGB_to_XYZ_matrix
+    large_xyz = colour.RGB_to_XYZ(rgb, illuminant_XYZ, illuminant_RGB,
+                                  rgb_to_xyz_mtx,
+                                  chromatic_adaptation_transform)
+    large_ucs = colour.XYZ_to_UCS(large_xyz)
+    uv = colour.UCS_to_uv(large_ucs)
+    uv[:, 1] = uv[:, 1] * 3/2
+    print(uv)
+
+
+def make_ebu_color_patch_from_XYZ():    
+    xyz_file = "./doc/ebu_test_colour_value2.csv"
+    large_xyz = np.loadtxt(xyz_file, delimiter=",",
+                           skiprows=1, usecols=(1, 2, 3)) / 100.0
+    # print(large_xyz)
+    rgb_name = 'ITU-R BT.709'
+    illuminant_XYZ = colour.RGB_COLOURSPACES[rgb_name].whitepoint
+    illuminant_RGB = colour.RGB_COLOURSPACES[rgb_name].whitepoint
+    chromatic_adaptation_transform = 'Bradford'
+    xyz_to_rgb_mtx = colour.RGB_COLOURSPACES[rgb_name].XYZ_to_RGB_matrix
+    rgb_val = colour.XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
+                                xyz_to_rgb_mtx, chromatic_adaptation_transform)
+    print(rgb_val)
+    rgb_val = np.uint8(np.round((rgb_val ** (1/2.35)) * 0xFF))
+    # plot_color_patch(rgb_val, v_num=3, h_num=5)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # make_and_save_crosshatch()
@@ -611,4 +716,7 @@ if __name__ == '__main__':
     # test_complex_rectangle()
     # make_complex_rectangle()
     # test_complex_circle()
-    make_complex_circle()
+    # make_complex_circle()
+    make_ebu_test_colour_patch()
+    # make_ebu_color_patch_from_yuv()
+    make_ebu_color_patch_from_XYZ()

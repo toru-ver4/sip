@@ -15,7 +15,7 @@ from scipy import linalg
 import common
 import plot_utility as pu
 import matplotlib.pyplot as plt
-from PIL import Image
+# from PIL import Image
 
 const_lab_delta = 6.0/29.0
 const_lab_xn_d65 = 95.047
@@ -570,13 +570,14 @@ def large_xyz_to_small_xy(large_xyz):
 
 
 def extract_profile(in_name, out_name):
-    filename = in_name
-    img = Image.open(filename)
-    out_file_name = out_name
-    # print(img.info.keys())
+    # filename = in_name
+    # img = Image.open(filename)
+    # out_file_name = out_name
+    # # print(img.info.keys())
 
-    with open(out_file_name, 'wb') as f:
-        f.write(img.info['icc_profile'])
+    # with open(out_file_name, 'wb') as f:
+    #     f.write(img.info['icc_profile'])
+    pass
 
 
 def large_xyz_to_uv_dash(large_xyz):
@@ -691,6 +692,47 @@ def luv_star_to_large_xyz(luv_star, white_xyz):
     large_z = large_y * (12 + (-3 * u_dash) + (-20 * v_dash)) / (4 * v_dash)
 
     return np.dstack((large_x, large_y, large_z))
+
+
+def ycbcr_to_yuv(ycbcr, bit_depth=10):
+    """
+    Converts from YCbCr(Limited Range) to YUV(float).
+
+    Parameters
+    ----------
+    ycbcr : numeric or ndarray. shape must be (n, 3)
+        ycbcr data.
+
+    bit_depth : integer
+        bit depth of the ycbcr.
+
+    Returns
+    -------
+    numeric or ndarray
+        YUV value
+
+    Notes
+    -----
+    -   gamut is fixed at REC.709
+
+    Examples
+    --------
+    >>> ycbcr = np.array([[381, 470, 578]])
+    >>> yuv = ycbcr_to_yuv(ycbcr, bit_depth=10)
+    """
+
+    bit_multi = 2 ** (bit_depth - 8)
+    y_coef = 219 * bit_multi
+    y_offset = 16 * bit_multi
+    cbcr_coef = 224 * bit_multi
+    cbcr_offset = 128 * bit_multi
+
+    ycbcr_tmp = ycbcr.copy()
+    ycbcr_tmp[:, 0] = (ycbcr_tmp[:, 0] - y_offset) / y_coef
+    ycbcr_tmp[:, 1] = (ycbcr_tmp[:, 1] - cbcr_offset) / cbcr_coef
+    ycbcr_tmp[:, 2] = (ycbcr_tmp[:, 2] - cbcr_offset) / cbcr_coef
+
+    return ycbcr_tmp
 
 
 if __name__ == '__main__':

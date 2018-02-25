@@ -13,7 +13,7 @@ import os
 import cv2
 import numpy as np
 import common
-from PIL import ImageCms
+# from PIL import ImageCms
 import plot_utility as pu
 import matplotlib.pyplot as plt
 import color_convert as ccv
@@ -910,17 +910,17 @@ def get_primary_data():
     """
     base_dir = os.path.dirname(os.path.abspath(__file__))
     filename = os.path.join(base_dir, "./data/6500K.icc")
-    profile = ImageCms.getOpenProfile(filename)
-    r_xyY = list(profile.profile.red_primary[1][0:2])\
-        + [profile.profile.red_primary[0][1] * 100]
-    g_xyY = list(profile.profile.green_primary[1][0:2])\
-        + [profile.profile.green_primary[0][1] * 100]
-    b_xyY = list(profile.profile.blue_primary[1][0:2])\
-        + [profile.profile.blue_primary[0][1] * 100]
+    # profile = ImageCms.getOpenProfile(filename)
+    # r_xyY = list(profile.profile.red_primary[1][0:2])\
+    #     + [profile.profile.red_primary[0][1] * 100]
+    # g_xyY = list(profile.profile.green_primary[1][0:2])\
+    #     + [profile.profile.green_primary[0][1] * 100]
+    # b_xyY = list(profile.profile.blue_primary[1][0:2])\
+    #     + [profile.profile.blue_primary[0][1] * 100]
 
-    native_xyY = [r_xyY, g_xyY, b_xyY, (0.3127, 0.3290, 100)]
+    # native_xyY = [r_xyY, g_xyY, b_xyY, (0.3127, 0.3290, 100)]
 
-    return native_xyY
+    # return native_xyY
 
 
 def composite_gray_scale(img, width, height):
