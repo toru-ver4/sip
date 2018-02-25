@@ -689,21 +689,38 @@ def make_ebu_color_patch_from_yuv():
     print(uv)
 
 
-def make_ebu_color_patch_from_XYZ():    
+def get_ebu_color_rgb_from_XYZ():
     xyz_file = "./doc/ebu_test_colour_value2.csv"
     large_xyz = np.loadtxt(xyz_file, delimiter=",",
                            skiprows=1, usecols=(1, 2, 3)) / 100.0
-    # print(large_xyz)
-    rgb_name = 'ITU-R BT.709'
-    illuminant_XYZ = colour.RGB_COLOURSPACES[rgb_name].whitepoint
-    illuminant_RGB = colour.RGB_COLOURSPACES[rgb_name].whitepoint
+    rgb_val = large_xyz_to_rgb(large_xyz, 'ITU-R BT.2020')
+    print(rgb_val)
+    rgb_val = rgb_val ** (1/2.35)
+    ycbcr = colour.RGB_to_YCbCr(RGB=rgb_val,
+                                K=colour.YCBCR_WEIGHTS['ITU-R BT.2020'],
+                                in_bits=10, out_bits=10, out_legal=True,
+                                out_int=True)
+    print(ycbcr)
+    yuv2rgb_mtx = np.array(cc.rgb2yuv_rec2020mtx)
+    yuv =\
+        cc.color_cvt(rgb_val.reshape((1, rgb_val.shape[0], rgb_val.shape[1])),
+                     yuv2rgb_mtx)
+    ycbcr = cc.yuv_to_ycbcr(yuv.reshape((yuv.shape[1], yuv.shape[2])),
+                            bit_depth=10)
+    print(ycbcr)
+    # plot_color_patch(rgb_val, v_num=3, h_num=5)
+    print(colour.RGB_COLOURSPACES['ITU-R BT.709'].RGB_to_XYZ_matrix)
+
+
+def large_xyz_to_rgb(large_xyz, gamut_str='ITU-R BT.709'):
+    illuminant_XYZ = colour.RGB_COLOURSPACES[gamut_str].whitepoint
+    illuminant_RGB = colour.RGB_COLOURSPACES[gamut_str].whitepoint
     chromatic_adaptation_transform = 'Bradford'
-    xyz_to_rgb_mtx = colour.RGB_COLOURSPACES[rgb_name].XYZ_to_RGB_matrix
+    xyz_to_rgb_mtx = colour.RGB_COLOURSPACES[gamut_str].XYZ_to_RGB_matrix
     rgb_val = colour.XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
                                 xyz_to_rgb_mtx, chromatic_adaptation_transform)
-    print(rgb_val)
-    rgb_val = np.uint8(np.round((rgb_val ** (1/2.35)) * 0xFF))
-    # plot_color_patch(rgb_val, v_num=3, h_num=5)
+
+    return rgb_val
 
 
 if __name__ == '__main__':
@@ -717,6 +734,6 @@ if __name__ == '__main__':
     # make_complex_rectangle()
     # test_complex_circle()
     # make_complex_circle()
-    make_ebu_test_colour_patch()
+    # make_ebu_test_colour_patch()
     # make_ebu_color_patch_from_yuv()
-    make_ebu_color_patch_from_XYZ()
+    get_ebu_color_rgb_from_XYZ()

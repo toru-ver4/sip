@@ -73,6 +73,13 @@ const_rec709_y_coef = [0.2126, 0.7152, 0.0722]
 const_srgb_eotf_threshold = 0.04045
 const_srgb_oetf_threshold = 0.0031308
 
+rgb2yuv_rec709mtx = [[0.2126, 0.7152, 0.0722],
+                     [-0.2126/1.8556, -0.7152/1.8556, 0.9278/1.8556],
+                     [0.7874/1.5748, -0.7152/1.5748, -0.0722/1.5748]]
+rgb2yuv_rec2020mtx = [[0.2627, 0.6780, 0.0593],
+                      [-0.2627/1.8814, -0.6780/1.8814, (1-0.0593)/1.8814],
+                      [(1-0.2627)/1.4746, -0.6780/1.4746, -0.0593/1.4746]]
+
 
 def get_white_point_conv_matrix(src=const_d65_large_xyz,
                                 dst=const_d50_large_xyz):
@@ -713,7 +720,7 @@ def ycbcr_to_yuv(ycbcr, bit_depth=10):
 
     Notes
     -----
-    -   gamut is fixed at REC.709
+    -
 
     Examples
     --------
@@ -733,6 +740,47 @@ def ycbcr_to_yuv(ycbcr, bit_depth=10):
     ycbcr_tmp[:, 2] = (ycbcr_tmp[:, 2] - cbcr_offset) / cbcr_coef
 
     return ycbcr_tmp
+
+
+def yuv_to_ycbcr(yuv, bit_depth=10):
+    """
+    Converts from YUV(float) to YCbCr(Limited Range).
+
+    Parameters
+    ----------
+    yuv : numeric or ndarray. shape must be (n, 3)
+        yuv data.
+
+    bit_depth : integer
+        bit depth of the ycbcr.
+
+    Returns
+    -------
+    numeric or ndarray
+        YCbCr value
+
+    Notes
+    -----
+    -
+
+    Examples
+    --------
+    >>> yuv = np.array([[1.0, 0.0, 0.0]])
+    >>> yuv = ycbcr_to_yuv(ycbcr, bit_depth=10)
+    """
+
+    bit_multi = 2 ** (bit_depth - 8)
+    y_coef = 219 * bit_multi
+    y_offset = 16 * bit_multi
+    cbcr_coef = 224 * bit_multi
+    cbcr_offset = 128 * bit_multi
+
+    ycbcr = yuv.copy()
+    ycbcr[:, 0] = np.round(ycbcr[:, 0] * y_coef + y_offset)
+    ycbcr[:, 1] = np.round(ycbcr[:, 1] * cbcr_coef + cbcr_offset)
+    ycbcr[:, 2] = np.round(ycbcr[:, 2] * cbcr_coef + cbcr_offset)
+
+    return ycbcr
 
 
 if __name__ == '__main__':
