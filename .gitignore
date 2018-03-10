@@ -83,3 +83,4 @@ signal_generation/h264_10bit_encode/verify/*
 hdr_on_sdr/data/**
 misc/Markdown_de_Slide/
 **/node_modules/
+signal_generation/test_pattern/fonts/*.otf

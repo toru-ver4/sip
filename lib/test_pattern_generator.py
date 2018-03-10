@@ -1368,7 +1368,7 @@ def make_marker(width=101, height=50, rotate=0, preview=False):
 def draw_rectangle(img, st_pos=(0, 0), ed_pos=(640-1, 480-1),
                    color=(1.0, 1.0, 0.0)):
     """
-    draw rectangle
+    draw rectangle with 1px line-width.
 
     Parameters
     ----------
@@ -1413,7 +1413,7 @@ def draw_rectangle(img, st_pos=(0, 0), ed_pos=(640-1, 480-1),
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # make_m_and_e_test_pattern(size="fhd")
+    make_m_and_e_test_pattern(size="fhd")
     # _croshatch_fragment(debug=True)
     # make_dot_mesh(fg_color=const_white, bg_color=const_black)
     # make_marker(preview=True)
