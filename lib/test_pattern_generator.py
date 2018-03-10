@@ -142,13 +142,16 @@ def get_color_array(order='static', color=[1, 1, 1],
     return color_array
 
 
-def preview_image(img, order=None):
+def preview_image(img, order=None, over_disp=False):
     if order == 'rgb':
         cv2.imshow('preview', img[:, :, ::-1])
     elif order == 'bgr':
         cv2.imshow('preview', img)
     else:
         raise ValueError("order parameter is invalid")
+    
+    if over_disp:
+        cv2.resizeWindow('preview', )
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -1360,6 +1363,52 @@ def make_marker(width=101, height=50, rotate=0, preview=False):
         # save
 
     return img
+
+
+def draw_rectangle(img, st_pos=(0, 0), ed_pos=(640-1, 480-1),
+                   color=(1.0, 1.0, 0.0)):
+    """
+    draw rectangle
+
+    Parameters
+    ----------
+    img : array_like
+        image data. shape is must be (V_num, H_num, 3).
+    st_pos : array of numeric
+        start position (H, V)
+    ed_pos : array of numeric
+        end position (H, V)
+    color : array of numeric.
+        color. (Red, Green, Blue)
+
+    Returns
+    -------
+    ndarray
+        a image with rectangle.
+
+    Notes
+    -----
+    -   video_level of the color is automatically converted
+        to correct bit depth.
+
+    Examples
+    --------
+    >>> img = np.zeros((1080, 1920, 3), np.dtype=uint8)
+    >>> draw_rectangle(img, (0, 0), (1919, 1079), (1.0, 1.0, 1.0))
+    """
+
+    # convert `color` from float to int.
+    max_value = np.iinfo(img.dtype).max
+    color_val = np.array(color)
+    color_val = np.round(color_val * max_value).astype(img.dtype)
+
+    # conposite!
+    st_h, st_v = st_pos
+    ed_h, ed_v = ed_pos
+    img[st_v, st_h:ed_h, :] = color_val
+    img[ed_v, st_h:ed_h, :] = color_val
+    img[st_v:ed_v, st_h, :] = color_val
+    img[st_v:ed_v, ed_h, :] = color_val
 
 
 if __name__ == '__main__':
