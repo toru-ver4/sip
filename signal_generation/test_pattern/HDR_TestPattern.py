@@ -13,15 +13,76 @@ import colour
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
+from scipy import ndimage
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import imp
 imp.reload(tpg)
 
+INTERNAL_PADDING_V = 0.05  # 同一モジュール内でのスペース
+INTERNAL_PADDING_H = 0.05  # 同一モジュール内でのスペース
+MARKER_SIZE = 0.012
+
 SIDE_V_GRADATION_WIDTH = 0.03
 SIDE_V_GRADATION_TEXT_WIDTH = 0.058
 SIDE_V_GRADATION_TEXT_H_OFFFSET = 0.03
-H_GRADATION_HEIGHT = 0.05
+H_GRADATION_HEIGHT = 0.07
+HEAD_V_OFFSET = 0.06
+
+
+def _make_marker(img, vertex_pos, direction="down"):
+    """
+    始端、終端を示すマーカーを作成する。
+    また、適切な設定座標も出力する。
+
+    Parameters
+    ----------
+    img : ndarray
+        image
+    vertex_pos : array of numeric.
+        position of the vertex
+    direction : strings
+        direction of the vertex.
+        you can select "up", "down", "left" or "right".
+
+    Returns
+    -------
+    -
+
+    Examples
+    --------
+    >>> img = np.zeros((1080, 1920, 3), np.dtype=uint8)
+    >>> vertex_pos = (300, 400)
+    >>> _make_marker(img, vertex_pos, direction="down")
+    """
+    img_width = img.shape[1]
+    width = int(img_width * MARKER_SIZE / 2.0) * 2
+    height = width // 2
+
+    if direction == "down":
+        pt_0 = (vertex_pos[0], vertex_pos[1])
+        pt_1 = (vertex_pos[0] - width // 2, vertex_pos[1] - height)
+        pt_2 = (vertex_pos[0] + width // 2, vertex_pos[1] - height)
+    elif direction == "up":
+        pt_0 = (vertex_pos[0], vertex_pos[1])
+        pt_1 = (vertex_pos[0] - width // 2, vertex_pos[1] + height)
+        pt_2 = (vertex_pos[0] + width // 2, vertex_pos[1] + height)
+    elif direction == "left":
+        pt_0 = (vertex_pos[0], vertex_pos[1])
+        pt_1 = (vertex_pos[0] + height, vertex_pos[1] + width // 2)
+        pt_2 = (vertex_pos[0] - height, vertex_pos[1] + width // 2)
+    elif direction == "right":
+        pt_0 = (vertex_pos[0], vertex_pos[1])
+        pt_1 = (vertex_pos[0] + height, vertex_pos[1] - width // 2)
+        pt_2 = (vertex_pos[0] - height, vertex_pos[1] - width // 2)
+    else:
+        print("error. parameter is invalid at _make_marker.")
+
+    ptrs = np.array([pt_0, pt_1, pt_2])
+    marker_color = (32768, 32768, 32768)
+    cv2.fillConvexPoly(img, ptrs, marker_color, 8)
+
+    return img
 
 
 def gen_video_level_text_img(width=1024, height=768,
@@ -192,9 +253,9 @@ def composite_hlg_vertical_gray_scale(img):
     img[0+1:text_height+1, h_st:h_ed, :] = txt_img
 
 
-def composite_8bit_middle_gray_scale(img):
+def composite_8_10bit_middle_gray_scale(img):
     """
-    execute the composition processing for the horizontal 8bit gradation.
+    execute the composition processing for the horizontal 8/10bit gradation.
 
     Parameters
     ----------
@@ -204,7 +265,7 @@ def composite_8bit_middle_gray_scale(img):
     Returns
     -------
     ndarray
-        a image with 8bit horizontal gray scale.
+        a image with 8/10bit horizontal gray scale.
 
     Notes
     -----
@@ -213,61 +274,67 @@ def composite_8bit_middle_gray_scale(img):
     Examples
     --------
     >>> img = np.zeros((1080, 1920, 3), np.dtype=uint8)
-    >>> composite_8bit_middle_gray_scale(img)
+    >>> composite_8_10bit_middle_gray_scale(img)
     """
     img_width = img.shape[1]
     img_height = img.shape[0]
 
-    # 
+    # 解像にに応じた横幅調整。ただし、後でトリミングする
+    # ----------------------------------------------
     if img_width <= 2048:
         grad_width = 2048
     else:
         grad_width = 4096
     grad_height = int(img_height * H_GRADATION_HEIGHT)
 
-    grad_8 = tpg.gen_step_gradation(width=grad_width*2, height=grad_height,
+    # グラデーション作成。
+    # --------------------------------------------------------------------
+    grad_8 = tpg.gen_step_gradation(width=grad_width, height=grad_height,
                                     step_num=257, bit_depth=8,
                                     color=(1.0, 1.0, 1.0), direction='h')
 
-    grad_10 = tpg.gen_step_gradation(width=grad_width*2, height=grad_height,
-                                     step_num=257, bit_depth=8,
+    grad_10 = tpg.gen_step_gradation(width=grad_width, height=grad_height,
+                                     step_num=1025, bit_depth=10,
                                      color=(1.0, 1.0, 1.0), direction='h')
 
+    # 8bit 合成
+    # ------------------------------------------------------------------
+    st_pos_h = (img_width // 2) - (grad_width // 4)
+    st_pos_v = int(img_height * HEAD_V_OFFSET)
+    ed_pos_h = st_pos_h + (grad_width // 2)
+    ed_pos_v = st_pos_v + grad_height
+    grad_st_h = grad_width // 4
+    grad_ed_h = grad_st_h + (grad_width // 2)
+    img[st_pos_v:ed_pos_v, st_pos_h:ed_pos_h] = grad_8[:, grad_st_h:grad_ed_h]
 
-def composite_10bit_middle_gray_scale(img):
-    """
-    execute the composition processing for the horizontal 10bit gradation.
+    marker_vertex = (st_pos_h, st_pos_v - 1)
+    _make_marker(img, marker_vertex, direction='down')
+    marker_vertex = (ed_pos_h - 1, st_pos_v - 1)
+    _make_marker(img, marker_vertex, direction='down')
 
-    Parameters
-    ----------
-    img : array_like
-        image data. shape is must be (V_num, H_num, 3).
+    # 10bit 合成
+    # ------------------------------------------------------------------
+    pading_v = int(img_height * INTERNAL_PADDING_V)
+    st_pos_v = st_pos_v + grad_height + pading_v
+    ed_pos_v = st_pos_v + grad_height
+    img[st_pos_v:ed_pos_v, st_pos_h:ed_pos_h] = grad_10[:, grad_st_h:grad_ed_h]
 
-    Returns
-    -------
-    ndarray
-        a image with 10bit horizontal gray scale.
+    marker_vertex = (st_pos_h, st_pos_v - 1)
+    _make_marker(img, marker_vertex, direction='down')
+    marker_vertex = (ed_pos_h - 1, st_pos_v - 1)
+    _make_marker(img, marker_vertex, direction='down')
 
-    Notes
-    -----
-    -
 
-    Examples
-    --------
-    >>> img = np.zeros((1080, 1920, 3), np.dtype=uint8)
-    >>> composite_8bit_middle_gray_scale(img)
-    """
-    pass
 
 
 def m_and_e_tp_rev5(width=1920, height=1080):
 
     # ベースの背景画像を作成
     # img = np.zeros((height, width, 3), dtype=np.uint16)
-    img = np.ones((height, width, 3), dtype=np.uint16) * 0x4000
+    img = np.ones((height, width, 3), dtype=np.uint16) * 0x2000
 
     # 外枠のフレーム作成
-    tpg.draw_rectangle(img, (0, 0), (width-1, height-1), (1.0, 0.0, 0.0))
+    tpg.draw_rectangle(img, (0, 0), (width-1, height-1), (0.5, 0.5, 0.5))
 
     # 左端にPQグレースケール
     composite_pq_vertical_gray_scale(img)
@@ -276,10 +343,7 @@ def m_and_e_tp_rev5(width=1920, height=1080):
     composite_hlg_vertical_gray_scale(img)
 
     # 真ん中上部に8btグレースケール(64～192)
-    composite_8bit_middle_gray_scale(img)
-
-    # 真ん中上部に10btグレースケール(256～768)
-    composite_10bit_middle_gray_scale(img)
+    composite_8_10bit_middle_gray_scale(img)
 
     # preview
     tpg.preview_image(img, 'rgb')
