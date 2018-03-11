@@ -22,12 +22,69 @@ imp.reload(tpg)
 INTERNAL_PADDING_V = 0.05  # 同一モジュール内でのスペース
 INTERNAL_PADDING_H = 0.05  # 同一モジュール内でのスペース
 MARKER_SIZE = 0.012
+MARKER_TEXT_SIZE = 0.023
+MARKER_TEXT_PADDING_H = 0.01
 
 SIDE_V_GRADATION_WIDTH = 0.03
 SIDE_V_GRADATION_TEXT_WIDTH = 0.058
 SIDE_V_GRADATION_TEXT_H_OFFFSET = 0.03
 H_GRADATION_HEIGHT = 0.07
 HEAD_V_OFFSET = 0.06
+
+
+def _add_text_info(img, st_pos, font_size=15, font_color=(0.5, 0.5, 0.5),
+                   text="I'm a engineer"):
+    """
+    imgに対して指定座標からテキストを書く
+
+    Parameters
+    ----------
+    img : ndarray
+        image
+    pos_st : array of numeric.
+        position of the start. order is (H, V).
+    font_size : integer
+        font size
+    font_color : tuple of numeric
+        font color. (red, green, blue)
+    text : strings
+        text for write to the image.
+
+    Returns
+    -------
+    -
+
+    Examples
+    --------
+    >>> img = np.zeros((1080, 1920, 3), np.dtype=uint8)
+    >>> st_pos = (300, 400)
+    >>> _add_text_info(img, st_pos, text="I'm a HERO")
+    """
+    img_width = img.shape[1]
+    img_height = img.shape[0]
+    fg_color = tuple([int(x * 0xFF) for x in font_color])
+
+    width = img_width // 4
+    height = img_height // 20
+    txt_img = Image.new("RGB", (width, height), (0x00, 0x00, 0x00))
+    draw = ImageDraw.Draw(txt_img)
+    font = ImageFont.truetype("./fonts/NotoSansMonoCJKjp-Regular.otf",
+                              font_size)
+    draw.text((0, 0), text, font=font, fill=fg_color)
+    text_img = (np.asarray(txt_img) * 0x100).astype(np.uint16)
+
+    # temp_img = img[st_pos[1]:height, st_pos[0]:width]
+    # temp_img = text_img
+    st_pos_v = st_pos[1]
+    ed_pos_v = st_pos[1] + height
+    st_pos_h = st_pos[0]
+    ed_pos_h = st_pos[0] + width
+
+    text_index = text_img > 0
+    temp_img = img[st_pos_v:ed_pos_v, st_pos_h:ed_pos_h]
+    temp_img[text_index] = text_img[text_index]
+
+    img[st_pos_v:ed_pos_v, st_pos_h:ed_pos_h] = temp_img
 
 
 def _make_marker(img, vertex_pos, direction="down"):
@@ -40,7 +97,7 @@ def _make_marker(img, vertex_pos, direction="down"):
     img : ndarray
         image
     vertex_pos : array of numeric.
-        position of the vertex
+        position of the vertex. order is (H, V).
     direction : strings
         direction of the vertex.
         you can select "up", "down", "left" or "right".
@@ -312,6 +369,14 @@ def composite_8_10bit_middle_gray_scale(img):
     marker_vertex = (ed_pos_h - 1, st_pos_v - 1)
     _make_marker(img, marker_vertex, direction='down')
 
+    text_pos_h = (st_pos_h + int(img_width * MARKER_TEXT_PADDING_H))
+    text_height = int(img_height * MARKER_TEXT_SIZE)
+    font_size = int(text_height / 96 * 72)
+    text_pos_v = st_pos_v - text_height
+    print(text_pos_h, text_pos_v)
+    print(font_size)
+    _add_text_info(img, (text_pos_h, text_pos_v), font_size)
+
     # 10bit 合成
     # ------------------------------------------------------------------
     pading_v = int(img_height * INTERNAL_PADDING_V)
@@ -323,8 +388,6 @@ def composite_8_10bit_middle_gray_scale(img):
     _make_marker(img, marker_vertex, direction='down')
     marker_vertex = (ed_pos_h - 1, st_pos_v - 1)
     _make_marker(img, marker_vertex, direction='down')
-
-
 
 
 def m_and_e_tp_rev5(width=1920, height=1080):
