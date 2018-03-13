@@ -16,8 +16,6 @@ from PIL import ImageFont
 from PIL import ImageDraw
 import color_convert as cc
 from scipy import linalg
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import imp
 imp.reload(tpg)
 
@@ -27,8 +25,8 @@ INTERNAL_PADDING_H = 0.05  # 同一モジュール内でのスペース
 EXTERNAL_PADDING_H = 0.07  # モジュール間でのスペース
 EXTERNAL_PADDING_V = 0.07  # モジュール間でのスペース
 
-MARKER_SIZE = 0.012
-MARKER_TEXT_SIZE = 0.021
+MARKER_SIZE = 0.011
+MARKER_TEXT_SIZE = 0.019
 MARKER_TEXT_PADDING_H = 0.01
 
 CSF_PATTERN_WIDTH = 0.12
@@ -44,14 +42,26 @@ CSF_COLOR_H_PADDING = 0.09
 LIMITED_PATTERN_WIDTH = 0.1
 LIMITED_PATTERN_HEIGHT = 0.1
 
-SIDE_V_GRADATION_WIDTH = 0.03
-SIDE_V_GRADATION_TEXT_WIDTH = 0.058
+SIDE_V_GRADATION_WIDTH = 0.026
+SIDE_V_GRADATION_TEXT_WIDTH = 0.046
+SIDE_V_GRADATION_TEXT_H_OFFFSET = 0.08
 SIDE_V_GRADATION_DESC_TEXT_WIDTH = 0.20
 SIDE_V_GRADATION_DESC_TEXT_V_OFFSET = 0.005
-SIDE_V_GRADATION_TEXT_H_OFFFSET = 0.03
+
+COLOR_CHECKER_SIZE = 0.05
+COLOR_CHECKER_PADDING = 0.005
+COLOR_CHECKER_H_START = 0.09
+COLOR_CHECKER_V_START = 0.09
+
+EBU_TEST_COLOR_H_START = COLOR_CHECKER_H_START
+EBU_TEST_COLOR_V_START = 0.53
+EBU_TEST_COLOR_SIZE = 0.0676
+EBU_TEST_COLOR_PADDING = 0.006
 
 H_GRADATION_HEIGHT = 0.07
 H_COLOR_GRADATION_HEIGHT = 0.12
+
+H_FULL_GRADATION_HEIGHT = 0.1
 
 HEAD_V_OFFSET = 0.06
 
@@ -220,8 +230,8 @@ def composite_bt2020_check_pattern(img):
                 [0.0, 0.0, 1.0]]
     rgb_2020 = np.array(rgb_2020) * 0.01  # 100nits
 
-    rgb_2020 = colour.oetf(rgb_2020, 'ITU-R BT.2100 PQ')
-    rgb_dci = colour.oetf(rgb_dci, 'ITU-R BT.2100 PQ')
+    rgb_2020 = colour.oetf(rgb_2020 * 10000, 'ST 2084')
+    rgb_dci = colour.oetf(rgb_dci * 10000, 'ST 2084')
     rgb_2020 = np.uint16(np.round(rgb_2020 * 0x3FF))
     rgb_dci = np.uint16(np.round(rgb_dci * 0x3FF))
     rgb_img = [_make_csf_color_image(width=width, height=height,
@@ -522,11 +532,11 @@ def gen_video_level_text_img(width=1024, height=768,
     for idx, text_pair in enumerate(text_info):
         pos = (st_pos_h, int(st_pos_v + v_offset * idx))
         if text_pair[1] < 999.99999:
-            text_data = "{:>4.0f},{:>7.1f} nits".format(text_pair[0],
-                                                        text_pair[1])
+            text_data = "{:>4.0f},{:>7.1f}".format(text_pair[0],
+                                                   text_pair[1])
         else:
-            text_data = "{:>4.0f},{:>6.0f}  nits".format(text_pair[0],
-                                                         text_pair[1])
+            text_data = "{:>4.0f},{:>6.0f}".format(text_pair[0],
+                                                   text_pair[1])
         draw.text(pos, text_data, font=font, fill=fg_color)
 
     txt_img = (np.asarray(txt_img) * 0x100).astype(np.uint16)
@@ -780,6 +790,49 @@ def composite_8_10bit_middle_gray_scale(img):
     g_cuurent_pos_v = ed_pos_v
 
 
+def composite_10bit_gray_scale(img):
+    """
+    10bit のグレースケールを 0～1023Lvで表示
+
+    Parameters
+    ----------
+    img : array_like
+        image data. shape is must be (V_num, H_num, 3).
+
+    """
+    global g_cuurent_pos_v
+    img_width = img.shape[1]
+    img_height = img.shape[0]
+    module_st_v = g_cuurent_pos_v + int(img_height * EXTERNAL_PADDING_V)
+
+    width = (img_height // 1080) * 1024
+    height = int(img_height * H_FULL_GRADATION_HEIGHT)
+
+    grad_10 = tpg.gen_step_gradation(width=width, height=height,
+                                     step_num=1025, bit_depth=10,
+                                     color=(1.0, 1.0, 1.0), direction='h')
+
+    st_pos_h = _get_center_obj_h_start(img)
+    st_pos_v = module_st_v
+    ed_pos_h = st_pos_h + width
+    ed_pos_v = st_pos_v + height
+    img[st_pos_v:ed_pos_v, st_pos_h:ed_pos_h] = grad_10
+
+    marker_vertex = (st_pos_h, st_pos_v - 1)
+    _make_marker(img, marker_vertex, direction='down')
+    marker_vertex = (ed_pos_h - 1, st_pos_v - 1)
+    _make_marker(img, marker_vertex, direction='down')
+    text_pos_h = (st_pos_h + int(img_width * MARKER_TEXT_PADDING_H))
+    text_height, font_size = _get_text_height_and_font_size(img_height)
+    text_pos_v = st_pos_v - text_height
+    text = "10bit gray scale from 0 to 1023 level."
+    _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
+                   text=text, font_color=(0.4, 0.4, 0.4))
+
+    # 現在のV座標を更新
+    g_cuurent_pos_v = ed_pos_v
+
+
 def composite_rgbmyc_color_bar(img):
     """
     RGBMYCのカラーバーを画面下部に追加
@@ -828,7 +881,216 @@ def composite_rgbmyc_color_bar(img):
     text_pos_v = v_st - text_height
     text = "RGBMYC Scale. Video Level ⇒ 0, 16, 32, 48, ..., 992, 1008, 1023"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.4, 0.4, 0.4)) 
+                   text=text, font_color=(0.4, 0.4, 0.4))
+
+
+def composite_pq_color_checker(img):
+    """
+    SDRレンジのカラーチェッカーをPQ用に作成＆貼り付け
+
+    Parameters
+    ----------
+    img : array_like
+        image data. shape is must be (V_num, H_num, 3).
+
+    """
+    # 基本情報
+    # --------------------------------------
+    img_width = img.shape[1]
+    img_height = img.shape[0]
+    h_num = 4
+    v_num = 6
+    patch_width = int(img_height * COLOR_CHECKER_SIZE)
+    patch_height = patch_width
+    patch_space = int(img_height * COLOR_CHECKER_PADDING)
+    patch_st_h = int(img_width * COLOR_CHECKER_H_START)
+    patch_st_v = int(img_height * COLOR_CHECKER_V_START)
+
+    xyY = np.array(tpg.const_color_checker_xyY)
+    xyY = xyY.reshape((1, xyY.shape[0], xyY.shape[1]))
+    rgb = cc.xyY_to_RGB(xyY=xyY,
+                        gamut=cc.const_rec2020_xy,
+                        white=cc.const_d65_large_xyz)
+    rgb[rgb < 0] = 0
+
+    # scale to 100 nits (rgssb/100).
+    # rgb = np.uint16(np.round(cc.linear_to_pq(rgb/100) * 0xFFFF))
+    rgb = colour.oetf(rgb * 100, function="ST 2084") * 0xFFC0
+    rgb = np.uint16(np.round(rgb))
+
+    for idx in range(h_num * v_num):
+        h_idx = idx // v_num
+        v_idx = v_num - (idx % v_num) - 1
+        patch = np.ones((patch_height, patch_width, 3), dtype=np.uint16)
+        patch[:, :] = rgb[0][idx]
+        st_h = patch_st_h + (patch_width + patch_space) * h_idx
+        st_v = patch_st_v + (patch_height + patch_space) * v_idx
+        img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+    text_pos_h = patch_st_h
+    text_height, font_size = _get_text_height_and_font_size(img_height)
+    text_pos_v = st_v - text_height
+    text = "▼ ColorChecker for ST2084"
+    _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
+                   text=text, font_color=(0.3, 0.3, 0.3))
+
+
+def _get_ebu_color_rgb_from_XYZ():
+    xyz_file = "./doc/ebu_test_colour_value2.csv"
+    large_xyz = np.loadtxt(xyz_file, delimiter=",",
+                           skiprows=1, usecols=(1, 2, 3)) / 100.0
+    rgb_val = large_xyz_to_rgb(large_xyz, 'ITU-R BT.2020')
+    rgb_val = rgb_val.reshape(1, 15, 3)
+
+    return rgb_val
+
+
+def large_xyz_to_rgb(large_xyz, gamut_str='ITU-R BT.709'):
+    illuminant_XYZ = colour.RGB_COLOURSPACES[gamut_str].whitepoint
+    illuminant_RGB = colour.RGB_COLOURSPACES[gamut_str].whitepoint
+    chromatic_adaptation_transform = 'Bradford'
+    xyz_to_rgb_mtx = colour.RGB_COLOURSPACES[gamut_str].XYZ_to_RGB_matrix
+    rgb_val = colour.XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
+                                xyz_to_rgb_mtx, chromatic_adaptation_transform)
+
+    return rgb_val
+
+
+def composite_pq_ebu_test_colour(img):
+    """
+    SDRレンジのEBU TEST COLOR をPQ用に作成＆貼り付け
+
+    Parameters
+    ----------
+    img : array_like
+        image data. shape is must be (V_num, H_num, 3).
+
+    """
+    # 基本情報
+    # --------------------------------------
+    img_width = img.shape[1]
+    img_height = img.shape[0]
+    h_num = 3
+    v_num = 5
+    patch_width = int(img_height * EBU_TEST_COLOR_SIZE)
+    patch_height = patch_width
+    patch_space = int(img_height * EBU_TEST_COLOR_PADDING)
+    patch_st_h = int(img_width * EBU_TEST_COLOR_H_START)
+    patch_st_v = int(img_height * EBU_TEST_COLOR_V_START)
+
+    rgb = _get_ebu_color_rgb_from_XYZ()
+    rgb = colour.oetf(rgb * 100, function="ST 2084") * 0xFFC0
+    rgb = np.uint16(np.round(rgb))
+
+    for idx in range(h_num * v_num):
+        h_idx = idx // v_num
+        v_idx = v_num - (idx % v_num) - 1
+        patch = np.ones((patch_height, patch_width, 3), dtype=np.uint16)
+        patch[:, :] = rgb[0][idx]
+        st_h = patch_st_h + (patch_width + patch_space) * h_idx
+        st_v = patch_st_v + (patch_height + patch_space) * v_idx
+        img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+    text_pos_h = patch_st_h
+    text_height, font_size = _get_text_height_and_font_size(img_height)
+    text_pos_v = st_v - text_height
+    text = "▼ EBU TEST COLOUR for PQ"
+    _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
+                   text=text, font_color=(0.3, 0.3, 0.3))
+
+
+def composite_hlg_color_checker(img):
+    """
+    SDRレンジのカラーチェッカーをHLG用に作成＆貼り付け
+
+    Parameters
+    ----------
+    img : array_like
+        image data. shape is must be (V_num, H_num, 3).
+
+    """
+    # 基本情報
+    # --------------------------------------
+    img_width = img.shape[1]
+    img_height = img.shape[0]
+    h_num = 4
+    v_num = 6
+    patch_width = int(img_height * COLOR_CHECKER_SIZE)
+    patch_height = patch_width
+    patch_space = int(img_height * COLOR_CHECKER_PADDING)
+    patch_st_h = int(img_width * COLOR_CHECKER_H_START)
+    patch_st_h = img_width - patch_st_h - (patch_width + patch_space) * h_num
+    patch_st_v = int(img_height * COLOR_CHECKER_V_START)
+
+    xyY = np.array(tpg.const_color_checker_xyY)
+    xyY = xyY.reshape((1, xyY.shape[0], xyY.shape[1]))
+    rgb = cc.xyY_to_RGB(xyY=xyY,
+                        gamut=cc.const_rec2020_xy,
+                        white=cc.const_d65_large_xyz)
+    rgb[rgb < 0] = 0
+
+    rgb = colour.eotf_reverse(rgb*100, 'ITU-R BT.2100 HLG', gamma=1.2)
+    rgb = np.uint16(np.round(rgb * 0xFFC0))
+
+    for idx in range(h_num * v_num):
+        h_idx = idx // v_num
+        v_idx = v_num - (idx % v_num) - 1
+        patch = np.ones((patch_height, patch_width, 3), dtype=np.uint16)
+        patch[:, :] = rgb[0][idx]
+        st_h = patch_st_h + (patch_width + patch_space) * h_idx
+        st_v = patch_st_v + (patch_height + patch_space) * v_idx
+        img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+    text_pos_h = patch_st_h
+    text_height, font_size = _get_text_height_and_font_size(img_height)
+    text_pos_v = st_v - text_height
+    text = "▼ ColorChecker for HLG SG=1.2"
+    _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
+                   text=text, font_color=(0.3, 0.3, 0.3))
+
+
+def composite_hlg_ebu_test_colour(img):
+    """
+    SDRレンジのカラーチェッカーをHLG用に作成＆貼り付け
+
+    Parameters
+    ----------
+    img : array_like
+        image data. shape is must be (V_num, H_num, 3).
+
+    """
+    # 基本情報
+    # --------------------------------------
+    img_width = img.shape[1]
+    img_height = img.shape[0]
+    h_num = 3
+    v_num = 5
+    patch_width = int(img_height * EBU_TEST_COLOR_SIZE)
+    patch_height = patch_width
+    patch_space = int(img_height * EBU_TEST_COLOR_PADDING)
+    patch_st_h = int(img_width * EBU_TEST_COLOR_H_START)
+    patch_st_h = img_width - patch_st_h - (patch_width + patch_space) * h_num
+    patch_st_v = int(img_height * EBU_TEST_COLOR_V_START)
+
+    rgb = _get_ebu_color_rgb_from_XYZ()
+    rgb = colour.eotf_reverse(rgb*100, 'ITU-R BT.2100 HLG', gamma=1.2)
+    rgb = np.uint16(np.round(rgb * 0xFFC0))
+
+    for idx in range(h_num * v_num):
+        h_idx = idx // v_num
+        v_idx = v_num - (idx % v_num) - 1
+        patch = np.ones((patch_height, patch_width, 3), dtype=np.uint16)
+        patch[:, :] = rgb[0][idx]
+        st_h = patch_st_h + (patch_width + patch_space) * h_idx
+        st_v = patch_st_v + (patch_height + patch_space) * v_idx
+        img[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+    text_pos_h = patch_st_h
+    text_height, font_size = _get_text_height_and_font_size(img_height)
+    text_pos_v = st_v - text_height
+    text = "▼ EBU TEST COLOUR\ for HLG SG=1.2"
+    _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
+                   text=text, font_color=(0.3, 0.3, 0.3))
 
 
 def m_and_e_tp_rev5(width=1920, height=1080):
@@ -855,8 +1117,23 @@ def m_and_e_tp_rev5(width=1920, height=1080):
     # BT.2020 クリップ確認用パターン
     composite_bt2020_check_pattern(img)
 
+    # 10bit Gray Scale
+    composite_10bit_gray_scale(img)
+
     # RGBCMY カラーバー
     composite_rgbmyc_color_bar(img)
+
+    # 画面左側にPQ用カラーチェッカー
+    composite_pq_color_checker(img)
+
+    # 画面右側にHLG用カラーチェッカー
+    composite_hlg_color_checker(img)
+
+    # 画面左型にPQ用 EBU TEST Colour
+    composite_pq_ebu_test_colour(img)
+
+    # 画面右側にHLG用 EBU TEST Colour
+    composite_hlg_ebu_test_colour(img)
 
     # preview
     tpg.preview_image(img, 'rgb')

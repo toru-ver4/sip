@@ -437,7 +437,7 @@ def large_xyz_to_rgb(large_xyz, gamut=const_sRGB_xy,
     cvt_mtx = get_rgb_to_xyz_matrix(gamut=gamut, white=white)
     cvt_mtx = linalg.inv(cvt_mtx)
     # rgb = color_cvt(large_xyz, cvt_mtx) / white[1]
-    print(white)
+
     rgb = color_cvt(large_xyz, cvt_mtx)
 
     if (np.sum(rgb < 0) > 0) or (np.sum(rgb > 1) > 0):
