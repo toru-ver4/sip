@@ -58,6 +58,10 @@ EBU_TEST_COLOR_V_START = 0.53
 EBU_TEST_COLOR_SIZE = 0.0676
 EBU_TEST_COLOR_PADDING = 0.006
 
+PQ_CLIP_CHECKER_WIDTH = 0.1
+PQ_CLIP_CHECKER_HEIGHT = 0.2
+PQ_CLIP_CHECKER_H_OFFSET = 0.07
+
 H_GRADATION_HEIGHT = 0.07
 H_COLOR_GRADATION_HEIGHT = 0.12
 
@@ -1093,6 +1097,104 @@ def composite_hlg_ebu_test_colour(img):
                    text=text, font_color=(0.3, 0.3, 0.3))
 
 
+def _get_pq_video_levels_for_clip_check(bright=1000, level_num=4,
+                                        level_step=4):
+    """
+    bright で指定した階調を中心とした計 level_num 個 のビデオレベルを
+    計算で求める。
+
+    Parameters
+    ----------
+    bright : numeric.
+        target brightness.1
+    level_num : numeric.
+        a number to calculate.
+    level_step : a step of the video level.
+
+    Returns
+    -------
+    array_like
+        video levels
+
+    Examples
+    --------
+    >>> _get_pq_video_levels_for_clip_check(1000, 4, 4)
+    [769-16, 769-12, 769-8, 769-4, 769, 769+4, 769+8, 769+12, 769+16]
+    """
+    center = colour.oetf(bright, function="ST 2084") * 1023
+    center = np.uint16(np.round(center))
+    num = level_num * 2 + 1
+    ret_val = [center + level_step * (x - level_num)
+               for x in range(num)]
+
+    ret_val = _reshape_for_2d(ret_val)
+    return ret_val
+
+
+def _make_block(width=640, height=480,
+                level=[[900, 0, 0], [0, 800, 0]]):
+    block_num = len(level)
+    height_p = cmn.equal_devision(height, block_num)
+
+    img_list = []
+    for idx in range(len(level)):
+        img = np.ones((height_p[idx], width, 3), dtype=np.uint16)
+        img[:, :, 0] = level[idx][0]
+        img[:, :, 1] = level[idx][1]
+        img[:, :, 2] = level[idx][2]
+        img_list.append(img)
+    img = cv2.vconcat(img_list) * (2 ** 6)
+
+    return img
+
+
+def _reshape_for_2d(data):
+    data = np.array(data)
+    data = np.dstack((data, data, data))
+    data = data.reshape((data.shape[1], data.shape[2]))
+
+    return data
+
+
+def composite_pq_clip_checker(img):
+    """
+    PQカーブのクリップ位置を確認するためのテストパターンを作る。
+    300nits, 500nits, 1000nits, 4000nits の 4パターン作成
+
+    Parameters
+    ----------
+    img : array_like
+        image data. shape is must be (V_num, H_num, 3).
+
+    """
+    global g_cuurent_pos_v
+    img_width = img.shape[1]
+    img_height = img.shape[0]
+    center_bright_list = [300, 500, 1000, 4000]
+    level_num = 4
+    level_step = 8
+    width = int(img_width * PQ_CLIP_CHECKER_WIDTH)
+    height = int(img_height * PQ_CLIP_CHECKER_HEIGHT)
+
+    module_st_h = _get_center_obj_h_start(img)
+    module_st_v = g_cuurent_pos_v + int(img_height * EXTERNAL_PADDING_V)
+
+    level_list = []
+    img_list = []
+    bright_list = []
+    for bright in center_bright_list:
+        level_temp\
+            = _get_pq_video_levels_for_clip_check(bright=1000,
+                                                  level_num=level_num,
+                                                  level_step=level_step)
+        img_temp = _make_block(width, height, level_temp)
+        bright_temp = colour.eotf(level_temp, 'ITU-R BT.2100 PQ')
+        bright_temp = bright_temp[:, 0]
+        level_list.append(level_temp)
+        img_list.append(img_temp)
+        bright_list.append(bright_temp)
+
+
 def m_and_e_tp_rev5(width=1920, height=1080):
 
     # ベースの背景画像を作成
@@ -1116,6 +1218,9 @@ def m_and_e_tp_rev5(width=1920, height=1080):
 
     # BT.2020 クリップ確認用パターン
     composite_bt2020_check_pattern(img)
+
+    # PQ クリップ位置チェッカー！
+    composite_pq_clip_checker(img)
 
     # 10bit Gray Scale
     composite_10bit_gray_scale(img)
