@@ -19,11 +19,11 @@ from scipy import linalg
 import imp
 imp.reload(tpg)
 
-INTERNAL_PADDING_V = 0.05  # 同一モジュール内でのスペース
-INTERNAL_PADDING_H = 0.05  # 同一モジュール内でのスペース
+INTERNAL_PADDING_V = 0.04  # 同一モジュール内でのスペース
+INTERNAL_PADDING_H = 0.04  # 同一モジュール内でのスペース
 
-EXTERNAL_PADDING_H = 0.07  # モジュール間でのスペース
-EXTERNAL_PADDING_V = 0.07  # モジュール間でのスペース
+EXTERNAL_PADDING_H = 0.06  # モジュール間でのスペース
+EXTERNAL_PADDING_V = 0.06  # モジュール間でのスペース
 
 MARKER_SIZE = 0.011
 MARKER_TEXT_SIZE = 0.019
@@ -58,12 +58,13 @@ EBU_TEST_COLOR_V_START = 0.53
 EBU_TEST_COLOR_SIZE = 0.0676
 EBU_TEST_COLOR_PADDING = 0.006
 
-PQ_CLIP_CHECKER_WIDTH = 0.1
+PQ_CLIP_CHECKER_WIDTH = 0.05
 PQ_CLIP_CHECKER_HEIGHT = 0.2
 PQ_CLIP_CHECKER_H_OFFSET = 0.07
+PQ_CLIP_CHECKER_DESC_TEXT_WIDTH = 0.057
 
 H_GRADATION_HEIGHT = 0.07
-H_COLOR_GRADATION_HEIGHT = 0.12
+H_COLOR_GRADATION_HEIGHT = 0.13
 
 H_FULL_GRADATION_HEIGHT = 0.1
 
@@ -1195,35 +1196,41 @@ def composite_pq_clip_checker(img):
     global g_cuurent_pos_v
     img_width = img.shape[1]
     img_height = img.shape[0]
+    vertual_width = (img_width // 1920) * 1920
     center_bright_list = [300, 500, 1000, 4000]
     level_num = 4
     level_step = 8
     width = int(img_width * PQ_CLIP_CHECKER_WIDTH)
     height = int(img_height * PQ_CLIP_CHECKER_HEIGHT)
+    text_width = int(vertual_width * PQ_CLIP_CHECKER_DESC_TEXT_WIDTH)
 
     module_st_h = _get_center_obj_h_start(img)
     module_st_v = g_cuurent_pos_v + int(img_height * EXTERNAL_PADDING_V)
 
-    h_offset = img_width - (2 * module_st_h) - width
+    h_offset = img_width - (2 * module_st_h) - width - text_width
     h_offset = cmn.equal_devision(h_offset, len(center_bright_list) - 1)
 
-    one_height = height / len(center_bright_list)
-    dummy, font_size = _get_text_height_and_font_size(one_height)
+    dummy, font_size = _get_text_height_and_font_size(img_height)
 
-    level_list = []
     img_list = []
-    bright_list = []
+    text_img_list = []
     for bright in center_bright_list:
         level_temp\
             = _get_pq_video_levels_for_clip_check(bright=bright,
                                                   level_num=level_num,
                                                   level_step=level_step)
         img_temp = _make_block(width, height, level_temp)
-        bright_temp = colour.eotf(level_temp, 'ITU-R BT.2100 PQ')
+        bright_temp = colour.eotf(level_temp / 1024, 'ITU-R BT.2100 PQ')
+        level_temp = level_temp[:, 0]
         bright_temp = bright_temp[:, 0]
-        level_list.append(level_temp)
+        text_info = np.dstack((level_temp, bright_temp))
+        text_info = text_info.reshape((text_info.shape[1], 2))
         img_list.append(img_temp)
-        bright_list.append(bright_temp)
+        text_temp = gen_video_level_text_img(width=text_width,
+                                             height=height,
+                                             font_size=font_size,
+                                             text_info=text_info)
+        text_img_list.append(text_temp)
 
     # 配置
     # -------------------------------------
@@ -1236,6 +1243,20 @@ def composite_pq_clip_checker(img):
         ed_h = st_h + width
         ed_v = st_v + height
         img[st_v:ed_v, st_h:ed_h] = img_list[idx]
+
+        text_st_h = st_h + width
+        text_ed_h = text_st_h + text_width
+        text_st_v = st_v
+        text_ed_v = ed_v
+        img[text_st_v:text_ed_v, text_st_h:text_ed_h] = text_img_list[idx]
+
+        text_pos_h = st_h
+        text_height, font_size = _get_text_height_and_font_size(img_height)
+        text_pos_v = st_v - text_height
+        text = "▼ {}nits clip check".format(center_bright_list[idx])
+        _add_text_info(img, st_pos=(text_pos_h, text_pos_v),
+                       font_size=font_size,
+                       text=text, font_color=(0.3, 0.3, 0.3))
 
     # 現在のV座標を更新
     # -------------------------------------------
