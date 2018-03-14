@@ -377,8 +377,9 @@ def composite_limited_csf_pattern(img):
 
 
 def _get_text_height_and_font_size(img_height=1080):
-    text_height = int(img_height * MARKER_TEXT_SIZE)
+    text_height = img_height * MARKER_TEXT_SIZE
     font_size = int(text_height / 96 * 72)
+    text_height = int(text_height)
 
     return text_height, font_size
 
@@ -1133,6 +1134,26 @@ def _get_pq_video_levels_for_clip_check(bright=1000, level_num=4,
 
 def _make_block(width=640, height=480,
                 level=[[900, 0, 0], [0, 800, 0]]):
+    """
+    level で指定した色で塗りつぶした長方形を
+    V方向に積んだ画像を生成する。
+
+    Parameters
+    ----------
+    width : numeric.
+        total width
+    height : numeric.
+        total height
+    level : array of the numeric or array_like
+        values of red, green, blue.
+        the bit depth must be 10bit.
+
+    Returns
+    -------
+    array_like
+        block image.
+
+    """
     block_num = len(level)
     height_p = cmn.equal_devision(height, block_num)
 
@@ -1149,6 +1170,10 @@ def _make_block(width=640, height=480,
 
 
 def _reshape_for_2d(data):
+    """
+    `data` で記述したビデオレベルをR,G,Bに展開する。
+    また、shape を (N, 3) に整形する。
+    """
     data = np.array(data)
     data = np.dstack((data, data, data))
     data = data.reshape((data.shape[1], data.shape[2]))
@@ -1179,12 +1204,18 @@ def composite_pq_clip_checker(img):
     module_st_h = _get_center_obj_h_start(img)
     module_st_v = g_cuurent_pos_v + int(img_height * EXTERNAL_PADDING_V)
 
+    h_offset = img_width - (2 * module_st_h) - width
+    h_offset = cmn.equal_devision(h_offset, len(center_bright_list) - 1)
+
+    one_height = height / len(center_bright_list)
+    dummy, font_size = _get_text_height_and_font_size(one_height)
+
     level_list = []
     img_list = []
     bright_list = []
     for bright in center_bright_list:
         level_temp\
-            = _get_pq_video_levels_for_clip_check(bright=1000,
+            = _get_pq_video_levels_for_clip_check(bright=bright,
                                                   level_num=level_num,
                                                   level_step=level_step)
         img_temp = _make_block(width, height, level_temp)
@@ -1193,6 +1224,22 @@ def composite_pq_clip_checker(img):
         level_list.append(level_temp)
         img_list.append(img_temp)
         bright_list.append(bright_temp)
+
+    # 配置
+    # -------------------------------------
+    for idx in range(len(img_list)):
+        sum_h = 0
+        for o_idx in range(idx):
+            sum_h += h_offset[o_idx]
+        st_h = module_st_h + sum_h
+        st_v = module_st_v
+        ed_h = st_h + width
+        ed_v = st_v + height
+        img[st_v:ed_v, st_h:ed_h] = img_list[idx]
+
+    # 現在のV座標を更新
+    # -------------------------------------------
+    g_cuurent_pos_v = ed_v
 
 
 def m_and_e_tp_rev5(width=1920, height=1080):
@@ -1217,7 +1264,7 @@ def m_and_e_tp_rev5(width=1920, height=1080):
     composite_limited_csf_pattern(img)
 
     # BT.2020 クリップ確認用パターン
-    composite_bt2020_check_pattern(img)
+    # composite_bt2020_check_pattern(img)
 
     # PQ クリップ位置チェッカー！
     composite_pq_clip_checker(img)
