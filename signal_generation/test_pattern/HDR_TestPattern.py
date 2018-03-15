@@ -22,8 +22,8 @@ imp.reload(tpg)
 INTERNAL_PADDING_V = 0.04  # 同一モジュール内でのスペース
 INTERNAL_PADDING_H = 0.04  # 同一モジュール内でのスペース
 
-EXTERNAL_PADDING_H = 0.06  # モジュール間でのスペース
-EXTERNAL_PADDING_V = 0.06  # モジュール間でのスペース
+EXTERNAL_PADDING_H = 0.068  # モジュール間でのスペース
+EXTERNAL_PADDING_V = 0.068  # モジュール間でのスペース
 
 MARKER_SIZE = 0.011
 MARKER_TEXT_SIZE = 0.019
@@ -59,9 +59,9 @@ EBU_TEST_COLOR_SIZE = 0.0676
 EBU_TEST_COLOR_PADDING = 0.006
 
 PQ_CLIP_CHECKER_WIDTH = 0.05
-PQ_CLIP_CHECKER_HEIGHT = 0.2
+PQ_CLIP_CHECKER_HEIGHT = 0.16
 PQ_CLIP_CHECKER_H_OFFSET = 0.07
-PQ_CLIP_CHECKER_DESC_TEXT_WIDTH = 0.057
+PQ_CLIP_CHECKER_DESC_TEXT_WIDTH = 0.05
 
 H_GRADATION_HEIGHT = 0.07
 H_COLOR_GRADATION_HEIGHT = 0.13
@@ -1094,7 +1094,7 @@ def composite_hlg_ebu_test_colour(img):
     text_pos_h = patch_st_h
     text_height, font_size = _get_text_height_and_font_size(img_height)
     text_pos_v = st_v - text_height
-    text = "▼ EBU TEST COLOUR\ for HLG SG=1.2"
+    text = "▼ EBU TEST COLOUR for HLG SG=1.2"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
                    text=text, font_color=(0.3, 0.3, 0.3))
 
@@ -1210,7 +1210,7 @@ def composite_pq_clip_checker(img):
     h_offset = img_width - (2 * module_st_h) - width - text_width
     h_offset = cmn.equal_devision(h_offset, len(center_bright_list) - 1)
 
-    dummy, font_size = _get_text_height_and_font_size(img_height)
+    font_size = int(height / (level_num * 2 + 1) / 96 * 72)
 
     img_list = []
     text_img_list = []
