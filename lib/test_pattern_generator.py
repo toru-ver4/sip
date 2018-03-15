@@ -142,13 +142,16 @@ def get_color_array(order='static', color=[1, 1, 1],
     return color_array
 
 
-def preview_image(img, order=None):
+def preview_image(img, order=None, over_disp=False):
     if order == 'rgb':
         cv2.imshow('preview', img[:, :, ::-1])
     elif order == 'bgr':
         cv2.imshow('preview', img)
     else:
         raise ValueError("order parameter is invalid")
+    
+    if over_disp:
+        cv2.resizeWindow('preview', )
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -363,32 +366,6 @@ def gen_youtube_hdr_test_pattern(high_bit_num=5, window_size=0.05):
     return img
 
 
-def _croshatch_fragment(width=256, height=128, linewidth=1,
-                        bg_color=const_black, fg_color=const_white,
-                        debug=False):
-    """
-    # 概要
-    クロスハッチの最小パーツを作る
-    線は上側、左側にしか引かない。後に結合することを考えて。
-    """
-
-    # make base rectanble
-    # ----------------------------------
-    fragment = np.ones((height, width, 3))
-    for idx in range(3):
-        fragment[:, :, idx] *= bg_color[idx]
-
-    # add fg lines
-    # ----------------------------------
-    cv2.line(fragment, (0, 0), (0, height - 1), fg_color, linewidth)
-    cv2.line(fragment, (0, 0), (width - 1, 0), fg_color, linewidth)
-
-    if debug:
-        preview_image(fragment, 'rgb')
-
-    return fragment
-
-
 def make_crosshatch(width=1920, height=1080,
                     linewidth=1, linetype=cv2.LINE_AA,
                     fragment_width=64, fragment_height=64,
@@ -457,14 +434,6 @@ def make_crosshatch(width=1920, height=1080,
     _add_text_infomation(img,
                          bg_pos=(15, 20), fg_pos=(15, 40),
                          fg_color=fg_color, bg_color=bg_color)
-    # font = cv2.FONT_HERSHEY_DUPLEX
-    # text_format = "bg:({:03d}, {:03d}, {:03d})"
-    # text = text_format.format(bg_color[0], bg_color[1], bg_color[2])
-    # cv2.putText(img, text, (15, 20), font, 0.35, fg_color, 1, cv2.LINE_AA)
-    # text_format = "fg:({:03.0f}, {:03.0f}, {:03.0f})"
-    # text = text_format.format(fg_color[0], fg_color[1], fg_color[2])
-    # cv2.putText(img, text, (15, 40), font, 0.35, fg_color, 1, cv2.LINE_AA)
-
     if debug:
         preview_image(img, 'rgb')
 
@@ -849,6 +818,8 @@ def gen_step_gradation(width=1024, height=128, step_num=17,
     # -------------------------------------
     if (max + 1 != step_num):
         val_list = np.linspace(0, max, step_num)
+        # このままだと最終ブロックが 256 とか 1024 なので 1引く
+        # --------------------------------------------------
         val_list[-1] -= 1
     else:
         """
@@ -897,30 +868,6 @@ def gen_step_gradation(width=1024, height=128, step_num=17,
         preview_image(img, 'rgb')
 
     return img
-
-
-def get_primary_data():
-    """
-    # 概要
-    とある機材のPrimary情報を取得する。
-    # src_code
-    http://www.eizo.co.jp/support/db/products/download/791
-    # 注意事項
-    icc profile を $ROOT/lib/data/ 以下に置いておくこと
-    """
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    filename = os.path.join(base_dir, "./data/6500K.icc")
-    # profile = ImageCms.getOpenProfile(filename)
-    # r_xyY = list(profile.profile.red_primary[1][0:2])\
-    #     + [profile.profile.red_primary[0][1] * 100]
-    # g_xyY = list(profile.profile.green_primary[1][0:2])\
-    #     + [profile.profile.green_primary[0][1] * 100]
-    # b_xyY = list(profile.profile.blue_primary[1][0:2])\
-    #     + [profile.profile.blue_primary[0][1] * 100]
-
-    # native_xyY = [r_xyY, g_xyY, b_xyY, (0.3127, 0.3290, 100)]
-
-    # return native_xyY
 
 
 def composite_gray_scale(img, width, height):
@@ -1315,68 +1262,6 @@ def gen_rgbmyc_color_bar(img, width, height):
     img[vst3:ved3, hst3:hed3] = marker
 
 
-def gen_rec2020_clip_csf_pattern(img, width, height):
-    csf_start_h = width // 2 - 1024
-    csf_start_v = 1450
-    csf_width = 640
-    csf_height = 340
-    csf_h_space = 64
-    csf_h_offset = csf_width + csf_h_space
-    bar_num = 16
-    text_scale = 0.5
-    text_offset_v = 16
-    font = cv2.FONT_HERSHEY_DUPLEX
-    font_color = (0x8000, 0x8000, 0x0000)
-
-    # get native gamut
-    # -----------------
-    large_y_list = [26.27, 67.80, 5.93]
-    native_gamut_list = get_primary_data()[0:3]
-    rec2020_gamut_list = ccv.const_rec2020_xy
-
-    for idx in range(3):
-        # make xyY data
-        # ---------------------------
-        native_xyy = native_gamut_list[idx]
-        native_xyy = np.array(native_xyy).reshape((1, 1, 3))
-        rec2020_xyy = rec2020_gamut_list[idx] + [large_y_list[idx]]
-        rec2020_xyy = np.array(rec2020_xyy).reshape((1, 1, 3))
-
-        # convert from xyY to rgb
-        # ---------------------------
-        native_rgb = ccv.xyY_to_RGB(xyY=native_xyy,
-                                    gamut=ccv.const_rec2020_xy,
-                                    white=ccv.const_d65_large_xyz)
-        rec2020_rgb = ccv.xyY_to_RGB(xyY=rec2020_xyy,
-                                     gamut=ccv.const_rec2020_xy,
-                                     white=ccv.const_d65_large_xyz)
-        # apply oetf
-        # ---------------------------
-        native_rgb = ccv.linear_to_pq(native_rgb / 20)  # div 2 means 512 level
-        native_rgb = np.uint16(np.round(native_rgb * 0xFFFF))
-        rec2020_rgb = ccv.linear_to_pq(rec2020_rgb / 20)  # div 2 means 512 lv
-        rec2020_rgb = np.uint16(np.round(rec2020_rgb * 0xFFFF))
-
-        # make csf pattern
-        # ---------------------------
-        csf = gen_csf_pattern(width=csf_width, height=csf_height,
-                              bar_num=bar_num,
-                              a=native_rgb[0, 0], b=rec2020_rgb[0, 0],
-                              dtype=np.uint16)
-
-        # composite
-        # ---------------------------
-        h_start = csf_start_h + csf_h_offset * idx
-        h_end = csf_start_h + csf_h_offset * idx + csf_width
-        img[csf_start_v:csf_start_v+csf_height, h_start:h_end] = csf
-
-        # add text information
-        # -------------------------------
-        pos = (h_start, csf_start_v - text_offset_v)
-        text = "rec20200 clip check"
-        cv2.putText(img, text, pos, font, text_scale, font_color)
-
-
 def make_m_and_e_test_pattern(size='uhd'):
     """
     # 概要
@@ -1480,6 +1365,52 @@ def make_marker(width=101, height=50, rotate=0, preview=False):
     return img
 
 
+def draw_rectangle(img, st_pos=(0, 0), ed_pos=(640-1, 480-1),
+                   color=(1.0, 1.0, 0.0)):
+    """
+    draw rectangle with 1px line-width.
+
+    Parameters
+    ----------
+    img : array_like
+        image data. shape is must be (V_num, H_num, 3).
+    st_pos : array of numeric
+        start position (H, V)
+    ed_pos : array of numeric
+        end position (H, V)
+    color : array of numeric.
+        color. (Red, Green, Blue)
+
+    Returns
+    -------
+    ndarray
+        a image with rectangle.
+
+    Notes
+    -----
+    -   video_level of the color is automatically converted
+        to correct bit depth.
+
+    Examples
+    --------
+    >>> img = np.zeros((1080, 1920, 3), np.dtype=uint8)
+    >>> draw_rectangle(img, (0, 0), (1919, 1079), (1.0, 1.0, 1.0))
+    """
+
+    # convert `color` from float to int.
+    max_value = np.iinfo(img.dtype).max
+    color_val = np.array(color)
+    color_val = np.round(color_val * max_value).astype(img.dtype)
+
+    # conposite!
+    st_h, st_v = st_pos
+    ed_h, ed_v = ed_pos
+    img[st_v, st_h:ed_h, :] = color_val
+    img[ed_v, st_h:ed_h, :] = color_val
+    img[st_v:ed_v, st_h, :] = color_val
+    img[st_v:ed_v, ed_h, :] = color_val
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     make_m_and_e_test_pattern(size="fhd")
@@ -1489,4 +1420,3 @@ if __name__ == '__main__':
     # result = get_color_array(order='decrement', color=[0, 1, 0.5],
     #                          min=0, max=255, div_num=8, endpoint=True)
     # print(result)
-
