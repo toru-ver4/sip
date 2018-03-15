@@ -26,7 +26,7 @@ EXTERNAL_PADDING_H = 0.068  # モジュール間でのスペース
 EXTERNAL_PADDING_V = 0.068  # モジュール間でのスペース
 
 MARKER_SIZE = 0.011
-MARKER_TEXT_SIZE = 0.019
+MARKER_TEXT_SIZE = 0.0178
 MARKER_TEXT_PADDING_H = 0.01
 
 CSF_PATTERN_WIDTH = 0.12
@@ -46,6 +46,7 @@ SIDE_V_GRADATION_WIDTH = 0.026
 SIDE_V_GRADATION_TEXT_WIDTH = 0.046
 SIDE_V_GRADATION_TEXT_H_OFFFSET = 0.08
 SIDE_V_GRADATION_DESC_TEXT_WIDTH = 0.20
+SIDE_V_GRADATION_DESC_TEXT_WIDTH_HLG = 0.197
 SIDE_V_GRADATION_DESC_TEXT_V_OFFSET = 0.005
 
 COLOR_CHECKER_SIZE = 0.05
@@ -281,7 +282,7 @@ def composite_bt2020_check_pattern(img):
     text_height, font_size = _get_text_height_and_font_size(img_height)
     text_pos_v = st_v - text_height
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.6, 0.6, 0.6))
+                   text=text, font_color=(0.4, 0.4, 0.4))
 
     # 現在のV座標を更新
     g_cuurent_pos_v = ed_v
@@ -311,7 +312,7 @@ def composite_limited_csf_pattern(img):
     module_st_v = g_cuurent_pos_v + int(img_height * EXTERNAL_PADDING_V)
 
     limited64 = _make_csf_image(width=width, height=height,
-                                lv1=64, lv2=0, stripe_num=stripe_num)
+                                lv2=64, lv1=0, stripe_num=stripe_num)
     limited940 = _make_csf_image(width=width, height=height,
                                  lv1=1023, lv2=940, stripe_num=stripe_num)
 
@@ -346,7 +347,7 @@ def composite_limited_csf_pattern(img):
     text_pos_v = st_v - text_height
     text = "▼ 512, 520 Lv"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.6, 0.6, 0.6))
+                   text=text, font_color=(0.4, 0.4, 0.4))
 
     # 940, 1023 のパターン合成
     # -------------------------------------------
@@ -359,7 +360,7 @@ def composite_limited_csf_pattern(img):
     text_pos_v = st_v - text_height
     text = "▼ 940, 1023 Lv"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.6, 0.6, 0.6))
+                   text=text, font_color=(0.4, 0.4, 0.4))
 
     # 10bit csf のパターン合成
     # -------------------------------------------
@@ -372,7 +373,7 @@ def composite_limited_csf_pattern(img):
     text_pos_v = st_v - text_height
     text = "▼ 512, 514 Lv"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.6, 0.6, 0.6))
+                   text=text, font_color=(0.4, 0.4, 0.4))
 
     g_cuurent_pos_v = ed_v
 
@@ -497,14 +498,14 @@ def _make_marker(img, vertex_pos, direction="down"):
         print("error. parameter is invalid at _make_marker.")
 
     ptrs = np.array([pt_0, pt_1, pt_2])
-    marker_color = (32768, 32768, 32768)
+    marker_color = (26214, 26214, 26214)
     cv2.fillConvexPoly(img, ptrs, marker_color, 8)
 
     return img
 
 
 def gen_video_level_text_img(width=1024, height=768,
-                             font_size=15, font_color=(0.5, 0.5, 0.5),
+                             font_size=15, font_color=(0.4, 0.4, 0.4),
                              text_info=[["Video Level", "Brightness"]]):
     """
     テキスト情報が付与された画像データを生成する。
@@ -682,10 +683,11 @@ def composite_hlg_vertical_gray_scale(img):
 
     # 説明用テキスト付与
     # ------------------------------------------------------
-    text_pos_h = (h_st - int(img_width * SIDE_V_GRADATION_DESC_TEXT_WIDTH))
+    text_pos_h\
+        = (h_st - int(vertual_width * SIDE_V_GRADATION_DESC_TEXT_WIDTH_HLG))
     text_height, font_size = _get_text_height_and_font_size(img_height)
     text_pos_v = int(img_height * SIDE_V_GRADATION_DESC_TEXT_V_OFFSET)
-    text = "HLG's video level(10bit) and luminance(nits) ▶"
+    text = "HLG(SG=1.2) video level(10bit) and luminance(nits) ▶"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
                    text=text, font_color=(0.4, 0.4, 0.4))
 
@@ -938,7 +940,7 @@ def composite_pq_color_checker(img):
     text_pos_v = st_v - text_height
     text = "▼ ColorChecker for ST2084"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.3, 0.3, 0.3))
+                   text=text, font_color=(0.4, 0.4, 0.4))
 
 
 def _get_ebu_color_rgb_from_XYZ():
@@ -1002,7 +1004,7 @@ def composite_pq_ebu_test_colour(img):
     text_pos_v = st_v - text_height
     text = "▼ EBU TEST COLOUR for PQ"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.3, 0.3, 0.3))
+                   text=text, font_color=(0.4, 0.4, 0.4))
 
 
 def composite_hlg_color_checker(img):
@@ -1052,7 +1054,7 @@ def composite_hlg_color_checker(img):
     text_pos_v = st_v - text_height
     text = "▼ ColorChecker for HLG SG=1.2"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.3, 0.3, 0.3))
+                   text=text, font_color=(0.4, 0.4, 0.4))
 
 
 def composite_hlg_ebu_test_colour(img):
@@ -1096,7 +1098,7 @@ def composite_hlg_ebu_test_colour(img):
     text_pos_v = st_v - text_height
     text = "▼ EBU TEST COLOUR for HLG SG=1.2"
     _add_text_info(img, st_pos=(text_pos_h, text_pos_v), font_size=font_size,
-                   text=text, font_color=(0.3, 0.3, 0.3))
+                   text=text, font_color=(0.4, 0.4, 0.4))
 
 
 def _get_pq_video_levels_for_clip_check(bright=1000, level_num=4,
@@ -1253,10 +1255,10 @@ def composite_pq_clip_checker(img):
         text_pos_h = st_h
         text_height, font_size = _get_text_height_and_font_size(img_height)
         text_pos_v = st_v - text_height
-        text = "▼ {}nits clip check".format(center_bright_list[idx])
+        text = "▼ {}nits PQ clip check".format(center_bright_list[idx])
         _add_text_info(img, st_pos=(text_pos_h, text_pos_v),
                        font_size=font_size,
-                       text=text, font_color=(0.3, 0.3, 0.3))
+                       text=text, font_color=(0.4, 0.4, 0.4))
 
     # 現在のV座標を更新
     # -------------------------------------------
@@ -1266,8 +1268,10 @@ def composite_pq_clip_checker(img):
 def m_and_e_tp_rev5(width=1920, height=1080):
 
     # ベースの背景画像を作成
-    # img = np.zeros((height, width, 3), dtype=np.uint16)
-    img = np.ones((height, width, 3), dtype=np.uint16) * 0x2000
+    bg_luminance = 0.2  # unit is "nits"
+    bright_code = colour.eotf_reverse(bg_luminance, "ITU-R BT.2100 PQ")
+    bright_code = int(bright_code * 0x3FF * (2 ** 6))
+    img = np.ones((height, width, 3), dtype=np.uint16) * bright_code
 
     # 外枠のフレーム作成
     tpg.draw_rectangle(img, (0, 0), (width-1, height-1), (0.5, 0.5, 0.5))
@@ -1312,10 +1316,13 @@ def m_and_e_tp_rev5(width=1920, height=1080):
     tpg.preview_image(img, 'rgb')
 
     # write to the file
-    cv2.imwrite("test.tiff", img[:, :, ::-1])
+    file_str = "HDR_TEST_PATTEN_{:d}x{:d}_bg_{:.02f}nits.tiff"
+    file_name = file_str.format(width, height, bg_luminance)
+    cv2.imwrite(file_name, img[:, :, ::-1])
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     m_and_e_tp_rev5(1920, 1080)
-    # m_and_e_tp_rev5(4096, 2160)
+    m_and_e_tp_rev5(3840, 2160)
+    m_and_e_tp_rev5(4096, 2160)
