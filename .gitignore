@@ -84,3 +84,9 @@ hdr_on_sdr/data/**
 misc/Markdown_de_Slide/
 **/node_modules/
 signal_generation/test_pattern/fonts/*.otf
+OpenColorIO/aces_1.0.3/**/*.3dl
+OpenColorIO/aces_1.0.3/**/*.lut
+OpenColorIO/aces_1.0.3/**/*.csp
+OpenColorIO/aces_1.0.3/**/*.icc
+OpenColorIO/aces_1.0.3/**/*.spi1d
+OpenColorIO/aces_1.0.3/**/*.spi3d
