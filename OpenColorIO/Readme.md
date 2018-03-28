@@ -10,6 +10,10 @@ NUKEでHDRのOutputを行うための ```ocio.config``` を作成する。
 * ST2084, BT.2020, D65 の Output の定義作成
 * SDR を 0.1 にマッピングして import する定義作成
 
+## ソースコード類
+[ACES 1.0.3 OpenColorIO configuration](https://github.com/imageworks/OpenColorIO-Configs/tree/master/aces_1.0.3)
+
+
 ## Install on Ubuntu16.04 on Windows10
 
 ### Install CTL
@@ -29,6 +33,12 @@ $ cmake ..
 $ make
 $ sudo make install
 
+# install libtiff4
+$ cd ~/local/src
+$ git clone https://github.com/vadz/libtiff.git
+$ cd libtiff
+$ 
+
 # install CTL
 $ cd ~/local/src
 $ git clone https://github.com/ampas/CTL.git
@@ -46,3 +56,8 @@ $ sudo apt-get install python-pyopencolorio python-openimageio
 $ sudo apt-get install python-opencv
 $ sudo apt-get install libraw-dev
 ```
+
+## Download the ctl files
+
+https://github.com/ampas/aces-dev/tree/master/transforms/ctl
+
