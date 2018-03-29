@@ -25,7 +25,7 @@ $ sudo yum -y install python-OpenImageIO
 
 ### Install OpenColorIO
 ```bash
-$ sudo yum -y install OpenColorIO-devel
+$ sudo yum -y install OpenColorIO-devel OpenColorIO-tools
 ```
 
 ### Install Optional Dependencies
@@ -38,6 +38,13 @@ $ sudo yum -y install LibRaw-devel opencv-devel OpenEXR-devel
 ```bash
 $ sudo yum -y install ilmbase-devel libtiff 
 $ mkdir -p ~/local/src
+$ cd ~/local/src
+$ wget ftp://download.osgeo.org/libtiff/tiff-4.0.9.tar.gz
+$ tar xvzf tiff-4.0.9.tar.gz
+$ cd tiff-4.0.9
+$ ./configure
+$ make
+$ sudo make install
 $ cd ~/local/src
 $ git clone https://github.com/ampas/aces_container.git
 $ cd aces_container
@@ -54,8 +61,11 @@ $ make
 $ sudo make install
 ```
 
-
 ## Download the ctl files
-
 https://github.com/ampas/aces-dev/tree/master/transforms/ctl
 
+## ocio.config 作成
+
+```bash
+./create_aces_config -a ../../../transforms/ctl -c ../../../ocio_config --lutResolution1d 4096 --lutResolution3d 65 --keepTempImages
+```
