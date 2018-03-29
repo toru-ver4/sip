@@ -16,14 +16,27 @@ NUKEでHDRのOutputを行うための ```ocio.config``` を作成する。
 
 ## Install on Ubuntu16.04 on Windows10
 
-### Install CTL
-
-1. Build libraries from source code
+### Install OpenImageIO
 
 ```bash
-$ sudo apt-get install cmake libilmbase-dev libopenexr-dev libtiff5
+$ sudo yum -y install OpenImageIO-devel
+$ sudo yum -y install python-OpenImageIO
+```
 
-# install aces container
+### Install OpenColorIO
+```bash
+$ sudo yum -y install OpenColorIO-devel
+```
+
+### Install Optional Dependencies
+```bash
+$ sudo yum -y install LibRaw-devel opencv-devel OpenEXR-devel 
+```
+
+### Install CTL
+
+```bash
+$ sudo yum -y install ilmbase-devel libtiff 
 $ mkdir -p ~/local/src
 $ cd ~/local/src
 $ git clone https://github.com/ampas/aces_container.git
@@ -32,14 +45,6 @@ $ mkdir build && cd build
 $ cmake ..
 $ make
 $ sudo make install
-
-# install libtiff4
-$ cd ~/local/src
-$ git clone https://github.com/vadz/libtiff.git
-$ cd libtiff
-$ 
-
-# install CTL
 $ cd ~/local/src
 $ git clone https://github.com/ampas/CTL.git
 $ cd CTL
@@ -49,13 +54,6 @@ $ make
 $ sudo make install
 ```
 
-2. Install pre-build libraries
-
-```bash
-$ sudo apt-get install python-pyopencolorio python-openimageio
-$ sudo apt-get install python-opencv
-$ sudo apt-get install libraw-dev
-```
 
 ## Download the ctl files
 
