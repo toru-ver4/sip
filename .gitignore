@@ -90,3 +90,6 @@ OpenColorIO/aces_1.0.3/**/*.csp
 OpenColorIO/aces_1.0.3/**/*.icc
 OpenColorIO/aces_1.0.3/**/*.spi1d
 OpenColorIO/aces_1.0.3/**/*.spi3d
+OpenColorIO/aces_1.0.3/**/*.3dl
+OpenColorIO/**/*.ctl
+OpenColorIO/transforms/**
