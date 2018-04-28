@@ -120,6 +120,38 @@ S-Log3, S-Gamut3 の colorspace 記述例を以下に抜粋する
 
 ACESで使うものであり、OCIOでは必須ではない。省略可能。Canon-Log3 にはタグ無し。
 
+上記の ```<MatrixTransform>``` の係数は S-Gamut3 to ACES AP0 変換Matrixだった。
+よって入力のWhite(D65)をACESのWhite(D60) に変換している。
+
+その際に **chromatic adaptation** として **CAT02** を使っていることに注意したい。
+Bradfordじゃなかった…。
+
+
+#### ACES特有の(？)パターン
+
+ディスプレイ出力用の Rec.2020 ST2084 (1000 nits) の記述を以下に抜粋する。
+
+```
+  - !<ColorSpace>
+    name: Output - Rec.2020 ST2084 (1000 nits)
+    family: Output
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      ACES 1.0 Output - Rec.2020 ST2084 (1000 nits) Output Transform
+      ACES Transform ID : ODT.Academy.Rec2020_ST2084_1000nits.a1.0.3
+    isdata: false
+    allocation: uniform
+    allocationvars: [0, 1]
+    to_reference: !<GroupTransform>
+      children:
+        - !<FileTransform> {src: InvRRT.Rec.2020_ST2084__1000_nits_.Dolby_PQ_1000_nits_Shaper.spi3d, interpolation: tetrahedral}
+        - !<FileTransform> {src: Dolby_PQ_1000_nits_Shaper_to_linear.spi1d, interpolation: linear}
+    from_reference: !<GroupTransform>
+      children:
+        - !<FileTransform> {src: Dolby_PQ_1000_nits_Shaper_to_linear.spi1d, interpolation: linear, direction: inverse}
+        - !<FileTransform> {src: Dolby_PQ_1000_nits_Shaper.RRT.Rec.2020_ST2084__1000_nits_.spi3d, interpolation: tetrahedral}
+```
 
 
 
