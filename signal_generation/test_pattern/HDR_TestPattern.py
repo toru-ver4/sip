@@ -1313,12 +1313,29 @@ def m_and_e_tp_rev5(width=1920, height=1080):
     composite_hlg_ebu_test_colour(img)
 
     # preview
-    tpg.preview_image(img, 'rgb')
+    # tpg.preview_image(img, 'rgb')
 
     # write to the file
-    file_str = "HDR_TEST_PATTEN_{:d}x{:d}_bg_{:.02f}nits.tiff"
-    file_name = file_str.format(width, height, bg_luminance)
-    cv2.imwrite(file_name, img[:, :, ::-1])
+    file_str = "HDR_TEST_PATTEN_{:d}x{:d}_bg_{:.02f}nits.{:s}"
+    file_name_tiff = file_str.format(width, height, bg_luminance, "tiff")
+    file_name_dpx = file_str.format(width, height, bg_luminance, "dpx")
+    file_name_sample = os.path.join("sample_dpx", file_name_dpx)
+    cv2.imwrite(file_name_tiff, img[:, :, ::-1])
+    write_dpx(file_name_sample, file_name_dpx, img)
+
+
+def write_dpx(sample_file, out_file, img):
+    """参考：https://github.com/guerilla-di/depix"""
+
+    with open(sample_file, 'rb') as f:
+        header = f.read(8192)
+
+    with open(out_file, 'wb') as f:
+        f.write(header)
+        img = np.uint32(img) >> 6
+        raw = ((img[:, :, 0] & 0x000003FF) << 22) | ((img[:, :, 1] & 0x000003FF) << 12) | ((img[:, :, 2] & 0x000003FF) << 2)
+        raw = raw.byteswap()
+        raw.tofile(f, sep="")
 
 
 if __name__ == '__main__':

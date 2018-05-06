@@ -94,3 +94,4 @@ OpenColorIO/aces_1.0.3/**/*.3dl
 OpenColorIO/**/*.ctl
 OpenColorIO/transforms/**
 OpenColorIO/manual_customize/test.spi1d
+signal_generation/test_pattern/sample_dpx/*.dpx
