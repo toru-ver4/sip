@@ -57,6 +57,8 @@
 import os
 import numpy as np
 
+AUTHOR_INFORMATION = "# This 3DLUT data was created by TY-LUT creation tool"
+
 
 def get_3d_grid_cube_format(grid_num=4):
     """
@@ -130,10 +132,92 @@ def _convert_3dlut_from_3dl_to_cube(lut, grid_num):
     return out_lut
 
 
+def save_3dlut(lut, grid_num, filename="./data/lut_sample/cube.cube",
+               title=None, min=0.0, max=1.0):
+    """
+    3DLUTデータをファイルに保存する。
+    形式の判定はファイル名の拡張子で行う。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+    lut : array_like
+        3dlut data.
+    grid_num : int
+        grid number.
+    title : str
+        title of the 3dlut data. It is for header information.
+    min : int or float
+        minimum value of the 3dlut
+    max : int or float
+        maximu value of the 3dlut
+    """
+
+    root, ext = os.path.splitext(filename)
+
+    if ext == ".cube":
+        print("write cube")
+        save_3dlut_cube_format(lut, grid_num, filename=filename,
+                               title="cube_test", min=min, max=max)
+    elif ext == ".3dl":
+        print("3dl")
+        pass
+    elif ext == ".spi3d":
+        print("spi3d")
+        pass
+    else:
+        raise IOError('extension "{:s}" is not supported.'.format(ext))
+
+
+def save_3dlut_cube_format(lut, grid_num, filename,
+                           title=None, min=0.0, max=1.0):
+    """
+    CUBE形式で3DLUTデータをファイルに保存する。
+    形式の判定はファイル名の拡張子で行う。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+    lut : array_like
+        3dlut data.
+    grid_num : int
+        grid number.
+    title : str
+        title of the 3dlut data. It is for header information.
+    min : int or float
+        minimum value of the 3dlut
+    max : int or float
+        maximu value of the 3dlut
+    """
+
+    # ヘッダ情報の作成
+    # ------------------------
+    header = ""
+    header += AUTHOR_INFORMATION + '\n'
+
+    if title:
+        header += 'TITLE "{:s}"\n'.format(title)
+    header += 'DOMAIN_MIN {0:} {0:} {0:}\n'.format(min)
+    header += 'DOMAIN_MAX {0:} {0:} {0:}\n'.format(max)
+    header += 'LUT_3D_SIZE {:}\n'.format(grid_num)
+    header += '\n'
+
+    # ファイルにデータを書き込む
+    # ------------------------
+    out_str = '{:.10f} {:.10f} {:.10f}\n'
+    with open(filename, "w") as file:
+        file.write(header)
+        for line in lut:
+            file.write(out_str.format(line[0], line[1], line[2]))
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    g_num = 3
-    lut = get_3d_grid_cube_format(grid_num=g_num) * g_num
-    dl_lut = _convert_3dlut_from_cube_to_3dl(lut, g_num)
-    lut222 = _convert_3dlut_from_3dl_to_cube(dl_lut, g_num)
-
+    g_num = 65
+    lut = get_3d_grid_cube_format(grid_num=g_num)
+    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.cube", min=-0.1, max=1.0)
+    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.3dl")
+    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi3d")
+    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi1d")
