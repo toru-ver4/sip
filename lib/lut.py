@@ -331,6 +331,10 @@ def save_3dlut_spi_format(lut, grid_num, filename,
         maximu value of the 3dlut
     """
 
+    # 3dl形式へLUTデータの並べ替えをする
+    # --------------------------------
+    out_lut = _convert_3dlut_from_cube_to_3dl(lut, grid_num)
+
     # ヘッダ情報の作成
     # ------------------------
     header = ""
@@ -344,7 +348,7 @@ def save_3dlut_spi_format(lut, grid_num, filename,
     out_str = '{:d} {:d} {:d} {:.10f} {:.10f} {:.10f}\n'
     with open(filename, "w") as file:
         file.write(header)
-        for line in lut:
+        for line in out_lut:
             r_idx, g_idx, b_idx\
                 = _get_rgb_index_for_spi3d_output(line_index, grid_num)
             file.write(out_str.format(r_idx, g_idx, b_idx,
@@ -398,6 +402,10 @@ def save_3dlut_3dl_format(lut, grid_num, filename,
         maximu value of the 3dlut
     """
 
+    # 3dl形式へLUTデータの並べ替えをする
+    # --------------------------------
+    out_lut = _convert_3dlut_from_cube_to_3dl(lut, grid_num)
+
     # ヘッダ情報の作成
     # ------------------------
     header = ""
@@ -414,7 +422,7 @@ def save_3dlut_3dl_format(lut, grid_num, filename,
 
     # データを出力bit精度に変換
     # ------------------------
-    out_lut = np.uint32(np.round(lut * ((2 ** bit_depth) - 1)))
+    out_lut = np.uint32(np.round(out_lut * ((2 ** bit_depth) - 1)))
 
     # ファイルにデータを書き込む
     # ------------------------
@@ -434,10 +442,8 @@ if __name__ == '__main__':
                min=-0.1, max=1.0)
     # load_3dlut_cube_format("./data/lut_sample/hoge.fuga.cube")
     lut, grid_num, title, min, max = load_3dlut_cube_format(sample_arri_cube)
-    print(lut)
+    print(lut.shape)
     print(grid_num, title, min, max)
-    save_3dlut(_convert_3dlut_from_cube_to_3dl(lut, g_num), g_num,
-               filename="./data/lut_sample/hoge.fuga.3dl")
-    save_3dlut(_convert_3dlut_from_cube_to_3dl(lut, g_num), g_num,
-               filename="./data/lut_sample/hoge.fuga.spi3d")
-    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi1d")
+    # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.3dl")
+    # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi3d")
+    # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi1d")
