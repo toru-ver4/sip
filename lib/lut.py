@@ -162,6 +162,18 @@ def _convert_3dlut_from_3dl_to_cube(lut, grid_num):
     return out_lut
 
 
+def _is_float_expression(s):
+    """
+    copied from
+    https://qiita.com/agnelloxy/items/137cbc8651ff4931258f
+    """
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
 def save_3dlut(lut, grid_num, filename="./data/lut_sample/cube.cube",
                title=None, min=0.0, max=1.0):
     """
@@ -239,6 +251,63 @@ def save_3dlut_cube_format(lut, grid_num, filename,
         file.write(header)
         for line in lut:
             file.write(out_str.format(line[0], line[1], line[2]))
+
+
+def load_3dlut_cube_format(filename):
+    """
+    CUBE形式の3DLUTデータをファイルから読み込む。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+
+    Returns
+    -------
+    lut : array_like
+        3DLUT data with cube format.
+    grid_num : int
+        grid number.
+    title : str
+        title of the 3dlut data.
+    min : double
+        minium value of the 3dlut data.
+    max : double
+        maximum value of the 3dlut data.
+    """
+
+    # ヘッダ情報を読みつつ、データ開始位置を探る
+    # --------------------------------------
+    data_start_idx = 0
+    title = None
+    min = 0.0
+    max = 1.0
+    grid_num = None
+    with open(filename, "r") as file:
+        for line_idx, line in enumerate(file):
+            line = line.rstrip()
+            if line == '':  # 空行は飛ばす
+                continue
+            key_value = line.split()[0]
+            if key_value == 'TITLE':
+                title = line.split()[1]
+            if key_value == 'DOMAIN_MIN':
+                min = float(line.split()[1])
+            if key_value == 'DOMAIN_MAX':
+                max = float(line.split()[1])
+            if key_value == 'LUT_3D_SIZE':
+                grid_num = int(line.split()[1])
+            if _is_float_expression(line.split()[0]):
+                data_start_idx = line_idx
+                break
+
+    # 3DLUTデータを読む
+    # --------------------------------------
+    lut = np.loadtxt(filename, delimiter=' ', skiprows=data_start_idx)
+
+    # 得られたデータを返す
+    # --------------------------------------
+    return lut, grid_num, title, min, max
 
 
 def save_3dlut_spi_format(lut, grid_num, filename,
@@ -358,10 +427,15 @@ def save_3dlut_3dl_format(lut, grid_num, filename,
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    g_num = 33
+    g_num = 3
+    sample_arri_cube = "./data/lut_sample/AlexaV3_EI0800_LogC2Video_Rec709_LL_aftereffects3d.cube"
     lut = get_3d_grid_cube_format(grid_num=g_num)
     save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.cube",
                min=-0.1, max=1.0)
+    # load_3dlut_cube_format("./data/lut_sample/hoge.fuga.cube")
+    lut, grid_num, title, min, max = load_3dlut_cube_format(sample_arri_cube)
+    print(lut)
+    print(grid_num, title, min, max)
     save_3dlut(_convert_3dlut_from_cube_to_3dl(lut, g_num), g_num,
                filename="./data/lut_sample/hoge.fuga.3dl")
     save_3dlut(_convert_3dlut_from_cube_to_3dl(lut, g_num), g_num,
