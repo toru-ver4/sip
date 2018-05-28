@@ -62,10 +62,38 @@ AUTHOR_INFORMATION = "# This 3DLUT data was created by TY-LUT creation tool"
 
 def get_3d_grid_cube_format(grid_num=4):
     """
-    # 概要
-    (0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 1), ...
-    みたいな配列を返す。
-    CUBE形式の3DLUTを作成する時に便利。
+    .cubeフォーマットに準じた3DLUTの格子データを出力する。
+    grid_num=3 の場の例を以下に示す。
+
+    ```
+    [[ 0.   0.   0. ]
+     [ 0.5  0.   0. ]
+     [ 1.   0.   0. ]
+     [ 0.   0.5  0. ]
+     [ 0.5  0.5  0. ]
+     [ 1.   0.5  0. ]
+     [ 0.   1.   0. ]
+     [ 0.5  1.   0. ]
+     [ 1.   1.   0. ]
+     [ 0.   0.   0.5]
+
+     中略
+
+     [ 1.   0.5  1. ]
+     [ 0.   1.   1. ]
+     [ 0.5  1.   1. ]
+     [ 1.   1.   1. ]]
+     ```
+
+    Parameters
+    ----------
+    grid_num : int
+        grid number of the 3dlut.
+
+    Returns
+    -------
+    array_like
+        3DLUT grid data with cube format.
     """
 
     base = np.linspace(0, 1, grid_num)
@@ -164,6 +192,8 @@ def save_3dlut(lut, grid_num, filename="./data/lut_sample/cube.cube",
         print("3dl")
         pass
     elif ext == ".spi3d":
+        save_3dlut_spi_format(lut, grid_num, filename=filename,
+                              title="spi3d_test", min=min, max=max)
         print("spi3d")
         pass
     else:
@@ -174,7 +204,6 @@ def save_3dlut_cube_format(lut, grid_num, filename,
                            title=None, min=0.0, max=1.0):
     """
     CUBE形式で3DLUTデータをファイルに保存する。
-    形式の判定はファイル名の拡張子で行う。
 
     Parameters
     ----------
@@ -213,9 +242,76 @@ def save_3dlut_cube_format(lut, grid_num, filename,
             file.write(out_str.format(line[0], line[1], line[2]))
 
 
+def save_3dlut_spi_format(lut, grid_num, filename,
+                          title=None, min=0.0, max=1.0):
+    """
+    spi3d形式で3DLUTデータをファイルに保存する。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+    lut : array_like
+        3dlut data.
+    grid_num : int
+        grid number.
+    title : str
+        title of the 3dlut data. It is for header information.
+    min : int or float
+        minimum value of the 3dlut
+    max : int or float
+        maximu value of the 3dlut
+    """
+
+    # ヘッダ情報の作成
+    # ------------------------
+    header = ""
+    header += 'SPILUT 1.0\n'
+    header += '{:d} {:d}\n'.format(3, 3)  # 数値の意味は不明
+    header += '{0:d} {0:d} {0:d}\n'.format(grid_num)
+
+    # ファイルにデータを書き込む
+    # ------------------------
+    line_index = 0
+    out_str = '{:d} {:d} {:d} {:.10f} {:.10f} {:.10f}\n'
+    with open(filename, "w") as file:
+        file.write(header)
+        for line in lut:
+            r_idx, g_idx, b_idx\
+                = _get_rgb_index_for_spi3d_output(line_index, grid_num)
+            file.write(out_str.format(r_idx, g_idx, b_idx,
+                                      line[0], line[1], line[2]))
+            line_index += 1
+
+
+def _get_rgb_index_for_spi3d_output(line_index, grid_num):
+    """
+    3DLUT Data の行番号から、当該行に該当する r_idx, g_idx, b_idx を
+    算出する。
+
+    Parameters
+    ----------
+    line_index : int
+        line number.
+    grid_num : int
+        grid number.
+
+    Returns
+    -------
+    int, int, int
+        grid index of each color.
+    """
+
+    r_idx = (line_index // (grid_num ** 2)) % grid_num
+    g_idx = (line_index // (grid_num ** 1)) % grid_num
+    b_idx = (line_index // (grid_num ** 0)) % grid_num
+
+    return r_idx, g_idx, b_idx
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    g_num = 65
+    g_num = 3
     lut = get_3d_grid_cube_format(grid_num=g_num)
     save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.cube", min=-0.1, max=1.0)
     save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.3dl")
