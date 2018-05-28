@@ -56,8 +56,10 @@
 
 import os
 import numpy as np
+import math
 
-AUTHOR_INFORMATION = "# This 3DLUT data was created by TY-LUT creation tool"
+AUTHOR_INFORMATION = "This 3DLUT data was created by TY-LUT creation tool"
+LUT_BIT_DEPTH_3DL = 16
 
 
 def get_3d_grid_cube_format(grid_num=4):
@@ -185,17 +187,14 @@ def save_3dlut(lut, grid_num, filename="./data/lut_sample/cube.cube",
     root, ext = os.path.splitext(filename)
 
     if ext == ".cube":
-        print("write cube")
         save_3dlut_cube_format(lut, grid_num, filename=filename,
                                title="cube_test", min=min, max=max)
     elif ext == ".3dl":
-        print("3dl")
-        pass
+        save_3dlut_3dl_format(lut, grid_num, filename=filename,
+                              title="cube_test", min=min, max=max)
     elif ext == ".spi3d":
         save_3dlut_spi_format(lut, grid_num, filename=filename,
                               title="spi3d_test", min=min, max=max)
-        print("spi3d")
-        pass
     else:
         raise IOError('extension "{:s}" is not supported.'.format(ext))
 
@@ -224,7 +223,7 @@ def save_3dlut_cube_format(lut, grid_num, filename,
     # ヘッダ情報の作成
     # ------------------------
     header = ""
-    header += AUTHOR_INFORMATION + '\n'
+    header += '# ' + AUTHOR_INFORMATION + '\n'
 
     if title:
         header += 'TITLE "{:s}"\n'.format(title)
@@ -309,11 +308,62 @@ def _get_rgb_index_for_spi3d_output(line_index, grid_num):
     return r_idx, g_idx, b_idx
 
 
+def save_3dlut_3dl_format(lut, grid_num, filename,
+                          title=None, min=0.0, max=1.0):
+    """
+    3DL形式で3DLUTデータをファイルに保存する。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+    lut : array_like
+        3dlut data.
+    grid_num : int
+        grid number.
+    title : str
+        title of the 3dlut data. It is for header information.
+    min : int or float
+        minimum value of the 3dlut
+    max : int or float
+        maximu value of the 3dlut
+    """
+
+    # ヘッダ情報の作成
+    # ------------------------
+    header = ""
+    exponent = round(math.log2(grid_num - 1))
+    bit_depth = LUT_BIT_DEPTH_3DL
+
+    if title:
+        header += '# TITLE "{:s}"\n'.format(title)
+    header += '# ' + AUTHOR_INFORMATION + '\n'
+    header += '\n'
+    header += '3DMESH\n'
+    header += 'Mesh {:d} {:d}\n'.format(exponent, bit_depth)
+    header += '\n'
+
+    # データを出力bit精度に変換
+    # ------------------------
+    out_lut = np.uint32(np.round(lut * ((2 ** bit_depth) - 1)))
+
+    # ファイルにデータを書き込む
+    # ------------------------
+    out_str = '{:d} {:d} {:d}\n'
+    with open(filename, "w") as file:
+        file.write(header)
+        for line in out_lut:
+            file.write(out_str.format(line[0], line[1], line[2]))
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    g_num = 3
+    g_num = 33
     lut = get_3d_grid_cube_format(grid_num=g_num)
-    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.cube", min=-0.1, max=1.0)
-    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.3dl")
-    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi3d")
+    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.cube",
+               min=-0.1, max=1.0)
+    save_3dlut(_convert_3dlut_from_cube_to_3dl(lut, g_num), g_num,
+               filename="./data/lut_sample/hoge.fuga.3dl")
+    save_3dlut(_convert_3dlut_from_cube_to_3dl(lut, g_num), g_num,
+               filename="./data/lut_sample/hoge.fuga.spi3d")
     save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi1d")
