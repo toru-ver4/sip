@@ -356,6 +356,60 @@ def save_3dlut_spi_format(lut, grid_num, filename,
             line_index += 1
 
 
+def load_3dlut_spi_format(filename):
+    """
+    spi3d形式の3DLUTデータをファイルから読み込む。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+
+    Returns
+    -------
+    lut : array_like
+        3DLUT data with cube format.
+    version : double
+        version of the spilut
+    demension : int
+        it is fixed 3?
+    grid_num : int
+        grid number.
+    """
+
+    # ヘッダ情報を読みつつ、データ開始位置を探る
+    # --------------------------------------
+    data_start_idx = 0
+    grid_num = None
+    with open(filename, "r") as file:
+        for line_idx, line in enumerate(file):
+            line = line.rstrip()
+            if line == '':  # 空行は飛ばす
+                continue
+            key_value = line.split()[0]
+            if key_value == 'SPILUT':
+                version = float(line.split()[1])
+            if len(line.split()) == 2:
+                dimension = line.split()[0]
+            if len(line.split()) == 3:
+                grid_num = line.split()[0]
+            if len(line.split()) == 6:
+                data_start_idx = line_idx
+                break
+
+    # 3DLUTデータを読む
+    # --------------------------------------
+    print(data_start_idx)
+    lut = np.loadtxt(filename, delimiter=' ', skiprows=data_start_idx,
+                     usecols=(3, 4, 5))
+    print(lut.dtype)
+    lut = _convert_3dlut_from_3dl_to_cube(lut, grid_num)
+
+    # 得られたデータを返す
+    # --------------------------------------
+    return lut, version, dimension, grid_num
+
+
 def _get_rgb_index_for_spi3d_output(line_index, grid_num):
     """
     3DLUT Data の行番号から、当該行に該当する r_idx, g_idx, b_idx を
@@ -437,13 +491,18 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     g_num = 3
     sample_arri_cube = "./data/lut_sample/AlexaV3_EI0800_LogC2Video_Rec709_LL_aftereffects3d.cube"
+    sample_aces_spi3d = "C:/home/sip/OpenColorIO/aces_1.0.3/luts/Log2_48_nits_Shaper.RRT.DCDM.spi3d"
     lut = get_3d_grid_cube_format(grid_num=g_num)
     save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.cube",
                min=-0.1, max=1.0)
     # load_3dlut_cube_format("./data/lut_sample/hoge.fuga.cube")
-    lut, grid_num, title, min, max = load_3dlut_cube_format(sample_arri_cube)
-    print(lut.shape)
-    print(grid_num, title, min, max)
+    # lut, grid_num, title, min, max = load_3dlut_cube_format(sample_arri_cube)
+    # print(lut.shape)
+    # print(grid_num, title, min, max)
+    lut, version, dimension, grid_num\
+        = load_3dlut_spi_format(sample_aces_spi3d)
+    print(lut)
+    print(version, dimension, grid_num)
     # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.3dl")
     # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi3d")
     # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi1d")
