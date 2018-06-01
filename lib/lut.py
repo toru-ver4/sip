@@ -174,6 +174,18 @@ def _is_float_expression(s):
         return False
 
 
+def _is_int_expression(s):
+    """
+    copied from
+    https://qiita.com/agnelloxy/items/137cbc8651ff4931258f
+    """
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
 def save_3dlut(lut, grid_num, filename="./data/lut_sample/cube.cube",
                title=None, min=0.0, max=1.0):
     """
@@ -368,7 +380,7 @@ def load_3dlut_spi_format(filename):
     Returns
     -------
     lut : array_like
-        3DLUT data with cube format.
+        3DLUT data with spi format.
     version : double
         version of the spilut
     demension : int
@@ -400,10 +412,8 @@ def load_3dlut_spi_format(filename):
 
     # 3DLUTデータを読む
     # --------------------------------------
-    print(data_start_idx)
     lut = np.loadtxt(filename, delimiter=' ', skiprows=data_start_idx,
                      usecols=(3, 4, 5))
-    print(lut.dtype)
     lut = _convert_3dlut_from_3dl_to_cube(lut, grid_num)
 
     # 得られたデータを返す
@@ -488,22 +498,81 @@ def save_3dlut_3dl_format(lut, grid_num, filename,
             file.write(out_str.format(line[0], line[1], line[2]))
 
 
+def load_3dlut_3dl_format(filename):
+    """
+    3DL形式の3DLUTデータをファイルから読み込む。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+
+    Returns
+    -------
+    lut : array_like
+        3DLUT data with 3dl format.
+    grid_num : int
+        grid number.
+    title : str
+        title of the 3dlut.
+    """
+
+    # ヘッダ情報を読みつつ、データ開始位置を探る
+    # --------------------------------------
+    data_start_idx = 0
+    title = None
+    grid_num = None
+    with open(filename, "r") as file:
+        for line_idx, line in enumerate(file):
+            line = line.rstrip()
+            if line == '':  # 空行は飛ばす
+                continue
+            if len(line.split()) < 2:
+                continue
+            key_value0, key_value1 = line.split()[0], line.split()[1]
+            if key_value0 == "#" and key_value1 == 'TITLE':
+                title = line.split()[1]
+                continue
+            if key_value0 == "Mesh":
+                grid_num = (2 ** int(line.split()[1])) + 1
+                max_value = (2 ** int(line.split()[2])) - 1
+                print(max_value)
+                continue
+            if len(line.split()) == 3 and _is_int_expression(line.split()[0]):
+                data_start_idx = line_idx
+                break
+
+    # 3DLUTデータを読む
+    # --------------------------------------
+    lut = np.loadtxt(filename, delimiter=' ', skiprows=data_start_idx)
+    lut = _convert_3dlut_from_3dl_to_cube(lut, grid_num)
+    lut = lut / max_value
+
+    # 得られたデータを返す
+    # --------------------------------------
+    return lut, grid_num, title
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    g_num = 3
+    g_num = 17
     sample_arri_cube = "./data/lut_sample/AlexaV3_EI0800_LogC2Video_Rec709_LL_aftereffects3d.cube"
     sample_aces_spi3d = "C:/home/sip/OpenColorIO/aces_1.0.3/luts/Log2_48_nits_Shaper.RRT.DCDM.spi3d"
+    sample_3dl = "./data/lut_sample/hoge.fuga.3dl"
     lut = get_3d_grid_cube_format(grid_num=g_num)
     save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.cube",
                min=-0.1, max=1.0)
-    # load_3dlut_cube_format("./data/lut_sample/hoge.fuga.cube")
-    # lut, grid_num, title, min, max = load_3dlut_cube_format(sample_arri_cube)
-    # print(lut.shape)
-    # print(grid_num, title, min, max)
+    load_3dlut_cube_format("./data/lut_sample/hoge.fuga.cube")
+    lut, grid_num, title, min, max = load_3dlut_cube_format(sample_arri_cube)
+    print(lut.shape)
+    print(grid_num, title, min, max)
     lut, version, dimension, grid_num\
         = load_3dlut_spi_format(sample_aces_spi3d)
     print(lut)
     print(version, dimension, grid_num)
+    lut, grid_num, title = load_3dlut_3dl_format(sample_3dl)
+    print(lut)
+    print(grid_num, title)
     # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.3dl")
     # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi3d")
     # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi1d")
