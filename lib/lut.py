@@ -389,10 +389,11 @@ def load_3dlut_spi_format(filename):
             key_value = line.split()[0]
             if key_value == 'SPILUT':
                 version = float(line.split()[1])
+                continue
             if len(line.split()) == 2:
-                dimension = line.split()[0]
+                dimension = int(line.split()[0])
             if len(line.split()) == 3:
-                grid_num = line.split()[0]
+                grid_num = int(line.split()[0])
             if len(line.split()) == 6:
                 data_start_idx = line_idx
                 break
