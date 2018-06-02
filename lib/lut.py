@@ -659,6 +659,59 @@ def save_1dlut_cube_format(lut, filename, title=None, min=0.0, max=1.0):
             file.write(out_str.format(line))
 
 
+def load_1dlut_cube_format(filename):
+    """
+    CUBE形式の1DLUTデータをファイルから読み込む。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+
+    Returns
+    -------
+    lut : array_like
+        1dlut data.
+    """
+
+    # ヘッダ情報を読みつつ、データ開始位置を探る
+    # --------------------------------------
+    data_start_idx = 0
+    # title = None
+    # min = 0.0
+    # max = 1.0
+    with open(filename, "r") as file:
+        for line_idx, line in enumerate(file):
+            line = line.rstrip()
+            if line == '':  # 空行は飛ばす
+                continue
+            key_value = line.split()[0]
+            if key_value == 'TITLE':
+                continue
+                # title = line.split()[1]
+            if key_value == 'DOMAIN_MIN':
+                continue
+                # min = float(line.split()[1])
+            if key_value == 'DOMAIN_MAX':
+                continue
+                # max = float(line.split()[1])
+            if key_value == 'LUT_1D_SIZE':
+                continue
+                # grid_num = int(line.split()[1])
+            if _is_float_expression(line.split()[0]):
+                data_start_idx = line_idx
+                break
+
+    # 1DLUTデータを読む
+    # --------------------------------------
+    lut = np.loadtxt(filename, delimiter=' ', skiprows=data_start_idx)
+    lut = lut[:, 0]
+
+    # 得られたデータを返す
+    # --------------------------------------
+    return lut
+
+
 def save_1dlut_spi_format(lut, filename,
                           title=None, min=0.0, max=1.0):
     """
@@ -696,6 +749,86 @@ def save_1dlut_spi_format(lut, filename,
         for line in lut:
             file.write(out_str.format(line))
         file.write(footer)
+
+
+def load_1dlut_spi_format(filename):
+    """
+    SPI1D形式の1DLUTデータをファイルから読み込む。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+
+    Returns
+    -------
+    lut : array_like
+        1dlut data.
+    """
+
+    # ヘッダ情報を読みつつ、データ開始位置を探る
+    # --------------------------------------
+    data_start_idx = 0
+    # length = 0
+    # title = None
+    # min = 0.0
+    # max = 1.0
+    with open(filename, "r") as file:
+        for line_idx, line in enumerate(file):
+            line = line.rstrip()
+            if line == '':  # 空行は飛ばす
+                continue
+            key_value = line.split()[0]
+            if key_value == 'Version':
+                continue
+                # version = int(line.split()[1])
+            if key_value == 'From':
+                continue
+                # min = float(line.split()[1])
+                # max = float(line.split()[2])
+            if key_value == 'Length':
+                # length = int(line.split()[1])
+                continue
+            if _is_float_expression(line.split()[0]):
+                data_start_idx = line_idx
+                break
+
+    # 1DLUTデータを読む
+    # --------------------------------------
+    lut = np.loadtxt(filename, delimiter=None, skiprows=data_start_idx,
+                     comments="}")
+
+    # 得られたデータを返す
+    # --------------------------------------
+    return lut
+
+
+def load_1dlut(filename='./data/lut_sample/hoge.spi1d'):
+    """
+    1DLUTデータをファイルから読み込む。
+    形式の判定はファイル名の拡張子で行う。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+
+    Returns
+    -------
+    lut : array_like
+        3DLUT data with 3dl format.
+    """
+
+    root, ext = os.path.splitext(filename)
+
+    if ext == ".cube":
+        lut = load_1dlut_cube_format(filename=filename)
+    elif ext == ".spi1d":
+        lut = load_1dlut_spi_format(filename=filename)
+    else:
+        raise IOError('extension "{:s}" is not supported.'.format(ext))
+
+    return lut
 
 
 def _test_3dlut():
@@ -739,6 +872,11 @@ def _test_1dlut():
                title="Puri_Chan", min=-0.1, max=1.4)
     save_1dlut(x, filename='./data/lut_sample/hoge.1dlut.spi1d',
                title="Puri_Chan", min=-0.1, max=1.4)
+
+    lut = load_1dlut(filename='./data/lut_sample/hoge.1dlut.cube')
+    # print(lut)
+    lut = load_1dlut(filename='./data/lut_sample/hoge.1dlut.spi1d')
+    print(lut)
 
 
 if __name__ == '__main__':
