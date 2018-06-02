@@ -5,7 +5,7 @@
 ## 概要
 
 * 1DLUT/3DLUT の Write/Read をするモジュール
-* 異なる形式への変換もできるよ！
+* 異なる形式への変換は…なんかビビったので止めます…。
 
 ## 仕様
 
@@ -205,7 +205,7 @@ def save_3dlut(lut, grid_num, filename="./data/lut_sample/cube.cube",
     min : int or float
         minimum value of the 3dlut
     max : int or float
-        maximu value of the 3dlut
+        maximum value of the 3dlut
     """
 
     root, ext = os.path.splitext(filename)
@@ -221,6 +221,41 @@ def save_3dlut(lut, grid_num, filename="./data/lut_sample/cube.cube",
                               title="spi3d_test", min=min, max=max)
     else:
         raise IOError('extension "{:s}" is not supported.'.format(ext))
+
+
+def load_3dlut(filename="./data/lut_sample/cube.cube"):
+    """
+    3DLUTデータをファイルにファイルから読み込む。
+    形式の判定はファイル名の拡張子で行う。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+
+    Returns
+    -------
+    lut : array_like
+        3DLUT grid data with cube format.
+    grid_num : int
+        grid number of the 3DLUT.
+    """
+
+    root, ext = os.path.splitext(filename)
+
+    if ext == ".cube":
+        lut, grid_num, title, min, max\
+            = load_3dlut_cube_format(filename=filename)
+    elif ext == ".3dl":
+        lut, grid_num, title\
+            = load_3dlut_3dl_format(filename=filename)
+    elif ext == ".spi3d":
+        lut, version, dimension, grid_num\
+            = load_3dlut_spi_format(filename=filename)
+    else:
+        raise IOError('extension "{:s}" is not supported.'.format(ext))
+
+    return lut, grid_num
 
 
 def save_3dlut_cube_format(lut, grid_num, filename,
@@ -241,7 +276,7 @@ def save_3dlut_cube_format(lut, grid_num, filename,
     min : int or float
         minimum value of the 3dlut
     max : int or float
-        maximu value of the 3dlut
+        maximum value of the 3dlut
     """
 
     # ヘッダ情報の作成
@@ -258,7 +293,7 @@ def save_3dlut_cube_format(lut, grid_num, filename,
 
     # ファイルにデータを書き込む
     # ------------------------
-    out_str = '{:.10f} {:.10f} {:.10f}\n'
+    out_str = '{:.10e} {:.10e} {:.10e}\n'
     with open(filename, "w") as file:
         file.write(header)
         for line in lut:
@@ -340,7 +375,7 @@ def save_3dlut_spi_format(lut, grid_num, filename,
     min : int or float
         minimum value of the 3dlut
     max : int or float
-        maximu value of the 3dlut
+        maximum value of the 3dlut
     """
 
     # 3dl形式へLUTデータの並べ替えをする
@@ -357,7 +392,7 @@ def save_3dlut_spi_format(lut, grid_num, filename,
     # ファイルにデータを書き込む
     # ------------------------
     line_index = 0
-    out_str = '{:d} {:d} {:d} {:.10f} {:.10f} {:.10f}\n'
+    out_str = '{:d} {:d} {:d} {:.10e} {:.10e} {:.10e}\n'
     with open(filename, "w") as file:
         file.write(header)
         for line in out_lut:
@@ -464,7 +499,7 @@ def save_3dlut_3dl_format(lut, grid_num, filename,
     min : int or float
         minimum value of the 3dlut
     max : int or float
-        maximu value of the 3dlut
+        maximum value of the 3dlut
     """
 
     # 3dl形式へLUTデータの並べ替えをする
@@ -553,18 +588,127 @@ def load_3dlut_3dl_format(filename):
     return lut, grid_num, title
 
 
-if __name__ == '__main__':
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+def save_1dlut(lut, filename='./data/lut_sample/hoge.spi1d',
+               title=None, min=0.0, max=1.0):
+    """
+    1DLUTデータをファイルに保存する。
+    形式の判定はファイル名の拡張子で行う。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+    lut : array_like
+        1dlut data.
+    title : str
+        title of the 3dlut data. It is for header information.
+    min : int or float
+        minimum value of the 3dlut
+    max : int or float
+        maximum value of the 3dlut
+    """
+
+    root, ext = os.path.splitext(filename)
+
+    if ext == ".cube":
+        save_1dlut_cube_format(lut, filename=filename,
+                               title=title, min=min, max=max)
+    elif ext == ".spi1d":
+        save_1dlut_spi_format(lut, filename=filename,
+                              title=title, min=min, max=max)
+    else:
+        raise IOError('extension "{:s}" is not supported.'.format(ext))
+
+
+def save_1dlut_cube_format(lut, filename, title=None, min=0.0, max=1.0):
+    """
+    CUBE形式で1DLUTデータをファイルに保存する。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+    lut : array_like
+        1dlut data.
+    title : str
+        title of the 1dlut data. It is for header information.
+    min : int or float
+        minimum value of the 1dlut
+    max : int or float
+        maximum value of the 1dlut
+    """
+
+    # ヘッダ情報の作成
+    # ------------------------
+    header = ""
+    header += '# ' + AUTHOR_INFORMATION + '\n'
+
+    if title:
+        header += 'TITLE "{:s}"\n'.format(title)
+    header += 'DOMAIN_MIN {0:} {0:} {0:}\n'.format(min)
+    header += 'DOMAIN_MAX {0:} {0:} {0:}\n'.format(max)
+    header += 'LUT_1D_SIZE {:}\n'.format(len(lut))
+    header += '\n'
+
+    # ファイルにデータを書き込む
+    # ------------------------
+    out_str = '{0:.10e} {0:.10e} {0:.10e}\n'
+    with open(filename, "w") as file:
+        file.write(header)
+        for line in lut:
+            file.write(out_str.format(line))
+
+
+def save_1dlut_spi_format(lut, filename,
+                          title=None, min=0.0, max=1.0):
+    """
+    spi1d形式で3DLUTデータをファイルに保存する。
+
+    Parameters
+    ----------
+    filename : str
+        file name.
+    lut : array_like
+        1dlut data.
+    title : str
+        title of the 1dlut data. It is for header information.
+    min : int or float
+        minimum value of the input range
+    max : int or float
+        maximum value of the input range
+    """
+
+    # ヘッダ情報の作成
+    # ------------------------
+    header = ""
+    header += 'Version 1\n'
+    header += 'From {:f} {:f}\n'.format(min, max)
+    header += 'Length {:d}\n'.format(len(lut))
+    header += 'Components 1\n'
+    header += '{\n'
+    footer = '}\n'
+
+    # ファイルにデータを書き込む
+    # ------------------------
+    out_str = '         {:.10e}\n'
+    with open(filename, "w") as file:
+        file.write(header)
+        for line in lut:
+            file.write(out_str.format(line))
+        file.write(footer)
+
+
+def _test_3dlut():
     g_num = 17
+    lut = get_3d_grid_cube_format(grid_num=g_num)
+    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.3dl")
+    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi3d")
+    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi1d")
     sample_arri_cube = "./data/lut_sample/AlexaV3_EI0800_LogC2Video_Rec709_LL_aftereffects3d.cube"
     sample_aces_spi3d = "C:/home/sip/OpenColorIO/aces_1.0.3/luts/Log2_48_nits_Shaper.RRT.DCDM.spi3d"
     sample_3dl = "./data/lut_sample/hoge.fuga.3dl"
-    lut = get_3d_grid_cube_format(grid_num=g_num)
-    save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.cube",
-               min=-0.1, max=1.0)
-    load_3dlut_cube_format("./data/lut_sample/hoge.fuga.cube")
     lut, grid_num, title, min, max = load_3dlut_cube_format(sample_arri_cube)
-    print(lut.shape)
+    print(lut)
     print(grid_num, title, min, max)
     lut, version, dimension, grid_num\
         = load_3dlut_spi_format(sample_aces_spi3d)
@@ -573,6 +717,31 @@ if __name__ == '__main__':
     lut, grid_num, title = load_3dlut_3dl_format(sample_3dl)
     print(lut)
     print(grid_num, title)
-    # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.3dl")
-    # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi3d")
-    # save_3dlut(lut, g_num, filename="./data/lut_sample/hoge.fuga.spi1d")
+
+    lut, grid_num = load_3dlut(sample_aces_spi3d)
+    print(lut)
+    print(grid_num)
+
+    lut, grid_num = load_3dlut(sample_arri_cube)
+    print(lut)
+    print(grid_num)
+
+    lut, grid_num = load_3dlut(sample_3dl)
+    print(lut)
+    print(grid_num)
+
+
+def _test_1dlut():
+    sample_num = 2 ** 10
+    x = np.linspace(0, 1, sample_num)
+
+    save_1dlut(x, filename='./data/lut_sample/hoge.1dlut.cube',
+               title="Puri_Chan", min=-0.1, max=1.4)
+    save_1dlut(x, filename='./data/lut_sample/hoge.1dlut.spi1d',
+               title="Puri_Chan", min=-0.1, max=1.4)
+
+
+if __name__ == '__main__':
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    # _test_3dlut()
+    _test_1dlut()
