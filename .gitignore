@@ -95,6 +95,8 @@ OpenColorIO/**/*.ctl
 OpenColorIO/transforms/**
 OpenColorIO/manual_customize/test.spi1d
 signal_generation/test_pattern/sample_dpx/*.dpx
+signal_generation/test_pattern/*.tiff
+signal_generation/test_pattern/*.dpx
 misc/ite_chart_convert/src/*.r
 misc/ite_chart_convert/src/*.g
 misc/ite_chart_convert/src/*.b
