@@ -15,6 +15,7 @@ import numpy as np
 from cycler import cycler
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.ticker import AutoMinorLocator
 import colorsys
 
 
@@ -121,6 +122,18 @@ def plot_1_graph(fontsize=12, **kwargs):
     if 'ytick' in kwargs and kwargs['ytick']:
         ax1.set_yticks(kwargs['ytick'])
 
+    if 'minor_xtick_num' in kwargs and kwargs['minor_xtick_num']:
+        minor_locator = AutoMinorLocator(kwargs['minor_xtick_num'])
+        ax1.xaxis.set_minor_locator(minor_locator)
+        ax1.xaxis.grid(which='minor', color="#E0E0E0")
+        ax1.tick_params(axis='x', which='minor', length=0.0)
+
+    if 'minor_ytick_num' in kwargs and kwargs['minor_ytick_num']:
+        minor_locator = AutoMinorLocator(kwargs['minor_ytick_num'])
+        ax1.yaxis.set_minor_locator(minor_locator)
+        ax1.yaxis.grid(which='minor', color="#E0E0E0")
+        ax1.tick_params(axis='y', which='minor', length=0.0)
+
     # Adjust the position
     # ------------------------------------
     fig.tight_layout()
@@ -219,6 +232,8 @@ if __name__ == '__main__':
                        ytick=None,
                        xtick_size=None, ytick_size=None,
                        linewidth=3,
+                       minor_xtick_num=None,
+                       minor_ytick_num=None,
                        prop_cycle=cycler(color=g_cycle))
     for y, label in zip(y_list, label_list):
         ax1.plot(x, y, label=label)
