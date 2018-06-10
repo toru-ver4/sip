@@ -10,12 +10,13 @@ import os
 import cv2
 import plot_utility as pu
 import matplotlib.pyplot as plt
+import matplotlib.tri as tri
 import numpy as np
-from colour.plotting import chromaticity_diagram_plot_CIE1931
 from colour.colorimetry import CMFS, ILLUMINANTS
 from colour.models import XYZ_to_xy, xy_to_XYZ, XYZ_to_RGB
 from colour.utilities import normalise_maximum
 from colour import models
+from colour import RGB_COLOURSPACES
 from scipy.spatial import Delaunay
 from scipy.ndimage.filters import convolve
 import imp
@@ -53,31 +54,46 @@ def _get_cmfs_xy():
     return cmf_xy
 
 
+def get_primaries(name='ITU-R BT.2020'):
+    primaries = RGB_COLOURSPACES[name].primaries
+    primaries = np.append(primaries, [primaries[0, :]], axis=0)
+
+    return primaries
+
+
 def plot_chromaticity_diagram():
     xy_image = get_chromaticity_image()
-    rate = 1.0
+    rate = 1.5
     cmf_xy = _get_cmfs_xy()
 
-    ax1 = pu.plot_1_graph(fontsize=20,
+    bt2020_gamut = get_primaries('ITU-R BT.2020')
+    dci_p3_gamut = get_primaries('DCI-P3')
+
+    ax1 = pu.plot_1_graph(fontsize=15 * rate,
                           figsize=(8 * rate, 9 * rate),
-                          graph_title="Title",
+                          graph_title="CIE1931 Chromaticity Diagram",
                           graph_title_size=None,
                           xlabel=None, ylabel=None,
                           axis_label_size=None,
-                          legend_size=17,
+                          legend_size=14 * rate,
                           xlim=(0, 0.8),
                           ylim=(0, 0.9),
                           xtick=[x * 0.1 for x in range(9)],
                           ytick=[x * 0.1 for x in range(10)],
                           xtick_size=10 * rate,
                           ytick_size=10 * rate,
-                          linewidth=2,
+                          linewidth=2 * rate,
                           minor_xtick_num=2,
                           minor_ytick_num=2)
-    ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k')
+    ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', label=None)
     ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
-             '-k')
-    plt.legend(loc='upper left')
+             '-k', label=None)
+    ax1.plot(bt2020_gamut[:, 0], bt2020_gamut[:, 1], c="#FFD000",
+             label="BT.2020", lw=3*rate)
+    ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1], c="#FF3030",
+             label="DCI-P3", lw=3*rate)
+    ax1.imshow(xy_image, extent=(0, 1, 0, 1))
+    plt.legend(loc='upper right')
     plt.show()
 
 
@@ -95,7 +111,8 @@ def get_chromaticity_image(samples=1024, antialiasing=True):
     色域設定。sRGBだと狭くて少し変だったのでBT.2020に設定。
     若干色が薄くなるのが難点。暇があれば改良したい。
     """
-    color_space = models.BT2020_COLOURSPACE
+    # color_space = models.BT2020_COLOURSPACE
+    color_space = models.S_GAMUT3_COLOURSPACE
 
     # 馬蹄形のxy値を算出
     # --------------------------
@@ -161,14 +178,19 @@ def get_chromaticity_image(samples=1024, antialiasing=True):
     """
     rgb = normalise_maximum(rgb, axis=-1)
 
-    rgb = rgb ** (1/2.2)
-
     # mask 適用
     # -------------------------------------
     mask_rgb = np.dstack((mask, mask, mask))
     rgb *= mask_rgb
 
-    # preview_image(rgb)
+    # 背景色をグレーに変更
+    # -------------------------------------
+    bg_rgb = np.ones_like(rgb)
+    bg_rgb *= (1 - mask_rgb) * 0.9
+
+    rgb += bg_rgb
+
+    rgb = rgb ** (1/2.2)
 
     return rgb
 
