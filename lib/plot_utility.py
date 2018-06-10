@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.ticker import AutoMinorLocator
 import colorsys
-
+import matplotlib.font_manager as fm
 
 cycle_num = 6
 v_offset = 0.2
@@ -47,6 +47,20 @@ for s_val in s:
 
 
 def _set_common_parameters(fontsize, **kwargs):
+    # japanese font
+    # ---------------------------------------
+    fonts = fm.findSystemFonts()
+    for font in fonts:
+        font_name = fm.FontProperties(fname=font).get_name()
+        if font_name == 'Noto Sans CJK JP':
+            plt.rcParams['font.family'] = font_name
+            print("{:s} is found".format(font_name))
+            break
+        # if font_name == 'Noto Sans Mono CJK JP':
+        #     plt.rcParams['font.family'] = font_name
+        #     print("{:s} is found".format(font_name))
+        #     break
+
     # font size
     # ---------------------------------------
     if fontsize:
@@ -125,13 +139,13 @@ def plot_1_graph(fontsize=12, **kwargs):
     if 'minor_xtick_num' in kwargs and kwargs['minor_xtick_num']:
         minor_locator = AutoMinorLocator(kwargs['minor_xtick_num'])
         ax1.xaxis.set_minor_locator(minor_locator)
-        ax1.xaxis.grid(which='minor', color="#E0E0E0")
+        ax1.xaxis.grid(which='minor', color="#808080")
         ax1.tick_params(axis='x', which='minor', length=0.0)
 
     if 'minor_ytick_num' in kwargs and kwargs['minor_ytick_num']:
         minor_locator = AutoMinorLocator(kwargs['minor_ytick_num'])
         ax1.yaxis.set_minor_locator(minor_locator)
-        ax1.yaxis.grid(which='minor', color="#E0E0E0")
+        ax1.yaxis.grid(which='minor', color="#808080")
         ax1.tick_params(axis='y', which='minor', length=0.0)
 
     # Adjust the position
