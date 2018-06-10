@@ -10,10 +10,9 @@ import os
 import cv2
 import plot_utility as pu
 import matplotlib.pyplot as plt
-import matplotlib.tri as tri
 import numpy as np
 from colour.colorimetry import CMFS, ILLUMINANTS
-from colour.models import XYZ_to_xy, xy_to_XYZ, XYZ_to_RGB
+from colour.models import XYZ_to_xy, xy_to_XYZ, XYZ_to_RGB, RGB_to_XYZ
 from colour.utilities import normalise_maximum
 from colour import models
 from colour import RGB_COLOURSPACES
@@ -61,6 +60,32 @@ def get_primaries(name='ITU-R BT.2020'):
     return primaries
 
 
+def _get_test_scatter_data():
+    sample_num = 7
+    base = (np.linspace(0, 1, sample_num) ** (2.0))[::-1]
+    ones = np.ones_like(base)
+
+    r = np.dstack((ones, base, base))
+    g = np.dstack((base, ones, base))
+    b = np.dstack((base, base, ones))
+    rgb = np.append(np.append(r, g, axis=0), b, axis=0)
+
+    color_space = models.BT2020_COLOURSPACE
+    illuminant_XYZ = D65_WHITE
+    illuminant_RGB = color_space.whitepoint
+    chromatic_adaptation_transform = 'CAT02'
+    rgb_to_xyz_matrix = color_space.RGB_to_XYZ_matrix
+    large_xyz = RGB_to_XYZ(rgb, illuminant_RGB, illuminant_XYZ,
+                           rgb_to_xyz_matrix,
+                           chromatic_adaptation_transform)
+
+    xy = XYZ_to_xy(large_xyz)
+
+    rgb = rgb ** (1/2.2)
+
+    return xy, rgb.reshape((rgb.shape[0] * rgb.shape[1], 3))
+
+
 def plot_chromaticity_diagram():
     xy_image = get_chromaticity_image()
     rate = 1.5
@@ -93,6 +118,9 @@ def plot_chromaticity_diagram():
     ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1], c="#FF3030",
              label="DCI-P3", lw=3*rate)
     ax1.imshow(xy_image, extent=(0, 1, 0, 1))
+    xy, rgb = _get_test_scatter_data()
+    ax1.scatter(xy[..., 0], xy[..., 1], s=1500, marker='s', c=rgb,
+                edgecolors='#404040', linewidth=2*rate)
     plt.legend(loc='upper right')
     plt.show()
 
