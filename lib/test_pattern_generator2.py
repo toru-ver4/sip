@@ -86,7 +86,7 @@ def _get_test_scatter_data():
     return xy, rgb.reshape((rgb.shape[0] * rgb.shape[1], 3))
 
 
-def plot_chromaticity_diagram():
+def plot_chromaticity_diagram(primaries=None):
     xy_image = get_chromaticity_image()
     rate = 1.5
     cmf_xy = _get_cmfs_xy()
@@ -117,6 +117,9 @@ def plot_chromaticity_diagram():
              label="BT.2020", lw=3*rate)
     ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1], c="#FF3030",
              label="DCI-P3", lw=3*rate)
+    if primaries is not None:
+        ax1.plot(primaries[:, 0], primaries[:, 1], c="#202020",
+                 label="???", lw=3*rate)
     ax1.imshow(xy_image, extent=(0, 1, 0, 1))
     xy, rgb = _get_test_scatter_data()
     ax1.scatter(xy[..., 0], xy[..., 1], s=1500, marker='s', c=rgb,
