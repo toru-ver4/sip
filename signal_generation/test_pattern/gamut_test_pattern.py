@@ -6,7 +6,6 @@ Gamut確認用のテストパターンを作る
 """
 
 import os
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import test_pattern_generator2 as tpg
@@ -54,7 +53,6 @@ def _get_interpolated_xy(st, ed, sample_num):
     ed : array_like
         end position on the xy chromaticity diagram.
     sample_num : integer
-        
 
     Returns
     -------
@@ -124,20 +122,62 @@ def _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.709'):
     plt.show()
 
 
-def _gen_ycbcr_ng_combination_checker():
-    ok_low_level = 186  # 744(10bit)
-    ok_high_level = 193  # 772(10bit)
+def _get_test_scatter_data(name='ITU-R BT.2020'):
+    sample_num = 7
+    base = (np.linspace(0, 1, sample_num) ** (2.0))[::-1]
+    ones = np.ones_like(base)
 
-    ng_low_level = 193  # 772(10bit)
-    ng_high_level = 198  # 792(10bit)
+    r = np.dstack((ones, base, base))
+    g = np.dstack((base, ones, base))
+    b = np.dstack((base, base, ones))
+    rgb = np.append(np.append(r, g, axis=0), b, axis=0)
+
+    # color_space = models.BT2020_COLOURSPACE
+    color_space = colour.RGB_COLOURSPACES[name]
+    illuminant_XYZ = tpg.D65_WHITE
+    illuminant_RGB = tpg.D65_WHITE
+    chromatic_adaptation_transform = 'CAT02'
+    rgb_to_xyz_matrix = color_space.RGB_to_XYZ_matrix
+    large_xyz = colour.models.RGB_to_XYZ(rgb, illuminant_RGB, illuminant_XYZ,
+                                         rgb_to_xyz_matrix,
+                                         chromatic_adaptation_transform)
+
+    xy = colour.models.XYZ_to_xy(large_xyz, illuminant_XYZ)
+
+    rgb = rgb ** (1/2.2)
+
+    return xy, rgb.reshape((rgb.shape[0] * rgb.shape[1], 3))
+
+
+def _gen_ycbcr_ng_combination_checker():
+    # ok_low_level = 186  # 744(10bit)
+    # ok_high_level = 193  # 772(10bit)
+
+    # ng_low_level = 193  # 772(10bit)
+    # ng_high_level = 198  # 792(10bit)
+    pass
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # primaries = _get_monitor_primaries()
-    # print(primaries)
-    # tpg.plot_chromaticity_diagram(primaries=primaries)
-    _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.601')
-    _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.2020')
-    _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.601')
-    _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.709')
+    # _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.601')
+    # _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.2020')
+    # _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.601')
+    # _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.709')
+
+    color_space_name = "ITU-R BT.2020"
+    primaries = _get_monitor_primaries()
+    secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
+    scatter_xy, scatter_rgb = _get_test_scatter_data(color_space_name)
+    print(primaries)
+    tpg.plot_chromaticity_diagram(primaries=None,
+                                  secondaries=[secondaries, secondary_rgb],
+                                  test_scatter=[scatter_xy, scatter_rgb])
+
+    # _get_interpolated_xy()
+
+    # print(colour.RGB_COLOURSPACES["DCI-P3"].RGB_to_XYZ_matrix)
+    # mtx = cc.get_rgb_to_xyz_matrix(gamut=cc.const_dci_p3_xy,
+    #                                white=cc.const_d65_large_xyz)
+    # print(mtx)
+    # print(cc.const_dci_white_xyz)

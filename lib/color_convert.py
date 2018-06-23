@@ -86,6 +86,9 @@ const_aces_white_xy = [0.32168, 0.33767]
 const_d65_xy = [0.31271, 0.32902]
 const_d50_xy = [0.34567, 0.35850]
 const_dci_white_xy = [0.314, 0.351]
+const_dci_white_xyz = [const_dci_white_xy[0],
+                       const_dci_white_xy[1],
+                       1 - const_dci_white_xy[0] - const_dci_white_xy[1]]
 
 const_rec601_y_coef = [0.2990, 0.5870, 0.1140]
 const_rec709_y_coef = [0.2126, 0.7152, 0.0722]

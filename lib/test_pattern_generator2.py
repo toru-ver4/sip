@@ -8,6 +8,7 @@
 
 import os
 import cv2
+import color_convert as cc
 import plot_utility as pu
 import matplotlib.pyplot as plt
 import numpy as np
@@ -60,37 +61,34 @@ def get_primaries(name='ITU-R BT.2020'):
     return primaries
 
 
-def _get_test_scatter_data():
-    sample_num = 7
-    base = (np.linspace(0, 1, sample_num) ** (2.0))[::-1]
-    ones = np.ones_like(base)
-
-    r = np.dstack((ones, base, base))
-    g = np.dstack((base, ones, base))
-    b = np.dstack((base, base, ones))
-    rgb = np.append(np.append(r, g, axis=0), b, axis=0)
-
-    color_space = models.BT2020_COLOURSPACE
+def get_secondaries(name='ITU-R BT.2020'):
+    secondary_rgb = np.array([[1.0, 0.0, 1.0],
+                              [0.0, 1.0, 1.0],
+                              [1.0, 1.0, 0.0]])
     illuminant_XYZ = D65_WHITE
-    illuminant_RGB = color_space.whitepoint
+    illuminant_RGB = D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
-    rgb_to_xyz_matrix = color_space.RGB_to_XYZ_matrix
-    large_xyz = RGB_to_XYZ(rgb, illuminant_RGB, illuminant_XYZ,
-                           rgb_to_xyz_matrix,
+    if name != "DCI-P3":
+        rgb_to_xyz_matrix = RGB_COLOURSPACES[name].RGB_to_XYZ_matrix
+    else:
+        rgb_to_xyz_matrix\
+            = cc.get_rgb_to_xyz_matrix(gamut=cc.const_dci_p3_xy,
+                                       white=cc.const_d65_large_xyz)
+    large_xyz = RGB_to_XYZ(secondary_rgb, illuminant_RGB,
+                           illuminant_XYZ, rgb_to_xyz_matrix,
                            chromatic_adaptation_transform)
 
-    xy = XYZ_to_xy(large_xyz)
+    xy = XYZ_to_xy(large_xyz, illuminant_XYZ)
 
-    rgb = rgb ** (1/2.2)
-
-    return xy, rgb.reshape((rgb.shape[0] * rgb.shape[1], 3))
+    return xy, secondary_rgb.reshape((3, 3))
 
 
-def plot_chromaticity_diagram(primaries=None):
+def plot_chromaticity_diagram(**kwargs):
     xy_image = get_chromaticity_image()
     rate = 1.5
     cmf_xy = _get_cmfs_xy()
 
+    bt709_gamut = get_primaries('ITU-R BT.709')
     bt2020_gamut = get_primaries('ITU-R BT.2020')
     dci_p3_gamut = get_primaries('DCI-P3')
 
@@ -113,17 +111,24 @@ def plot_chromaticity_diagram(primaries=None):
     ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', label=None)
     ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
              '-k', label=None)
+    ax1.plot(bt709_gamut[:, 0], bt709_gamut[:, 1], c="#0080FF",
+             label="BT.709", lw=3*rate)
     ax1.plot(bt2020_gamut[:, 0], bt2020_gamut[:, 1], c="#FFD000",
              label="BT.2020", lw=3*rate)
     ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1], c="#FF3030",
              label="DCI-P3", lw=3*rate)
-    if primaries is not None:
-        ax1.plot(primaries[:, 0], primaries[:, 1], c="#202020",
-                 label="???", lw=3*rate)
+    if kwargs['primaries'] is not None:
+        ax1.plot(kwargs['primaries'][:, 0], kwargs['primaries'][:, 1],
+                 c="#202020", label="???", lw=3*rate)
+    if kwargs['secondaries'] is not None:
+        xy, rgb = kwargs['secondaries']
+        ax1.scatter(xy[..., 0], xy[..., 1], s=1000, marker='s', c=rgb,
+                    edgecolors='#404000', linewidth=2*rate)
+    if kwargs['test_scatter'] is not None:
+        xy, rgb = kwargs['test_scatter']
+        ax1.scatter(xy[..., 0], xy[..., 1], s=1000, marker='s', c=rgb,
+                    edgecolors='#404040', linewidth=2*rate)
     ax1.imshow(xy_image, extent=(0, 1, 0, 1))
-    xy, rgb = _get_test_scatter_data()
-    ax1.scatter(xy[..., 0], xy[..., 1], s=1500, marker='s', c=rgb,
-                edgecolors='#404040', linewidth=2*rate)
     plt.legend(loc='upper right')
     plt.show()
 
