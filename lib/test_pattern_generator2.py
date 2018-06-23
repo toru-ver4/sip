@@ -42,6 +42,15 @@ def preview_image(img, order='rgb', over_disp=False):
 
 
 def _get_cmfs_xy():
+    """
+    xy色度図のプロットのための馬蹄形の外枠のxy値を求める。
+
+    Returns
+    -------
+    array_like
+        xy coordinate for chromaticity diagram
+
+    """
     # 基本パラメータ設定
     # ------------------
     cmf = CMFS.get(CMFS_NAME)
@@ -55,6 +64,20 @@ def _get_cmfs_xy():
 
 
 def get_primaries(name='ITU-R BT.2020'):
+    """
+    prmary color の座標を求める
+
+    Parameters
+    ----------
+    name : str
+        a name of the color space.
+
+    Returns
+    -------
+    array_like
+        prmaries. [[rx, ry], [gx, gy], [bx, by], [rx, ry]]
+
+    """
     primaries = RGB_COLOURSPACES[name].primaries
     primaries = np.append(primaries, [primaries[0, :]], axis=0)
 
@@ -62,9 +85,23 @@ def get_primaries(name='ITU-R BT.2020'):
 
 
 def get_secondaries(name='ITU-R BT.2020'):
+    """
+    secondary color の座標を求める
+
+    Parameters
+    ----------
+    name : str
+        a name of the color space.
+
+    Returns
+    -------
+    array_like
+        secondaries. the order is magenta, yellow, cyan.
+
+    """
     secondary_rgb = np.array([[1.0, 0.0, 1.0],
-                              [0.0, 1.0, 1.0],
-                              [1.0, 1.0, 0.0]])
+                              [1.0, 1.0, 0.0],
+                              [0.0, 1.0, 1.0]])
     illuminant_XYZ = D65_WHITE
     illuminant_RGB = D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
@@ -85,7 +122,7 @@ def get_secondaries(name='ITU-R BT.2020'):
 
 def plot_chromaticity_diagram(**kwargs):
     xy_image = get_chromaticity_image()
-    rate = 1.5
+    rate = 2.0
     cmf_xy = _get_cmfs_xy()
 
     bt709_gamut = get_primaries('ITU-R BT.709')
@@ -122,12 +159,18 @@ def plot_chromaticity_diagram(**kwargs):
                  c="#202020", label="???", lw=3*rate)
     if kwargs['secondaries'] is not None:
         xy, rgb = kwargs['secondaries']
-        ax1.scatter(xy[..., 0], xy[..., 1], s=1000, marker='s', c=rgb,
+        ax1.scatter(xy[..., 0], xy[..., 1], s=700*rate, marker='s', c=rgb,
                     edgecolors='#404000', linewidth=2*rate)
     if kwargs['test_scatter'] is not None:
         xy, rgb = kwargs['test_scatter']
-        ax1.scatter(xy[..., 0], xy[..., 1], s=1000, marker='s', c=rgb,
+        ax1.scatter(xy[..., 0], xy[..., 1], s=700*rate, marker='s', c=rgb,
                     edgecolors='#404040', linewidth=2*rate)
+    if kwargs['intersection'] is not None:
+        ints = kwargs['intersection']
+        ax1.scatter(ints[..., 0], ints[..., 1], s=300*rate, marker='s',
+                    c='#CCCCCC',
+                    edgecolors='#404040', linewidth=2*rate)
+
     ax1.imshow(xy_image, extent=(0, 1, 0, 1))
     plt.legend(loc='upper right')
     plt.show()

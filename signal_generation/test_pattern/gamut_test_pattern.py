@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import test_pattern_generator2 as tpg
 import plot_utility as pu
 import colour
+import sympy
 # from PIL import Image
 from PIL import ImageCms
 import imp
@@ -53,6 +54,7 @@ def _get_interpolated_xy(st, ed, sample_num):
     ed : array_like
         end position on the xy chromaticity diagram.
     sample_num : integer
+        division number
 
     Returns
     -------
@@ -64,6 +66,84 @@ def _get_interpolated_xy(st, ed, sample_num):
     >>> chromaticity_diagram_plot_CIE1931()  # doctest: +SKIP
     """
     pass
+
+
+def get_intersection_secondary():
+    """
+    BT.2020 の Secondary と D65 を結ぶ直線と
+    BT.709 の Gamut が交差する点を求める
+    """
+
+    secondary, dummy = tpg.get_secondaries(name='ITU-R BT.2020')
+    primary = tpg.get_primaries(name='ITU-R BT.709')
+
+    white_point = sympy.Point(tpg.D65_WHITE[0], tpg.D65_WHITE[1])
+
+    secondary_points = [sympy.Point(secondary[x][0], secondary[x][1])
+                        for x in range(3)]
+    primary_points = [sympy.Point(primary[x][0], primary[x][1])
+                      for x in range(4)]
+
+    secondary_lines = [sympy.Line(secondary_points[x], white_point)
+                       for x in range(3)]
+    primary_lines = [sympy.Line(primary_points[(x+2) % 3],
+                                primary_points[(x+3) % 3])
+                     for x in range(3)]
+
+    # 交点求める。evalf() して式の評価も済ませておく
+    # -------------------------------------------
+    intersections = [sympy.intersection(secondary_lines[x],
+                                        primary_lines[x])[0].evalf()
+                     for x in range(3)]
+
+    # 後で扱いやすいように xy の配列に変換しておく
+    # -----------------------------------------
+    intersections = [[intersections[x].x, intersections[x].y]
+                     for x in range(3)]
+
+    return np.array(intersections)
+
+
+def get_intersection_primary():
+    """
+    BT.2020 の Primary と D65 を結ぶ直線と
+    BT.709 の Gamut が交差する点を求める
+    """
+
+    bt2020_p = tpg.get_primaries(name='ITU-R BT.2020')
+    primary = tpg.get_primaries(name='ITU-R BT.709')
+
+    white_point = sympy.Point(tpg.D65_WHITE[0], tpg.D65_WHITE[1])
+
+    bt2020_p_points = [sympy.Point(bt2020_p[x][0], bt2020_p[x][1])
+                       for x in range(3)]
+    primary_points = [sympy.Point(primary[x][0], primary[x][1])
+                      for x in range(4)]
+
+    bt2020_p_lines = [sympy.Line(bt2020_p_points[x], white_point)
+                      for x in range(3)]
+
+    # よく考えたら、どの線と交差するかは gamut の形で決まるんだった…マニュアルで。
+    # ----------------------------------------------------------------------
+    primary_lines = [sympy.Line(primary_points[2],
+                                primary_points[3]),
+                     sympy.Line(primary_points[1],
+                                primary_points[2]),
+                     sympy.Line(primary_points[1],
+                                primary_points[2])]
+
+    # 交点求める。evalf() して式の評価も済ませておく
+    # -------------------------------------------
+    intersections = [sympy.intersection(bt2020_p_lines[x],
+                                        primary_lines[x])[0].evalf()
+                     for x in range(3)]
+
+    # 後で扱いやすいように xy の配列に変換しておく
+    # -----------------------------------------
+    intersections = [[intersections[x].x, intersections[x].y]
+                     for x in range(3)]
+
+    return np.array(intersections)
 
 
 def _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.709'):
@@ -169,10 +249,14 @@ if __name__ == '__main__':
     primaries = _get_monitor_primaries()
     secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
     scatter_xy, scatter_rgb = _get_test_scatter_data(color_space_name)
-    print(primaries)
+    # intersections = get_intersection_secondary()
+    intersections = get_intersection_primary()
     tpg.plot_chromaticity_diagram(primaries=None,
                                   secondaries=[secondaries, secondary_rgb],
-                                  test_scatter=[scatter_xy, scatter_rgb])
+                                  test_scatter=[scatter_xy, scatter_rgb],
+                                  intersection=intersections)
+
+    get_intersection_secondary()
 
     # _get_interpolated_xy()
 
