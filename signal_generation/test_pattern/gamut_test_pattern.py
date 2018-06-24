@@ -43,14 +43,15 @@ def _get_specific_monitor_primaries(filename="./icc_profile/gamut.icc"):
     return np.array(primaries)
 
 
-def get_intersection_secondary():
+def get_intersection_secondary(out_side_name='ITU-R BT.2020',
+                               in_side_name='ITU-R BT.709'):
     """
     BT.2020 の Secondary と D65 を結ぶ直線と
     BT.709 の Gamut が交差する点を求める
     """
 
-    secondary, _ = tpg.get_secondaries(name='ITU-R BT.2020')
-    primary, _ = tpg.get_primaries(name='ITU-R BT.709')
+    secondary, _ = tpg.get_secondaries(name=out_side_name)
+    primary, _ = tpg.get_primaries(name=in_side_name)
 
     white_point = sympy.Point(tpg.D65_WHITE[0], tpg.D65_WHITE[1])
 
@@ -79,14 +80,15 @@ def get_intersection_secondary():
     return np.array(intersections)
 
 
-def get_intersection_primary():
+def get_intersection_primary(out_side_name='ITU-R BT.2020',
+                             in_side_name='ITU-R BT.709'):
     """
     BT.2020 の Primary と D65 を結ぶ直線と
     BT.709 の Gamut が交差する点を求める
     """
 
-    bt2020_p, _ = tpg.get_primaries(name='ITU-R BT.2020')
-    primary, _ = tpg.get_primaries(name='ITU-R BT.709')
+    bt2020_p, _ = tpg.get_primaries(name=out_side_name)
+    primary, _ = tpg.get_primaries(name=in_side_name)
 
     white_point = sympy.Point(tpg.D65_WHITE[0], tpg.D65_WHITE[1])
 
@@ -211,8 +213,8 @@ def _get_test_scatter_data(sample_num=6):
     primaries, primary_rgb = tpg.get_primaries(color_space_name)
     secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
 
-    primary_intersections = get_intersection_primary()
-    secondary_intersections = get_intersection_secondary()
+    primary_intersections = get_intersection_primary(color_space_name)
+    secondary_intersections = get_intersection_secondary(color_space_name)
 
     ed_xy = np.vstack((primaries[:3, :], secondaries))
     st_xy = np.vstack((primary_intersections, secondary_intersections))
@@ -220,12 +222,38 @@ def _get_test_scatter_data(sample_num=6):
                 for idx in range(st_xy.shape[0])]
 
     patch_xy = np.array(patch_xy)
-    rgb = tpg.xy_to_rgb(patch_xy, 'ITU-R BT.2020')
+    rgb = tpg.xy_to_rgb(patch_xy, color_space_name)
     rgb = rgb ** (1/2.2)
     rgb = rgb.reshape((rgb.shape[0] * rgb.shape[1], rgb.shape[2]))
 
     # return xy, rgb.reshape((rgb.shape[0] * rgb.shape[1], 3))
     return patch_xy, rgb
+
+
+def _get_gamut_check_data(name="ITU-R BT.2020"):
+
+    sample_num = 7
+    base = (np.linspace(0, 1, sample_num) ** (2.0))[::-1]
+    ones = np.ones_like(base)
+
+    r = np.dstack((ones, base, base))
+    g = np.dstack((base, ones, base))
+    b = np.dstack((base, base, ones))
+    rgb = np.append(np.append(r, g, axis=0), b, axis=0)
+
+    # color_space = models.BT2020_COLOURSPACE
+    color_space = colour.RGB_COLOURSPACES[name]
+    illuminant_XYZ = tpg.D65_WHITE
+    illuminant_RGB = tpg.D65_WHITE
+    chromatic_adaptation_transform = 'CAT02'
+    rgb_to_xyz_matrix = tpg.get_rgb_to_xyz_matrix(name)
+    large_xyz = colour.models.RGB_to_XYZ(rgb, illuminant_RGB, illuminant_XYZ,
+                                         rgb_to_xyz_matrix,
+                                         chromatic_adaptation_transform)
+
+    xy = colour.models.XYZ_to_xy(large_xyz, illuminant_XYZ)
+
+    return xy, rgb.reshape((rgb.shape[0] * rgb.shape[1], 3))
 
 
 def _gen_ycbcr_ng_combination_checker():
@@ -237,6 +265,16 @@ def _gen_ycbcr_ng_combination_checker():
     pass
 
 
+def gen_gamut_test_pattern(width=3840, height=2160):
+    """
+    BT.709 の外側の Gamut の表示具合を確認する
+    Test Pattern を作成する
+    """
+    img = np.zeros((height, width, 3), dtype=np.uint16)
+
+    tpg.preview_image(img, 'rgb')
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.601')
@@ -245,9 +283,12 @@ if __name__ == '__main__':
     # _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.709')
 
     color_space_name = "ITU-R BT.2020"
+    # color_space_name = "DCI-P3"
     primaries = _get_specific_monitor_primaries()
     secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
-    scatter_xy, scatter_rgb = _get_test_scatter_data(sample_num=10)
+    scatter_xy, scatter_rgb = _get_test_scatter_data(sample_num=5)
+    # scatter_xy, scatter_rgb = _get_gamut_check_data('ITU-R BT.709')
+
     # primary_intersections = get_intersection_primary()
     # secondary_intersections = get_intersection_secondary()
     # intersections = np.append(primary_intersections,
@@ -255,12 +296,4 @@ if __name__ == '__main__':
     tpg.plot_chromaticity_diagram(primaries=None,
                                   test_scatter=[scatter_xy, scatter_rgb])
 
-    # get_intersection_secondary()
-
-    # _get_interpolated_xy()
-
-    # print(colour.RGB_COLOURSPACES["DCI-P3"].RGB_to_XYZ_matrix)
-    # mtx = cc.get_rgb_to_xyz_matrix(gamut=cc.const_dci_p3_xy,
-    #                                white=cc.const_d65_large_xyz)
-    # print(mtx)
-    # print(cc.const_dci_white_xyz)
+    # gen_gamut_test_pattern(1920, 1080)

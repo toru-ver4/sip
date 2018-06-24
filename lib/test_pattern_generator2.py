@@ -9,6 +9,7 @@
 import os
 import cv2
 import color_convert as cc
+from scipy import linalg
 import plot_utility as pu
 import matplotlib.pyplot as plt
 import numpy as np
@@ -107,7 +108,7 @@ def xy_to_rgb(xy, name='ITU-R BT.2020'):
     illuminant_RGB = D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
     color_space = RGB_COLOURSPACES[name]
-    large_xyz_to_rgb_matrix = color_space.XYZ_to_RGB_matrix
+    large_xyz_to_rgb_matrix = get_xyz_to_rgb_matrix(name)
     large_xyz = xy_to_XYZ(xy)
     rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
                      large_xyz_to_rgb_matrix,
@@ -120,6 +121,37 @@ def xy_to_rgb(xy, name='ITU-R BT.2020'):
     rgb = normalise_maximum(rgb, axis=-1)
 
     return rgb
+
+
+def get_rgb_to_xyz_matrix(name):
+    """
+    RGB to XYZ の Matrix を求める。
+    DCI-P3 で D65 の係数を返せるように内部関数化した。
+    """
+    if name != "DCI-P3":
+        rgb_to_xyz_matrix = RGB_COLOURSPACES[name].RGB_to_XYZ_matrix
+    else:
+        rgb_to_xyz_matrix\
+            = cc.get_rgb_to_xyz_matrix(gamut=cc.const_dci_p3_xy,
+                                       white=cc.const_d65_large_xyz)
+
+    return rgb_to_xyz_matrix
+
+
+def get_xyz_to_rgb_matrix(name):
+    """
+    XYZ to RGB の Matrix を求める。
+    DCI-P3 で D65 の係数を返せるように内部関数化した。
+    """
+    if name != "DCI-P3":
+        xyz_to_rgb_matrix = RGB_COLOURSPACES[name].XYZ_to_RGB_matrix
+    else:
+        rgb_to_xyz_matrix\
+            = cc.get_rgb_to_xyz_matrix(gamut=cc.const_dci_p3_xy,
+                                       white=cc.const_d65_large_xyz)
+        xyz_to_rgb_matrix = linalg.inv(rgb_to_xyz_matrix)
+
+    return xyz_to_rgb_matrix
 
 
 def get_secondaries(name='ITU-R BT.2020'):
@@ -143,12 +175,7 @@ def get_secondaries(name='ITU-R BT.2020'):
     illuminant_XYZ = D65_WHITE
     illuminant_RGB = D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
-    if name != "DCI-P3":
-        rgb_to_xyz_matrix = RGB_COLOURSPACES[name].RGB_to_XYZ_matrix
-    else:
-        rgb_to_xyz_matrix\
-            = cc.get_rgb_to_xyz_matrix(gamut=cc.const_dci_p3_xy,
-                                       white=cc.const_d65_large_xyz)
+    rgb_to_xyz_matrix = get_rgb_to_xyz_matrix(name)
     large_xyz = RGB_to_XYZ(secondary_rgb, illuminant_RGB,
                            illuminant_XYZ, rgb_to_xyz_matrix,
                            chromatic_adaptation_transform)
