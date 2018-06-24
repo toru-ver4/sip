@@ -20,6 +20,7 @@ import imp
 imp.reload(tpg)
 imp.reload(ImageCms)
 
+REVISION = 0
 
 GAMUT_PATTERN_AREA_WIDTH = (12/16.0)
 GAMUT_TOP_BOTTOM_SPACE = 0.05
@@ -353,8 +354,8 @@ def gen_gamut_test_pattern(width=3840, height=2160):
     # -------------------------
     patch_num = 8
     patch_xy, patch_rgb = _get_test_scatter_data(sample_num=patch_num)
-
-    tpg.plot_chromaticity_diagram(primaries=None,
+    specific_primaries = _get_specific_monitor_primaries()
+    tpg.plot_chromaticity_diagram(monitor_primaries=specific_primaries,
                                   test_scatter=[patch_xy, patch_rgb])
 
     tpg.get_csf_color_image(width=640, height=480,
@@ -365,6 +366,10 @@ def gen_gamut_test_pattern(width=3840, height=2160):
     composite_gamut_csf_pattern(img, patch_rgb, patch_num)
 
     tpg.preview_image(img, 'rgb')
+
+    fname_str = "gamut_checker_rev{:02d}_{:d}x{:d}.tif"
+    fname = fname_str.format(REVISION, width, height)
+    cv2.imwrite(fname, img[..., ::-1])
 
 
 if __name__ == '__main__':
@@ -389,3 +394,4 @@ if __name__ == '__main__':
                                   test_scatter=[scatter_xy, scatter_rgb])
 
     gen_gamut_test_pattern(1920, 1080)
+    gen_gamut_test_pattern(3840, 2160)

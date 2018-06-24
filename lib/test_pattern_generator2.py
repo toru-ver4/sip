@@ -202,13 +202,13 @@ def plot_chromaticity_diagram(rate=480/751.0*2, **kwargs):
     bt2020_gamut, _ = get_primaries('ITU-R BT.2020')
     dci_p3_gamut, _ = get_primaries('DCI-P3')
 
-    ax1 = pu.plot_1_graph(fontsize=23 * rate,
+    ax1 = pu.plot_1_graph(fontsize=20 * rate,
                           figsize=(8 * rate, 9 * rate),
                           graph_title="CIE1931 Chromaticity Diagram",
                           graph_title_size=None,
                           xlabel=None, ylabel=None,
                           axis_label_size=None,
-                          legend_size=20 * rate,
+                          legend_size=18 * rate,
                           xlim=(0, 0.8),
                           ylim=(0, 0.9),
                           xtick=[x * 0.1 for x in range(9)],
@@ -218,14 +218,14 @@ def plot_chromaticity_diagram(rate=480/751.0*2, **kwargs):
                           linewidth=4 * rate,
                           minor_xtick_num=2,
                           minor_ytick_num=2)
-    ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', lw=4*rate, label=None)
+    ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', lw=3.5*rate, label=None)
     ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
-             '-k', lw=4*rate, label=None)
+             '-k', lw=3.5*rate, label=None)
     ax1.plot(bt709_gamut[:, 0], bt709_gamut[:, 1], c="#0080FF",
              label="BT.709", lw=3*rate)
     ax1.plot(bt2020_gamut[:, 0], bt2020_gamut[:, 1], c="#FFD000",
              label="BT.2020", lw=3*rate)
-    ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1], c="#FF3030",
+    ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1], c="#C03030",
              label="DCI-P3", lw=3*rate)
     if monitor_primaries is not None:
         ax1.plot(monitor_primaries[:, 0], monitor_primaries[:, 1],
@@ -236,7 +236,7 @@ def plot_chromaticity_diagram(rate=480/751.0*2, **kwargs):
                     edgecolors='#404000', linewidth=2*rate)
     if test_scatter is not None:
         xy, rgb = test_scatter
-        ax1.scatter(xy[..., 0], xy[..., 1], s=700*rate, marker='s', c=rgb,
+        ax1.scatter(xy[..., 0], xy[..., 1], s=300*rate, marker='s', c=rgb,
                     edgecolors='#404040', linewidth=2*rate)
     if intersection is not None:
         ax1.scatter(intersection[..., 0], intersection[..., 1],
