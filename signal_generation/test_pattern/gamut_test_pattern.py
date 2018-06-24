@@ -25,6 +25,7 @@ GAMUT_PATTERN_AREA_WIDTH = (12/16.0)
 GAMUT_TOP_BOTTOM_SPACE = 0.05
 GAMUT_LEFT_RIGHT_SPACE = 0.02
 GAMUT_PATCH_SIZE = 0.07
+GAMUT_PATCH_STRIPE_NUM = 5
 
 INFO_AREA_WIDTH = 1.0 - GAMUT_PATTERN_AREA_WIDTH
 
@@ -324,8 +325,13 @@ def composite_gamut_csf_pattern(base_img, patch_rgb, patch_num):
         v_ed = v_st + patch_height
         h_ed = left_space
         for h_idx in range(h_num):
-            patch = patch_rgb[v_idx * h_num + h_idx]
-            patch = np.uint16(np.round((patch * 0xFFC0)))
+            lv1 = patch_rgb[v_idx * h_num + h_num - 1] * 0xFFC0
+            lv2 = patch_rgb[v_idx * h_num + h_idx] * 0xFFC0
+            patch = tpg.get_csf_color_image(width=patch_width,
+                                            height=patch_height,
+                                            lv1=np.uint16(np.round(lv1)),
+                                            lv2=np.uint16(np.round(lv2)),
+                                            stripe_num=GAMUT_PATCH_STRIPE_NUM)
             h_st = h_ed + width_space[h_idx]
             h_ed = h_st + patch_width
             # print(v_st, v_ed, h_st, h_ed)
@@ -348,6 +354,13 @@ def gen_gamut_test_pattern(width=3840, height=2160):
     patch_num = 8
     patch_xy, patch_rgb = _get_test_scatter_data(sample_num=patch_num)
 
+    tpg.plot_chromaticity_diagram(primaries=None,
+                                  test_scatter=[patch_xy, patch_rgb])
+
+    tpg.get_csf_color_image(width=640, height=480,
+                            lv1=np.uint16(np.array([1.0, 0.0, 1.0]) * 1023 * 0x40),
+                            lv2=np.uint16(np.array([1.0, 1.0, 1.0]) * 512 * 0x40),
+                            stripe_num=9)
     composite_info_data(img)
     composite_gamut_csf_pattern(img, patch_rgb, patch_num)
 

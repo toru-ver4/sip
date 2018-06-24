@@ -8,6 +8,7 @@
 
 import os
 import cv2
+import common as cmn
 import color_convert as cc
 from scipy import linalg
 import plot_utility as pu
@@ -344,6 +345,60 @@ def get_chromaticity_image(samples=1024, antialiasing=True):
     rgb = rgb ** (1/2.2)
 
     return rgb
+
+
+def get_csf_color_image(width=640, height=480,
+                        lv1=np.uint16(np.array([1.0, 1.0, 1.0]) * 1023 * 0x40),
+                        lv2=np.uint16(np.array([1.0, 1.0, 1.0]) * 512 * 0x40),
+                        stripe_num=18):
+    """
+    長方形を複数個ズラして重ねることでCSFパターンっぽいのを作る。
+    入力信号レベルは16bitに限定する。
+
+    Parameters
+    ----------
+    width : numeric.
+        width of the pattern image.
+    height : numeric.
+        height of the pattern image.
+    lv1 : numeric
+        video level 1. this value must be 10bit.
+    lv2 : numeric
+        video level 2. this value must be 10bit.
+    stripe_num : numeric
+        number of the stripe.
+
+    Returns
+    -------
+    array_like
+        a cms pattern image.
+    """
+    width_list = cmn.equal_devision(width, stripe_num)
+    height_list = cmn.equal_devision(height, stripe_num)
+    h_pos_list = cmn.equal_devision(width // 2, stripe_num)
+    v_pos_list = cmn.equal_devision(height // 2, stripe_num)
+    lv1_16bit = lv1
+    lv2_16bit = lv2
+    img = np.zeros((height, width, 3), dtype=np.uint16)
+    
+    width_temp = width
+    height_temp = height
+    h_pos_temp = 0
+    v_pos_temp = 0
+    for idx in range(stripe_num):
+        lv = lv1_16bit if (idx % 2) == 0 else lv2_16bit
+        temp_img = np.ones((height_temp, width_temp, 3), dtype=np.uint16)
+        # temp_img *= lv
+        temp_img[:, :] = lv
+        ed_pos_h = h_pos_temp + width_temp
+        ed_pos_v = v_pos_temp + height_temp
+        img[v_pos_temp:ed_pos_v, h_pos_temp:ed_pos_h] = temp_img
+        width_temp -= width_list[stripe_num - 1 - idx]
+        height_temp -= height_list[stripe_num - 1 - idx]
+        h_pos_temp += h_pos_list[idx]
+        v_pos_temp += v_pos_list[idx]
+
+    return img
 
 
 if __name__ == '__main__':
