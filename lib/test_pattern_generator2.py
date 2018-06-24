@@ -107,7 +107,6 @@ def xy_to_rgb(xy, name='ITU-R BT.2020'):
     illuminant_XYZ = D65_WHITE
     illuminant_RGB = D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
-    color_space = RGB_COLOURSPACES[name]
     large_xyz_to_rgb_matrix = get_xyz_to_rgb_matrix(name)
     large_xyz = xy_to_XYZ(xy)
     rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
@@ -185,7 +184,7 @@ def get_secondaries(name='ITU-R BT.2020'):
     return xy, secondary_rgb.reshape((3, 3))
 
 
-def plot_chromaticity_diagram(**kwargs):
+def plot_chromaticity_diagram(rate=480/751.0*2, **kwargs):
     # キーワード引数の初期値設定
     # ------------------------------------
     monitor_primaries = kwargs.get('monitor_primaries', None)
@@ -196,32 +195,31 @@ def plot_chromaticity_diagram(**kwargs):
     # プロット用データ準備
     # ---------------------------------
     xy_image = get_chromaticity_image()
-    rate = 2.0
     cmf_xy = _get_cmfs_xy()
 
     bt709_gamut, _ = get_primaries('ITU-R BT.709')
     bt2020_gamut, _ = get_primaries('ITU-R BT.2020')
     dci_p3_gamut, _ = get_primaries('DCI-P3')
 
-    ax1 = pu.plot_1_graph(fontsize=15 * rate,
+    ax1 = pu.plot_1_graph(fontsize=23 * rate,
                           figsize=(8 * rate, 9 * rate),
                           graph_title="CIE1931 Chromaticity Diagram",
                           graph_title_size=None,
                           xlabel=None, ylabel=None,
                           axis_label_size=None,
-                          legend_size=14 * rate,
+                          legend_size=20 * rate,
                           xlim=(0, 0.8),
                           ylim=(0, 0.9),
                           xtick=[x * 0.1 for x in range(9)],
                           ytick=[x * 0.1 for x in range(10)],
-                          xtick_size=10 * rate,
-                          ytick_size=10 * rate,
-                          linewidth=2 * rate,
+                          xtick_size=17 * rate,
+                          ytick_size=17 * rate,
+                          linewidth=4 * rate,
                           minor_xtick_num=2,
                           minor_ytick_num=2)
-    ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', label=None)
+    ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', lw=4*rate, label=None)
     ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
-             '-k', label=None)
+             '-k', lw=4*rate, label=None)
     ax1.plot(bt709_gamut[:, 0], bt709_gamut[:, 1], c="#0080FF",
              label="BT.709", lw=3*rate)
     ax1.plot(bt2020_gamut[:, 0], bt2020_gamut[:, 1], c="#FFD000",
@@ -246,7 +244,8 @@ def plot_chromaticity_diagram(**kwargs):
 
     ax1.imshow(xy_image, extent=(0, 1, 0, 1))
     plt.legend(loc='upper right')
-    plt.show()
+    plt.savefig('temp_fig.png', bbox_inches='tight')
+    # plt.show()
 
 
 def get_chromaticity_image(samples=1024, antialiasing=True):

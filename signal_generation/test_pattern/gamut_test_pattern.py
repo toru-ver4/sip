@@ -6,10 +6,12 @@ Gamut確認用のテストパターンを作る
 """
 
 import os
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import test_pattern_generator2 as tpg
 import plot_utility as pu
+import common as cmn
 import colour
 import sympy
 # from PIL import Image
@@ -17,6 +19,14 @@ from PIL import ImageCms
 import imp
 imp.reload(tpg)
 imp.reload(ImageCms)
+
+
+GAMUT_PATTERN_AREA_WIDTH = (12/16.0)
+GAMUT_TOP_BOTTOM_SPACE = 0.05
+GAMUT_LEFT_RIGHT_SPACE = 0.02
+GAMUT_PATCH_SIZE = 0.07
+
+INFO_AREA_WIDTH = 1.0 - GAMUT_PATTERN_AREA_WIDTH
 
 
 def _get_specific_monitor_primaries(filename="./icc_profile/gamut.icc"):
@@ -231,6 +241,10 @@ def _get_test_scatter_data(sample_num=6):
 
 
 def _get_gamut_check_data(name="ITU-R BT.2020"):
+    """
+    RGB2XYZ変換が想定通り行われているか確認するための
+    テストデータを作成する。
+    """
 
     sample_num = 7
     base = (np.linspace(0, 1, sample_num) ** (2.0))[::-1]
@@ -241,8 +255,6 @@ def _get_gamut_check_data(name="ITU-R BT.2020"):
     b = np.dstack((base, base, ones))
     rgb = np.append(np.append(r, g, axis=0), b, axis=0)
 
-    # color_space = models.BT2020_COLOURSPACE
-    color_space = colour.RGB_COLOURSPACES[name]
     illuminant_XYZ = tpg.D65_WHITE
     illuminant_RGB = tpg.D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
@@ -265,12 +277,79 @@ def _gen_ycbcr_ng_combination_checker():
     pass
 
 
+def composite_info_data(base_img, **kwargs):
+    img_width = base_img.shape[1]
+
+    fig_img = cv2.imread('temp_fig.png',
+                         cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)[..., ::-1]
+    width = int(img_width * INFO_AREA_WIDTH)
+    rate = width / fig_img.shape[1]
+    height = int(fig_img.shape[0] * rate)
+
+    fig_img = cv2.resize(fig_img, (width, height))
+    fig_img = np.uint16(fig_img) * 0x100
+
+    base_img[0:height, -width:, :] = fig_img
+
+
+def composite_gamut_csf_pattern(base_img, patch_rgb, patch_num):
+    img_width = base_img.shape[1]
+    img_height = base_img.shape[0]
+
+    width = int(img_width * GAMUT_PATTERN_AREA_WIDTH)
+    height = img_height
+
+    img = np.zeros((height, width, 3), dtype=np.uint16)
+
+    h_num = patch_num
+    v_num = 6  # RGBMYC
+
+    left_space = int(img_width * GAMUT_LEFT_RIGHT_SPACE)
+    top_space = int(img_height * GAMUT_TOP_BOTTOM_SPACE)
+
+    patch_width = int(img_width * GAMUT_PATCH_SIZE)
+    patch_height = patch_width
+
+    ws_target_len = width - (2 * left_space) - patch_width * h_num
+    width_space = cmn.equal_devision(ws_target_len, h_num - 1)
+    width_space.insert(0, 0)
+
+    hs_target_len = height - (2 * top_space) - patch_height * v_num
+    height_space = cmn.equal_devision(hs_target_len, v_num - 1)
+    height_space.insert(0, 0)
+
+    v_ed = top_space
+    for v_idx in range(v_num):
+        v_st = v_ed + height_space[v_idx]
+        v_ed = v_st + patch_height
+        h_ed = left_space
+        for h_idx in range(h_num):
+            patch = patch_rgb[v_idx * h_num + h_idx]
+            patch = np.uint16(np.round((patch * 0xFFC0)))
+            h_st = h_ed + width_space[h_idx]
+            h_ed = h_st + patch_width
+            # print(v_st, v_ed, h_st, h_ed)
+            # print(img[v_st:v_ed, h_st:h_ed, :].shape)
+            img[v_st:v_ed, h_st:h_ed, :] = patch
+
+    base_img[0:height, 0:width, :] = img
+
+
 def gen_gamut_test_pattern(width=3840, height=2160):
     """
     BT.709 の外側の Gamut の表示具合を確認する
     Test Pattern を作成する
     """
-    img = np.zeros((height, width, 3), dtype=np.uint16)
+    img = np.ones((height, width, 3), dtype=np.uint16)
+    img = img * 10000
+
+    # パッチデータ作成
+    # -------------------------
+    patch_num = 8
+    patch_xy, patch_rgb = _get_test_scatter_data(sample_num=patch_num)
+
+    composite_info_data(img)
+    composite_gamut_csf_pattern(img, patch_rgb, patch_num)
 
     tpg.preview_image(img, 'rgb')
 
@@ -286,7 +365,7 @@ if __name__ == '__main__':
     # color_space_name = "DCI-P3"
     primaries = _get_specific_monitor_primaries()
     secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
-    scatter_xy, scatter_rgb = _get_test_scatter_data(sample_num=5)
+    scatter_xy, scatter_rgb = _get_test_scatter_data(sample_num=6)
     # scatter_xy, scatter_rgb = _get_gamut_check_data('ITU-R BT.709')
 
     # primary_intersections = get_intersection_primary()
@@ -296,4 +375,4 @@ if __name__ == '__main__':
     tpg.plot_chromaticity_diagram(primaries=None,
                                   test_scatter=[scatter_xy, scatter_rgb])
 
-    # gen_gamut_test_pattern(1920, 1080)
+    gen_gamut_test_pattern(1920, 1080)
