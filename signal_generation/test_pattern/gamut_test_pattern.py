@@ -19,7 +19,7 @@ imp.reload(tpg)
 imp.reload(ImageCms)
 
 
-def _get_monitor_primaries(filename="./icc_profile/gamut.icc"):
+def _get_specific_monitor_primaries(filename="./icc_profile/gamut.icc"):
     """
     iccプロファイルからモニターのprimary情報を取得する
 
@@ -43,39 +43,14 @@ def _get_monitor_primaries(filename="./icc_profile/gamut.icc"):
     return np.array(primaries)
 
 
-def _get_interpolated_xy(st, ed, sample_num):
-    """
-    テストパターンを作るために、xy色度図を等間隔に分割する
-
-    Parameters
-    ----------
-    st : array_like
-        start position on the xy chromaticity diagram.
-    ed : array_like
-        end position on the xy chromaticity diagram.
-    sample_num : integer
-        division number
-
-    Returns
-    -------
-    array_like
-        prmaries. [[rx, ry], [gx, gy], [bx, by], [rx, ry]]
-
-    Examples
-    --------
-    >>> chromaticity_diagram_plot_CIE1931()  # doctest: +SKIP
-    """
-    pass
-
-
 def get_intersection_secondary():
     """
     BT.2020 の Secondary と D65 を結ぶ直線と
     BT.709 の Gamut が交差する点を求める
     """
 
-    secondary, dummy = tpg.get_secondaries(name='ITU-R BT.2020')
-    primary = tpg.get_primaries(name='ITU-R BT.709')
+    secondary, _ = tpg.get_secondaries(name='ITU-R BT.2020')
+    primary, _ = tpg.get_primaries(name='ITU-R BT.709')
 
     white_point = sympy.Point(tpg.D65_WHITE[0], tpg.D65_WHITE[1])
 
@@ -110,8 +85,8 @@ def get_intersection_primary():
     BT.709 の Gamut が交差する点を求める
     """
 
-    bt2020_p = tpg.get_primaries(name='ITU-R BT.2020')
-    primary = tpg.get_primaries(name='ITU-R BT.709')
+    bt2020_p, _ = tpg.get_primaries(name='ITU-R BT.2020')
+    primary, _ = tpg.get_primaries(name='ITU-R BT.709')
 
     white_point = sympy.Point(tpg.D65_WHITE[0], tpg.D65_WHITE[1])
 
@@ -202,31 +177,55 @@ def _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.709'):
     plt.show()
 
 
-def _get_test_scatter_data(name='ITU-R BT.2020'):
-    sample_num = 7
-    base = (np.linspace(0, 1, sample_num) ** (2.0))[::-1]
-    ones = np.ones_like(base)
+def _get_interpolated_xy(st, ed, sample_num):
+    """
+    テストパターンを作るために、xy色度図を等間隔に分割する
 
-    r = np.dstack((ones, base, base))
-    g = np.dstack((base, ones, base))
-    b = np.dstack((base, base, ones))
-    rgb = np.append(np.append(r, g, axis=0), b, axis=0)
+    Parameters
+    ----------
+    st : array_like
+        start position on the xy chromaticity diagram.
+    ed : array_like
+        end position on the xy chromaticity diagram.
+    sample_num : integer
+        division number
 
-    # color_space = models.BT2020_COLOURSPACE
-    color_space = colour.RGB_COLOURSPACES[name]
-    illuminant_XYZ = tpg.D65_WHITE
-    illuminant_RGB = tpg.D65_WHITE
-    chromatic_adaptation_transform = 'CAT02'
-    rgb_to_xyz_matrix = color_space.RGB_to_XYZ_matrix
-    large_xyz = colour.models.RGB_to_XYZ(rgb, illuminant_RGB, illuminant_XYZ,
-                                         rgb_to_xyz_matrix,
-                                         chromatic_adaptation_transform)
+    Returns
+    -------
+    array_like
+        interpolated xy.
 
-    xy = colour.models.XYZ_to_xy(large_xyz, illuminant_XYZ)
+    """
+    if st.ndim != 1 or ed.ndim != 1:
+        raise ValueError("dimmention of the input data is invalid.")
 
+    x = np.linspace(float(st[0]), float(ed[0]), sample_num)
+    y = np.linspace(float(st[1]), float(ed[1]), sample_num)
+
+    return np.dstack((x, y)).reshape((sample_num, 2))
+
+
+def _get_test_scatter_data(sample_num=6):
+
+    color_space_name = 'ITU-R BT.2020'
+    primaries, primary_rgb = tpg.get_primaries(color_space_name)
+    secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
+
+    primary_intersections = get_intersection_primary()
+    secondary_intersections = get_intersection_secondary()
+
+    ed_xy = np.vstack((primaries[:3, :], secondaries))
+    st_xy = np.vstack((primary_intersections, secondary_intersections))
+    patch_xy = [_get_interpolated_xy(st_xy[idx], ed_xy[idx], sample_num)
+                for idx in range(st_xy.shape[0])]
+
+    patch_xy = np.array(patch_xy)
+    rgb = tpg.xy_to_rgb(patch_xy, 'ITU-R BT.2020')
     rgb = rgb ** (1/2.2)
+    rgb = rgb.reshape((rgb.shape[0] * rgb.shape[1], rgb.shape[2]))
 
-    return xy, rgb.reshape((rgb.shape[0] * rgb.shape[1], 3))
+    # return xy, rgb.reshape((rgb.shape[0] * rgb.shape[1], 3))
+    return patch_xy, rgb
 
 
 def _gen_ycbcr_ng_combination_checker():
@@ -246,17 +245,17 @@ if __name__ == '__main__':
     # _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.709')
 
     color_space_name = "ITU-R BT.2020"
-    primaries = _get_monitor_primaries()
+    primaries = _get_specific_monitor_primaries()
     secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
-    scatter_xy, scatter_rgb = _get_test_scatter_data(color_space_name)
-    # intersections = get_intersection_secondary()
-    intersections = get_intersection_primary()
+    scatter_xy, scatter_rgb = _get_test_scatter_data(sample_num=10)
+    # primary_intersections = get_intersection_primary()
+    # secondary_intersections = get_intersection_secondary()
+    # intersections = np.append(primary_intersections,
+    #                           secondary_intersections, axis=0)
     tpg.plot_chromaticity_diagram(primaries=None,
-                                  secondaries=[secondaries, secondary_rgb],
-                                  test_scatter=[scatter_xy, scatter_rgb],
-                                  intersection=intersections)
+                                  test_scatter=[scatter_xy, scatter_rgb])
 
-    get_intersection_secondary()
+    # get_intersection_secondary()
 
     # _get_interpolated_xy()
 

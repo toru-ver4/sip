@@ -81,7 +81,45 @@ def get_primaries(name='ITU-R BT.2020'):
     primaries = RGB_COLOURSPACES[name].primaries
     primaries = np.append(primaries, [primaries[0, :]], axis=0)
 
-    return primaries
+    rgb = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+
+    return primaries, rgb
+
+
+def xy_to_rgb(xy, name='ITU-R BT.2020'):
+    """
+    xy値からRGB値を算出する。
+    いい感じに正規化もしておく。
+
+    Parameters
+    ----------
+    xy : array_like
+        xy value.
+    name : color space name.
+
+    Returns
+    -------
+    array_like
+        rgb value. the value is normalized.
+
+    """
+    illuminant_XYZ = D65_WHITE
+    illuminant_RGB = D65_WHITE
+    chromatic_adaptation_transform = 'CAT02'
+    color_space = RGB_COLOURSPACES[name]
+    large_xyz_to_rgb_matrix = color_space.XYZ_to_RGB_matrix
+    large_xyz = xy_to_XYZ(xy)
+    rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
+                     large_xyz_to_rgb_matrix,
+                     chromatic_adaptation_transform)
+
+    """
+    そのままだとビデオレベルが低かったりするので、
+    各ドット毎にRGB値を正規化＆最大化する。
+    """
+    rgb = normalise_maximum(rgb, axis=-1)
+
+    return rgb
 
 
 def get_secondaries(name='ITU-R BT.2020'):
@@ -121,13 +159,22 @@ def get_secondaries(name='ITU-R BT.2020'):
 
 
 def plot_chromaticity_diagram(**kwargs):
+    # キーワード引数の初期値設定
+    # ------------------------------------
+    monitor_primaries = kwargs.get('monitor_primaries', None)
+    secondaries = kwargs.get('secondaries', None)
+    test_scatter = kwargs.get('test_scatter', None)
+    intersection = kwargs.get('intersection', None)
+
+    # プロット用データ準備
+    # ---------------------------------
     xy_image = get_chromaticity_image()
     rate = 2.0
     cmf_xy = _get_cmfs_xy()
 
-    bt709_gamut = get_primaries('ITU-R BT.709')
-    bt2020_gamut = get_primaries('ITU-R BT.2020')
-    dci_p3_gamut = get_primaries('DCI-P3')
+    bt709_gamut, _ = get_primaries('ITU-R BT.709')
+    bt2020_gamut, _ = get_primaries('ITU-R BT.2020')
+    dci_p3_gamut, _ = get_primaries('DCI-P3')
 
     ax1 = pu.plot_1_graph(fontsize=15 * rate,
                           figsize=(8 * rate, 9 * rate),
@@ -154,21 +201,20 @@ def plot_chromaticity_diagram(**kwargs):
              label="BT.2020", lw=3*rate)
     ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1], c="#FF3030",
              label="DCI-P3", lw=3*rate)
-    if kwargs['primaries'] is not None:
-        ax1.plot(kwargs['primaries'][:, 0], kwargs['primaries'][:, 1],
+    if monitor_primaries is not None:
+        ax1.plot(monitor_primaries[:, 0], monitor_primaries[:, 1],
                  c="#202020", label="???", lw=3*rate)
-    if kwargs['secondaries'] is not None:
-        xy, rgb = kwargs['secondaries']
+    if secondaries is not None:
+        xy, rgb = secondaries
         ax1.scatter(xy[..., 0], xy[..., 1], s=700*rate, marker='s', c=rgb,
                     edgecolors='#404000', linewidth=2*rate)
-    if kwargs['test_scatter'] is not None:
-        xy, rgb = kwargs['test_scatter']
+    if test_scatter is not None:
+        xy, rgb = test_scatter
         ax1.scatter(xy[..., 0], xy[..., 1], s=700*rate, marker='s', c=rgb,
                     edgecolors='#404040', linewidth=2*rate)
-    if kwargs['intersection'] is not None:
-        ints = kwargs['intersection']
-        ax1.scatter(ints[..., 0], ints[..., 1], s=300*rate, marker='s',
-                    c='#CCCCCC',
+    if intersection is not None:
+        ax1.scatter(intersection[..., 0], intersection[..., 1],
+                    s=300*rate, marker='s', c='#CCCCCC',
                     edgecolors='#404040', linewidth=2*rate)
 
     ax1.imshow(xy_image, extent=(0, 1, 0, 1))
@@ -252,7 +298,7 @@ def get_chromaticity_image(samples=1024, antialiasing=True):
                      chromatic_adaptation_transform)
 
     """
-    そのままだとビデオレベルひ低かったりするので、
+    そのままだとビデオレベルが低かったりするので、
     各ドット毎にRGB値を正規化＆最大化する。
     """
     rgb = normalise_maximum(rgb, axis=-1)
