@@ -43,6 +43,22 @@ def preview_image(img, order='rgb', over_disp=False):
     cv2.destroyAllWindows()
 
 
+def do_matrix(img, mtx):
+    """
+    img に対して mtx を適用する。
+    """
+    base_shape = img.shape
+
+    r, g, b = img[..., 0], img[..., 1], img[..., 2]
+    ro = r * mtx[0][0] + g * mtx[0][1] + b * mtx[0][2]
+    go = r * mtx[1][0] + g * mtx[1][1] + b * mtx[1][2]
+    bo = r * mtx[2][0] + g * mtx[2][1] + b * mtx[2][2]
+
+    out_img = np.dstack((ro, go, bo)).reshape(base_shape)
+
+    return out_img
+
+
 def _get_cmfs_xy():
     """
     xy色度図のプロットのための馬蹄形の外枠のxy値を求める。
@@ -88,7 +104,7 @@ def get_primaries(name='ITU-R BT.2020'):
     return primaries, rgb
 
 
-def xy_to_rgb(xy, name='ITU-R BT.2020'):
+def xy_to_rgb(xy, name='ITU-R BT.2020', normalize='True'):
     """
     xy値からRGB値を算出する。
     いい感じに正規化もしておく。
@@ -103,22 +119,30 @@ def xy_to_rgb(xy, name='ITU-R BT.2020'):
     -------
     array_like
         rgb value. the value is normalized.
-
     """
     illuminant_XYZ = D65_WHITE
     illuminant_RGB = D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
     large_xyz_to_rgb_matrix = get_xyz_to_rgb_matrix(name)
     large_xyz = xy_to_XYZ(xy)
+    print(large_xyz)
     rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
                      large_xyz_to_rgb_matrix,
                      chromatic_adaptation_transform)
 
     """
     そのままだとビデオレベルが低かったりするので、
-    各ドット毎にRGB値を正規化＆最大化する。
+    各ドット毎にRGB値を正規化＆最大化する。必要であれば。
     """
-    rgb = normalise_maximum(rgb, axis=-1)
+    if normalize:
+        rgb = normalise_maximum(rgb, axis=-1)
+    else:
+        if(np.sum(rgb > 1.0) > 0):
+            print("warning: over flow has occured at xy_to_rgb")
+        if(np.sum(rgb < 0.0) > 0):
+            print("warning: under flow has occured at xy_to_rgb")
+        rgb[rgb < 0] = 0
+        rgb[rgb > 1.0] = 1.0
 
     return rgb
 

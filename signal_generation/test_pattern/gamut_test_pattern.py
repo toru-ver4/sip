@@ -14,13 +14,14 @@ import plot_utility as pu
 import common as cmn
 import colour
 import sympy
+from colour.utilities.array import dot_vector
 # from PIL import Image
 from PIL import ImageCms
 import imp
 imp.reload(tpg)
 imp.reload(ImageCms)
 
-REVISION = 0
+REVISION = 1
 
 GAMUT_PATTERN_AREA_WIDTH = (12/16.0)
 GAMUT_TOP_BOTTOM_SPACE = 0.05
@@ -219,14 +220,48 @@ def _get_interpolated_xy(st, ed, sample_num):
     return np.dstack((x, y)).reshape((sample_num, 2))
 
 
+def _get_primary_secondary_large_y(name):
+    """
+    Primary, Secondary の Y値を求める。
+    色度パターン作成時に、パッチごとにYの値が変わらないように
+    後で xy --> xyY 変換時に使用する。
+
+    Parameters
+    ----------
+    name : string
+        target color space name.
+
+    Returns
+    -------
+    array_like
+        large Y value for primary and secondary.
+
+    """
+
+    # RGBMYC の Y値リストを得る
+    _, primary = tpg.get_primaries(name)
+    _, secondary = tpg.get_secondaries(name)
+    data = np.vstack((primary, secondary))
+    rgb_to_xyz_mtx = colour.RGB_COLOURSPACES[name].RGB_to_XYZ_matrix
+    data = tpg.do_matrix(img=data, mtx=rgb_to_xyz_mtx)
+
+    return data[..., 1]
+
+
 def _get_test_scatter_data(sample_num=6):
 
     color_space_name = 'ITU-R BT.2020'
+    inter_section_space_name = 'ITU-R BT.709'
+
     primaries, primary_rgb = tpg.get_primaries(color_space_name)
     secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
 
-    primary_intersections = get_intersection_primary(color_space_name)
-    secondary_intersections = get_intersection_secondary(color_space_name)
+    primary_intersections\
+        = get_intersection_primary(out_side_name=color_space_name,
+                                   in_side_name=inter_section_space_name)
+    secondary_intersections\
+        = get_intersection_secondary(out_side_name=color_space_name,
+                                     in_side_name=inter_section_space_name)
 
     ed_xy = np.vstack((primaries[:3, :], secondaries))
     st_xy = np.vstack((primary_intersections, secondary_intersections))
@@ -234,7 +269,7 @@ def _get_test_scatter_data(sample_num=6):
                 for idx in range(st_xy.shape[0])]
 
     patch_xy = np.array(patch_xy)
-    rgb = tpg.xy_to_rgb(patch_xy, color_space_name)
+    rgb = tpg.xy_to_rgb(patch_xy, color_space_name, normalize=False)
     rgb = rgb ** (1/2.2)
     rgb = rgb.reshape((rgb.shape[0] * rgb.shape[1], rgb.shape[2]))
 
@@ -242,7 +277,7 @@ def _get_test_scatter_data(sample_num=6):
     return patch_xy, rgb
 
 
-def _get_gamut_check_data(name="ITU-R BT.2020"):
+def _get_gamut_check_data(name):
     """
     RGB2XYZ変換が想定通り行われているか確認するための
     テストデータを作成する。
@@ -358,10 +393,6 @@ def gen_gamut_test_pattern(width=3840, height=2160):
     tpg.plot_chromaticity_diagram(monitor_primaries=specific_primaries,
                                   test_scatter=[patch_xy, patch_rgb])
 
-    tpg.get_csf_color_image(width=640, height=480,
-                            lv1=np.uint16(np.array([1.0, 0.0, 1.0]) * 1023 * 0x40),
-                            lv2=np.uint16(np.array([1.0, 1.0, 1.0]) * 512 * 0x40),
-                            stripe_num=9)
     composite_info_data(img)
     composite_gamut_csf_pattern(img, patch_rgb, patch_num)
 
@@ -379,19 +410,20 @@ if __name__ == '__main__':
     # _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.601')
     # _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.709')
 
-    color_space_name = "ITU-R BT.2020"
-    # color_space_name = "DCI-P3"
-    primaries = _get_specific_monitor_primaries()
-    secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
-    scatter_xy, scatter_rgb = _get_test_scatter_data(sample_num=6)
-    # scatter_xy, scatter_rgb = _get_gamut_check_data('ITU-R BT.709')
+    # color_space_name = "ITU-R BT.2020"
+    # # color_space_name = "DCI-P3"
+    # primaries = _get_specific_monitor_primaries()
+    # secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
+    # scatter_xy, scatter_rgb = _get_test_scatter_data(sample_num=6)
+    # # scatter_xy, scatter_rgb = _get_gamut_check_data('ITU-R BT.709')
 
-    # primary_intersections = get_intersection_primary()
-    # secondary_intersections = get_intersection_secondary()
-    # intersections = np.append(primary_intersections,
-    #                           secondary_intersections, axis=0)
-    tpg.plot_chromaticity_diagram(primaries=None,
-                                  test_scatter=[scatter_xy, scatter_rgb])
+    # # primary_intersections = get_intersection_primary()
+    # # secondary_intersections = get_intersection_secondary()
+    # # intersections = np.append(primary_intersections,
+    # #                           secondary_intersections, axis=0)
+    # tpg.plot_chromaticity_diagram(primaries=None,
+    #                               test_scatter=[scatter_xy, scatter_rgb])
 
-    gen_gamut_test_pattern(1920, 1080)
-    gen_gamut_test_pattern(3840, 2160)
+    _normalize_with_primary_secondary(name='ITU-R BT.2020')
+    # gen_gamut_test_pattern(1920, 1080)
+    # gen_gamut_test_pattern(3840, 2160)
