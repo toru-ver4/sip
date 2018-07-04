@@ -269,7 +269,13 @@ def _get_test_scatter_data(sample_num=6):
                 for idx in range(st_xy.shape[0])]
 
     patch_xy = np.array(patch_xy)
-    rgb = tpg.xy_to_rgb(patch_xy, color_space_name, normalize=False)
+    specific = _get_primary_secondary_large_y(name=color_space_name)
+    specific = specific[:, np.newaxis]
+    specific = np.tile(specific, sample_num)
+    rgb = tpg.xy_to_rgb(patch_xy, color_space_name,
+                        normalize='specific', specific=specific)
+    # rgb = tpg.xy_to_rgb(patch_xy, color_space_name,
+    #                     normalize='maximum', specific=specific)
     rgb = rgb ** (1/2.2)
     rgb = rgb.reshape((rgb.shape[0] * rgb.shape[1], rgb.shape[2]))
 
@@ -424,6 +430,6 @@ if __name__ == '__main__':
     # tpg.plot_chromaticity_diagram(primaries=None,
     #                               test_scatter=[scatter_xy, scatter_rgb])
 
-    _normalize_with_primary_secondary(name='ITU-R BT.2020')
-    # gen_gamut_test_pattern(1920, 1080)
+    # _get_primary_secondary_large_y(name='ITU-R BT.2020')
+    gen_gamut_test_pattern(1920, 1080)
     # gen_gamut_test_pattern(3840, 2160)

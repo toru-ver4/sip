@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from colour.colorimetry import CMFS, ILLUMINANTS
 from colour.models import XYZ_to_xy, xy_to_XYZ, XYZ_to_RGB, RGB_to_XYZ
+from colour.models import xy_to_xyY, xyY_to_XYZ
 from colour.utilities import normalise_maximum
 from colour import models
 from colour import RGB_COLOURSPACES
@@ -104,7 +105,7 @@ def get_primaries(name='ITU-R BT.2020'):
     return primaries, rgb
 
 
-def xy_to_rgb(xy, name='ITU-R BT.2020', normalize='True'):
+def xy_to_rgb(xy, name='ITU-R BT.2020', normalize='maximum', specific=None):
     """
     xy値からRGB値を算出する。
     いい感じに正規化もしておく。
@@ -113,7 +114,10 @@ def xy_to_rgb(xy, name='ITU-R BT.2020', normalize='True'):
     ----------
     xy : array_like
         xy value.
-    name : color space name.
+    name : string
+        color space name.
+    normalize : string
+        normalize method. You can select 'maximum', 'specific' or None.
 
     Returns
     -------
@@ -124,8 +128,13 @@ def xy_to_rgb(xy, name='ITU-R BT.2020', normalize='True'):
     illuminant_RGB = D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
     large_xyz_to_rgb_matrix = get_xyz_to_rgb_matrix(name)
-    large_xyz = xy_to_XYZ(xy)
-    print(large_xyz)
+    if normalize == 'specific':
+        xyY = xy_to_xyY(xy)
+        xyY[..., 2] = specific
+        large_xyz = xyY_to_XYZ(xyY)
+    else:
+        large_xyz = xy_to_XYZ(xy)
+
     rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
                      large_xyz_to_rgb_matrix,
                      chromatic_adaptation_transform)
@@ -134,7 +143,7 @@ def xy_to_rgb(xy, name='ITU-R BT.2020', normalize='True'):
     そのままだとビデオレベルが低かったりするので、
     各ドット毎にRGB値を正規化＆最大化する。必要であれば。
     """
-    if normalize:
+    if normalize == 'maximum':
         rgb = normalise_maximum(rgb, axis=-1)
     else:
         if(np.sum(rgb > 1.0) > 0):
