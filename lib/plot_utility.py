@@ -112,7 +112,11 @@ def plot_1_graph(fontsize=12, **kwargs):
     else:
         figsize = (12, 8)
 
-    fig = plt.figure(figsize=figsize)
+    if 'dpi' in kwargs and kwargs['dpi']:
+        fig = plt.figure(figsize=figsize, dpi=kwargs['dpi'])
+    else:
+        fig = plt.figure(figsize=figsize)
+
     ax1 = fig.add_subplot(111)
 
     if 'xlim' in kwargs and kwargs['xlim']:

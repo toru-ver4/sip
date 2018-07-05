@@ -218,7 +218,7 @@ def get_secondaries(name='ITU-R BT.2020'):
     return xy, secondary_rgb.reshape((3, 3))
 
 
-def plot_chromaticity_diagram(rate=480/751.0*2, **kwargs):
+def plot_chromaticity_diagram(rate=480/755.0*2, **kwargs):
     # キーワード引数の初期値設定
     # ------------------------------------
     monitor_primaries = kwargs.get('monitor_primaries', None)

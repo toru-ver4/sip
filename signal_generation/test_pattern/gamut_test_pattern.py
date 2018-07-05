@@ -9,19 +9,24 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
 import test_pattern_generator2 as tpg
 import plot_utility as pu
 import common as cmn
 import colour
 import sympy
-from colour.utilities.array import dot_vector
 # from PIL import Image
 from PIL import ImageCms
 import imp
 imp.reload(tpg)
 imp.reload(ImageCms)
 
-REVISION = 1
+REVISION = 3
+
+TARGET_COLORSPACE = "ITU-R BT.2020"
+COMPARATIVE_COLORSPACE = "ITU-R BT.709"
 
 GAMUT_PATTERN_AREA_WIDTH = (12/16.0)
 GAMUT_TOP_BOTTOM_SPACE = 0.05
@@ -30,6 +35,15 @@ GAMUT_PATCH_SIZE = 0.07
 GAMUT_PATCH_STRIPE_NUM = 5
 
 INFO_AREA_WIDTH = 1.0 - GAMUT_PATTERN_AREA_WIDTH
+INFO_TEXT_SIZE = 0.04
+INFO_TEXT_H_OFFSET = 0.02
+INFO_TEXT_V_OFFSET = INFO_TEXT_H_OFFSET
+INFO_TEXT_FG_COLOR = 0.5
+INFO_TEXT_BG_COLOR = 0.1
+INFO_TEXT_AUTHOR = "Author: Toru Yoshihara"
+INFO_TEXT_MAIL = "Mail: toru.ver.11@gmail.com"
+INFO_TEXT_NAME = "Name: gamut_checker_rev_{:02d}".format(REVISION)
+INFO_TEXT_COLORSPACE = "Color Space: {:s}".format(TARGET_COLORSPACE)
 
 
 def _get_specific_monitor_primaries(filename="./icc_profile/gamut.icc"):
@@ -56,8 +70,7 @@ def _get_specific_monitor_primaries(filename="./icc_profile/gamut.icc"):
     return np.array(primaries)
 
 
-def get_intersection_secondary(out_side_name='ITU-R BT.2020',
-                               in_side_name='ITU-R BT.709'):
+def get_intersection_secondary(out_side_name, in_side_name):
     """
     BT.2020 の Secondary と D65 を結ぶ直線と
     BT.709 の Gamut が交差する点を求める
@@ -93,8 +106,7 @@ def get_intersection_secondary(out_side_name='ITU-R BT.2020',
     return np.array(intersections)
 
 
-def get_intersection_primary(out_side_name='ITU-R BT.2020',
-                             in_side_name='ITU-R BT.709'):
+def get_intersection_primary(out_side_name, in_side_name):
     """
     BT.2020 の Primary と D65 を結ぶ直線と
     BT.709 の Gamut が交差する点を求める
@@ -250,8 +262,8 @@ def _get_primary_secondary_large_y(name):
 
 def _get_test_scatter_data(sample_num=6):
 
-    color_space_name = 'ITU-R BT.2020'
-    inter_section_space_name = 'ITU-R BT.709'
+    color_space_name = TARGET_COLORSPACE
+    inter_section_space_name = COMPARATIVE_COLORSPACE
 
     primaries, primary_rgb = tpg.get_primaries(color_space_name)
     secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
@@ -320,6 +332,35 @@ def _gen_ycbcr_ng_combination_checker():
     pass
 
 
+def gen_text_info_data(width, height):
+    """
+    作者とかバージョンとかの情報を記入
+    """
+    # 変数定義
+    # --------------------------------
+    fg_color = (INFO_TEXT_FG_COLOR, INFO_TEXT_FG_COLOR, INFO_TEXT_FG_COLOR)
+    bg_color = (INFO_TEXT_BG_COLOR, INFO_TEXT_BG_COLOR, INFO_TEXT_BG_COLOR)
+    font_size = int(height * INFO_TEXT_SIZE)
+    text = "\n".join([INFO_TEXT_AUTHOR, INFO_TEXT_MAIL,
+                      INFO_TEXT_NAME, INFO_TEXT_COLORSPACE])
+
+    # パラメータ計算
+    # -------------------------------------------------
+    fg_color = tuple([int(x * 0xFF) for x in fg_color])
+    bg_color = tuple([int(x * 0xFF) for x in bg_color])
+    h_offset = int(height * INFO_TEXT_H_OFFSET)
+    v_offset = int(height * INFO_TEXT_V_OFFSET)
+
+    txt_img = Image.new("RGB", (width, height), bg_color)
+    draw = ImageDraw.Draw(txt_img)
+    font = ImageFont.truetype("./fonts/NotoSansMonoCJKjp-Regular.otf",
+                              font_size)
+    draw.text((h_offset, v_offset), text, font=font, fill=fg_color)
+    text_img = (np.asarray(txt_img) * 0x100).astype(np.uint16)
+
+    return text_img
+
+
 def composite_info_data(base_img, **kwargs):
     img_width = base_img.shape[1]
 
@@ -333,6 +374,12 @@ def composite_info_data(base_img, **kwargs):
     fig_img = np.uint16(fig_img) * 0x100
 
     base_img[0:height, -width:, :] = fig_img
+
+    # テキスト情報を付与
+    # -----------------------------------
+    text_info_height = base_img.shape[0] - height
+    text_img = gen_text_info_data(width, text_info_height)
+    base_img[height:, -width:] = text_img
 
 
 def composite_gamut_csf_pattern(base_img, patch_rgb, patch_num):
@@ -396,7 +443,8 @@ def gen_gamut_test_pattern(width=3840, height=2160):
     patch_num = 8
     patch_xy, patch_rgb = _get_test_scatter_data(sample_num=patch_num)
     specific_primaries = _get_specific_monitor_primaries()
-    tpg.plot_chromaticity_diagram(monitor_primaries=specific_primaries,
+    tpg.plot_chromaticity_diagram(width=int(width * INFO_AREA_WIDTH),
+                                  monitor_primaries=specific_primaries,
                                   test_scatter=[patch_xy, patch_rgb])
 
     composite_info_data(img)
@@ -432,4 +480,4 @@ if __name__ == '__main__':
 
     # _get_primary_secondary_large_y(name='ITU-R BT.2020')
     gen_gamut_test_pattern(1920, 1080)
-    # gen_gamut_test_pattern(3840, 2160)
+    gen_gamut_test_pattern(3840, 2160)
