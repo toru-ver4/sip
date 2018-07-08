@@ -285,7 +285,7 @@ def plot_chromaticity_diagram(rate=480/755.0*2, **kwargs):
     # plt.show()
 
 
-def get_chromaticity_image(samples=1024, antialiasing=True):
+def get_chromaticity_image(samples=1024, antialiasing=True, bg_color=0.9):
     """
     xy色度図の馬蹄形の画像を生成する
 
@@ -374,7 +374,7 @@ def get_chromaticity_image(samples=1024, antialiasing=True):
     # 背景色をグレーに変更
     # -------------------------------------
     bg_rgb = np.ones_like(rgb)
-    bg_rgb *= (1 - mask_rgb) * 0.9
+    bg_rgb *= (1 - mask_rgb) * bg_color
 
     rgb += bg_rgb
 
@@ -455,8 +455,8 @@ def plot_xyY_color_space(name='ITU-R BT.2020', samples=1024,
 
     # 馬蹄の領域判別用データ作成
     # --------------------------
-    cmf_xy = _get_cmfs_xy()
-    triangulation = Delaunay(cmf_xy)
+    primary_xy, _ = get_primaries(name=name)
+    triangulation = Delaunay(primary_xy)
 
     xx, yy\
         = np.meshgrid(np.linspace(0, 1, samples), np.linspace(1, 0, samples))
@@ -507,25 +507,44 @@ def plot_xyY_color_space(name='ITU-R BT.2020', samples=1024,
                             rgb_to_large_xyz_matrix,
                             chromatic_adaptation_transform)
 
+    # ログスケールに変換する準備
+    # --------------------------
     large_y = large_xyz2[..., 1] * 1000
     large_y[large_y < 1] = 1.0
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_wireframe(xy[..., 0], xy[..., 1], np.log10(large_y))
+    ax.plot_wireframe(xy[..., 0], xy[..., 1], np.log10(large_y),
+                      rcount=100, ccount=100)
+    # ax.plot_surface(xy[..., 0], xy[..., 1], np.log10(large_y),
+    #                 rcount=50, ccount=50)
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("Y")
-    ax.zaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
+    ax.set_zticks([0, 1, 2, 3])
+    ax.set_zticklabels([1, 10, 100, 1000])
+
+    # chromatcity_image の取得。z=0 の位置に貼り付ける
+    # ----------------------------------------------
+    cie1931_rgb = get_chromaticity_image(samples=samples, bg_color=0.0)
+
+    alpha = np.zeros_like(cie1931_rgb[..., 0])
+    rgb_sum = np.sum(cie1931_rgb, axis=-1)
+    alpha[rgb_sum > 0.00001] = 1
+    cie1931_rgb = np.dstack((cie1931_rgb[..., 0], cie1931_rgb[..., 1],
+                             cie1931_rgb[..., 2], alpha))
+    zz = np.zeros_like(xy[..., 0])
+    ax.plot_surface(xy[..., 0], xy[..., 1], zz,
+                    facecolors=cie1931_rgb)
 
     plt.show()
 
 
 def log_tick_formatter(val, pos=None):
-    return "{:.2e}".format(10**val)
+    return "{:.0e}".format(10**val)
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_chromaticity_diagram()
-    plot_xyY_color_space(name='ITU-R BT.2020', samples=512)
+    plot_xyY_color_space(name='ITU-R BT.2020', samples=256)
