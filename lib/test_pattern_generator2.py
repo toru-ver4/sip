@@ -13,6 +13,8 @@ import color_convert as cc
 from scipy import linalg
 import plot_utility as pu
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from colour.colorimetry import CMFS, ILLUMINANTS
 from colour.models import XYZ_to_xy, xy_to_XYZ, XYZ_to_RGB, RGB_to_XYZ
@@ -85,6 +87,7 @@ def _get_cmfs_xy():
 def get_primaries(name='ITU-R BT.2020'):
     """
     prmary color の座標を求める
+
 
     Parameters
     ----------
@@ -434,6 +437,95 @@ def get_csf_color_image(width=640, height=480,
     return img
 
 
+def plot_xyY_color_space(name='ITU-R BT.2020', samples=1024,
+                         antialiasing=True):
+    """
+    SONY の HDR説明資料にあるような xyY の図を作る。
+
+    Parameters
+    ----------
+    name : str
+        name of the target color space.
+
+    Returns
+    -------
+    None
+
+    """
+
+    # 馬蹄の領域判別用データ作成
+    # --------------------------
+    cmf_xy = _get_cmfs_xy()
+    triangulation = Delaunay(cmf_xy)
+
+    xx, yy\
+        = np.meshgrid(np.linspace(0, 1, samples), np.linspace(1, 0, samples))
+    xy = np.dstack((xx, yy))
+    mask = (triangulation.find_simplex(xy) < 0).astype(np.float)
+
+    # アンチエイリアシングしてアルファチャンネルを滑らかに
+    # ------------------------------------------------
+    if antialiasing:
+        kernel = np.array([
+            [0, 1, 0],
+            [1, 2, 1],
+            [0, 1, 0],
+        ]).astype(np.float)
+        kernel /= np.sum(kernel)
+        mask = convolve(mask, kernel)
+
+    # ネガポジ反転
+    # --------------------------------
+    mask = 1 - mask[:, :, np.newaxis]
+
+    # xy のメッシュから色を復元
+    # ------------------------
+    illuminant_XYZ = D65_WHITE
+    illuminant_RGB = RGB_COLOURSPACES[name].whitepoint
+    chromatic_adaptation_transform = 'CAT02'
+    large_xyz_to_rgb_matrix = get_xyz_to_rgb_matrix(name)
+    rgb_to_large_xyz_matrix = get_rgb_to_xyz_matrix(name)
+    large_xyz = xy_to_XYZ(xy)
+    rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
+                     large_xyz_to_rgb_matrix,
+                     chromatic_adaptation_transform)
+
+    """
+    そのままだとビデオレベルが低かったりするので、
+    各ドット毎にRGB値を正規化＆最大化する。
+    """
+    rgb = normalise_maximum(rgb, axis=-1)
+
+    # mask 適用
+    # -------------------------------------
+    mask_rgb = np.dstack((mask, mask, mask))
+    rgb *= mask_rgb
+
+    # こっからもういちど XYZ に変換。Yを求めるために。
+    # ---------------------------------------------
+    large_xyz2 = RGB_to_XYZ(rgb, illuminant_RGB, illuminant_XYZ,
+                            rgb_to_large_xyz_matrix,
+                            chromatic_adaptation_transform)
+
+    large_y = large_xyz2[..., 1] * 1000
+    large_y[large_y < 1] = 1.0
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_wireframe(xy[..., 0], xy[..., 1], np.log10(large_y))
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("Y")
+    ax.zaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter))
+
+    plt.show()
+
+
+def log_tick_formatter(val, pos=None):
+    return "{:.2e}".format(10**val)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    plot_chromaticity_diagram()
+    # plot_chromaticity_diagram()
+    plot_xyY_color_space(name='ITU-R BT.2020', samples=512)

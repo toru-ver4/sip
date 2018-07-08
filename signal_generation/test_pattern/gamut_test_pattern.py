@@ -443,8 +443,7 @@ def gen_gamut_test_pattern(width=3840, height=2160):
     patch_num = 8
     patch_xy, patch_rgb = _get_test_scatter_data(sample_num=patch_num)
     specific_primaries = _get_specific_monitor_primaries()
-    tpg.plot_chromaticity_diagram(width=int(width * INFO_AREA_WIDTH),
-                                  monitor_primaries=specific_primaries,
+    tpg.plot_chromaticity_diagram(monitor_primaries=specific_primaries,
                                   test_scatter=[patch_xy, patch_rgb])
 
     composite_info_data(img)
@@ -459,25 +458,11 @@ def gen_gamut_test_pattern(width=3840, height=2160):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.601')
-    # _check_clip_level(src='ITU-R BT.709', dst='ITU-R BT.2020')
-    # _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.601')
-    # _check_clip_level(src='ITU-R BT.2020', dst='ITU-R BT.709')
+    # gen_gamut_test_pattern(1920, 1080)
+    # gen_gamut_test_pattern(3840, 2160)
 
-    # color_space_name = "ITU-R BT.2020"
-    # # color_space_name = "DCI-P3"
-    # primaries = _get_specific_monitor_primaries()
-    # secondaries, secondary_rgb = tpg.get_secondaries(color_space_name)
-    # scatter_xy, scatter_rgb = _get_test_scatter_data(sample_num=6)
-    # # scatter_xy, scatter_rgb = _get_gamut_check_data('ITU-R BT.709')
-
-    # # primary_intersections = get_intersection_primary()
-    # # secondary_intersections = get_intersection_secondary()
-    # # intersections = np.append(primary_intersections,
-    # #                           secondary_intersections, axis=0)
-    # tpg.plot_chromaticity_diagram(primaries=None,
-    #                               test_scatter=[scatter_xy, scatter_rgb])
-
-    # _get_primary_secondary_large_y(name='ITU-R BT.2020')
-    gen_gamut_test_pattern(1920, 1080)
-    gen_gamut_test_pattern(3840, 2160)
+    x = np.linspace(0, 1, 5)
+    y = np.linspace(2, 3, 5)
+    X, Y = np.meshgrid(x, y)
+    print(X)
+    print(Y)
