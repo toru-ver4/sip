@@ -494,12 +494,13 @@ def plot_xyY_color_space(name='ITU-R BT.2020', samples=1024,
     そのままだとビデオレベルが低かったりするので、
     各ドット毎にRGB値を正規化＆最大化する。
     """
-    rgb = normalise_maximum(rgb, axis=-1)
+    rgb_org = normalise_maximum(rgb, axis=-1)
 
     # mask 適用
     # -------------------------------------
     mask_rgb = np.dstack((mask, mask, mask))
-    rgb *= mask_rgb
+    rgb = rgb_org * mask_rgb
+    rgba = np.dstack((rgb, mask))
 
     # こっからもういちど XYZ に変換。Yを求めるために。
     # ---------------------------------------------
@@ -514,10 +515,10 @@ def plot_xyY_color_space(name='ITU-R BT.2020', samples=1024,
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_wireframe(xy[..., 0], xy[..., 1], np.log10(large_y),
-                      rcount=100, ccount=100)
-    # ax.plot_surface(xy[..., 0], xy[..., 1], np.log10(large_y),
-    #                 rcount=50, ccount=50)
+    # ax.plot_wireframe(xy[..., 0], xy[..., 1], np.log10(large_y),
+    #                   rcount=100, ccount=100)
+    ax.plot_surface(xy[..., 0], xy[..., 1], np.log10(large_y),
+                    rcount=64, ccount=64, facecolors=rgb_org)
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("Y")
@@ -542,6 +543,28 @@ def plot_xyY_color_space(name='ITU-R BT.2020', samples=1024,
 
 def log_tick_formatter(val, pos=None):
     return "{:.0e}".format(10**val)
+
+
+def get_3d_grid_cube_format(grid_num=4):
+    """
+    # 概要
+    (0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 1), ...
+    みたいな配列を返す。
+    CUBE形式の3DLUTを作成する時に便利。
+    """
+
+    base = np.linspace(0, 1, grid_num)
+    ones_x = np.ones((grid_num, grid_num, 1))
+    ones_y = np.ones((grid_num, 1, grid_num))
+    ones_z = np.ones((1, grid_num, grid_num))
+    r_3d = base[np.newaxis, np.newaxis, :] * ones_x
+    g_3d = base[np.newaxis, :, np.newaxis] * ones_y
+    b_3d = base[:, np.newaxis, np.newaxis] * ones_z
+    r_3d = r_3d.flatten()
+    g_3d = g_3d.flatten()
+    b_3d = b_3d.flatten()
+
+    return np.dstack((r_3d, g_3d, b_3d))
 
 
 if __name__ == '__main__':
