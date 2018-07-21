@@ -93,18 +93,79 @@ def rgbmyc_data_for_lab(sample_num=7):
     return data
 
 
-def plot_lab_color_space(name='ITU-R BT.709', grid_num=17):
-    data = cmn.get_3d_grid_cube_format(grid_num)
+def get_chroma(lab):
+    return ((lab[..., 1] ** 2) + (lab[..., 2] ** 2)) ** 0.5
+
+
+def get_hue(lab):
+    return np.arctan(lab[..., 2]/lab[..., 1])
+
+
+def plot_lab_leaf(sample_num=9):
+    """
+    chroma-lightness の leafをプロットする。
+    RGBMYCの6パターンでプロットする。
+
+    Parameters
+    ----------
+    sample_num : int
+        sample number for each data.
+
+    """
+
+    rgb = rgbmyc_data_for_lab(sample_num)
+    lab_709 = rgb_to_lab_d65(rgb=rgb, name="ITU-R BT.709")
+    lab_2020 = rgb_to_lab_d65(rgb=rgb, name="ITU-R BT.2020")
+
+    l_709 = lab_709[..., 0]
+    l_2020 = lab_2020[..., 0]
+
+    c_709 = get_chroma(lab_709)
+    c_2020 = get_chroma(lab_2020)
+
+    h_709 = get_hue(lab_709)
+    h_2020 = get_hue(lab_2020)
+
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(10, 8),
+                          graph_title="Title",
+                          graph_title_size=None,
+                          xlabel="Chroma",
+                          ylabel="Lightness",
+                          axis_label_size=None,
+                          legend_size=17,
+                          xlim=None,
+                          ylim=None,
+                          xtick=None,
+                          ytick=None,
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3)
+    ax1.plot(c_709[0, ...], l_709[0, ...], '-o',
+             c="#FF8080", label="BT.709" + " " + str(h_709[0, ...]))
+    ax1.plot(c_2020[0, ...], l_2020[0, ...], '-o',
+             c="#FF4040", label="BT.2020" + " " + str(h_2020[0, ...]))
+    plt.legend(loc='upper right')
+    plt.show()
+
+
+def rgb_to_lab_d65(rgb, name="ITU-R BT.709"):
 
     illuminant_XYZ = tpg.D65_WHITE
     illuminant_RGB = tpg.D65_WHITE
     chromatic_adaptation_transform = 'CAT02'
     rgb_to_xyz_matrix = tpg.get_rgb_to_xyz_matrix(name)
-    large_xyz = colour.RGB_to_XYZ(data, illuminant_RGB,
+    large_xyz = colour.RGB_to_XYZ(rgb, illuminant_RGB,
                                   illuminant_XYZ, rgb_to_xyz_matrix,
                                   chromatic_adaptation_transform)
     lab = colour.XYZ_to_Lab(large_xyz, illuminant_XYZ)
 
+    return lab
+
+
+def plot_lab_color_space(name='ITU-R BT.709', grid_num=17):
+    data = cmn.get_3d_grid_cube_format(grid_num)
+
+    lab = rgb_to_lab_d65(rgb=data, name=name)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -124,4 +185,5 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_lab_color_space('ITU-R BT.709', 33)
     # lab_increment_data(sample_num=9)
-    print(rgbmyc_data_for_lab(sample_num=5))
+    # print(rgbmyc_data_for_lab(sample_num=5))
+    plot_lab_leaf(sample_num=101)
