@@ -20,7 +20,7 @@
 
 短いので抜粋。
 
-```
+```ocio
 ocio_profile_version: 1
 
 search_path: luts
@@ -39,7 +39,7 @@ description: An ACES config generated from python
 
 短いので抜粋。
 
-```
+```ocio
 roles:
   color_picking: Output - Rec.709
   color_timing: ACES - ACEScc
@@ -62,7 +62,7 @@ roles:
 
 一部省略して抜粋。
 
-```
+```ocio
 displays:
   ACES:
     - !<View> {name: sRGB, colorspace: Output - sRGB}
@@ -97,7 +97,7 @@ active_views: [sRGB, DCDM, DCDM P3 gamut clip, P3-D60, P3-D60 ST2084 1000 nits, 
 
 S-Log3, S-Gamut3 の colorspace 記述例を以下に抜粋する
 
-```
+```ocio
   - !<ColorSpace>
     name: Input - Sony - S-Log3 - S-Gamut3
     family: Input/Sony
@@ -105,7 +105,7 @@ S-Log3, S-Gamut3 の colorspace 記述例を以下に抜粋する
     bitdepth: 32f
     description: |
       S-Log3 - S-Gamut3
-      
+
       ACES Transform ID : IDT.Sony.SLog3_SGamut3_10i.a1.v1
     isdata: false
     allocation: uniform
@@ -126,12 +126,11 @@ ACESで使うものであり、OCIOでは必須ではない。省略可能。Can
 その際に **chromatic adaptation** として **CAT02** を使っていることに注意したい。
 Bradfordじゃなかった…。
 
-
 #### ACES特有の(？)パターン
 
 ディスプレイ出力用の Rec.2020 ST2084 (1000 nits) の記述を以下に抜粋する。
 
-```
+```ocio
   - !<ColorSpace>
     name: Output - Rec.2020 ST2084 (1000 nits)
     family: Output
@@ -152,6 +151,3 @@ Bradfordじゃなかった…。
         - !<FileTransform> {src: Dolby_PQ_1000_nits_Shaper_to_linear.spi1d, interpolation: linear, direction: inverse}
         - !<FileTransform> {src: Dolby_PQ_1000_nits_Shaper.RRT.Rec.2020_ST2084__1000_nits_.spi3d, interpolation: tetrahedral}
 ```
-
-
-

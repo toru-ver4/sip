@@ -567,7 +567,44 @@ def get_3d_grid_cube_format(grid_num=4):
     return np.dstack((r_3d, g_3d, b_3d))
 
 
+def quadratic_bezier_curve(t, p0, p1, p2, samples=1024):
+    # x = ((1 - t) ** 2) * p0[0] + 2 * (1 - t) * t * p1[0]\
+    #     + (t ** 2) * p2[0]
+    # y = ((1 - t) ** 2) * p0[1] + 2 * (1 - t) * t * p1[1]\
+    #     + (t ** 2) * p2[1]
+
+    x = ((1 - t) ** 2) * p0[0] + 2 * (1 - t) * t * p1[0]\
+        + (t ** 2) * p2[0]
+    y = ((1 - t) ** 2) * p0[1] + 2 * (1 - t) * t * p1[1]\
+        + (t ** 2) * p2[1]
+
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(10, 8),
+                          graph_title="Title",
+                          graph_title_size=None,
+                          xlabel="X Axis Label", ylabel="Y Axis Label",
+                          axis_label_size=None,
+                          legend_size=17,
+                          xlim=None,
+                          ylim=None,
+                          xtick=None,
+                          ytick=None,
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3,
+                          minor_xtick_num=None,
+                          minor_ytick_num=None)
+    ax1.plot(x, y, label='aaa')
+    plt.legend(loc='upper left')
+    plt.show()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_chromaticity_diagram()
-    plot_xyY_color_space(name='ITU-R BT.2020', samples=256)
+    # plot_xyY_color_space(name='ITU-R BT.2020', samples=256)
+    samples = 1024
+    p0 = np.array([0.5, 0.5])
+    p1 = np.array([0.75, 1.0])
+    p2 = np.array([1.0, 1.0])
+    x = np.linspace(0, 1.0, samples)
+    quadratic_bezier_curve(x, p0, p1, p2, samples)

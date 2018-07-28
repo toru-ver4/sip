@@ -456,13 +456,26 @@ def gen_gamut_test_pattern(width=3840, height=2160):
     cv2.imwrite(fname, img[..., ::-1])
 
 
+def sympy_study():
+    from sympy import init_printing
+    from sympy import Symbol, symbols, factor, expand
+    init_printing()
+    a, b, c, t = symbols('a, b, c, t')
+    x = (1 - t)**2 * a + 2 * (1 - t) *t * b + t**2 * c
+    x = expand(x)
+    x = factor(x)
+    print(x)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # gen_gamut_test_pattern(1920, 1080)
     # gen_gamut_test_pattern(3840, 2160)
 
-    x = np.linspace(0, 1, 5)
-    y = np.linspace(2, 3, 5)
-    X, Y = np.meshgrid(x, y)
-    print(X)
-    print(Y)
+    # x = np.linspace(0, 1, 5)
+    # y = np.linspace(2, 3, 5)
+    # X, Y = np.meshgrid(x, y)
+    # print(X)
+    # print(Y)
+
+    sympy_study()

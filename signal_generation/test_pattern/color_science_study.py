@@ -162,6 +162,50 @@ def rgb_to_lab_d65(rgb, name="ITU-R BT.709"):
     return lab
 
 
+def plot_ab_pane_of_lab(sample_num):
+    """
+    L*a*b*空間の a*b* 平面をプロットする。
+    Hueの考え方がxyY空間と同じか確認するため。
+    データは RGBMYC の6種類（RGBベース）。
+
+    Parameters
+    ----------
+    sample_num : int
+        sample number for each data.
+
+    """
+
+    rgb = rgbmyc_data_for_lab(sample_num)
+    lab_709 = rgb_to_lab_d65(rgb=rgb, name="ITU-R BT.709")
+    lab_2020 = rgb_to_lab_d65(rgb=rgb, name="ITU-R BT.2020")
+    color_709 = ["#FF8080", "#80FF80", "#8080FF",
+                 "#FF80FF", "#FFFF80", "#80FFFF"]
+    color_2020 = ["#FF0000", "#00FF00", "#0000FF",
+                  "#FF00FF", "#FFFF00", "#00FFFF"]
+
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(10, 8),
+                          graph_title="Title",
+                          graph_title_size=None,
+                          xlabel="a*",
+                          ylabel="b*",
+                          axis_label_size=None,
+                          legend_size=17,
+                          xlim=None,
+                          ylim=None,
+                          xtick=None,
+                          ytick=None,
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3)
+    for idx in range(rgb.shape[0]):
+        ax1.plot(lab_709[idx, :, 1], lab_709[idx, :, 2], '-o',
+                 c=color_709[idx], label="BT.709_" + str(idx))
+        ax1.plot(lab_2020[idx, :, 1], lab_2020[idx, :, 2], '-o',
+                 c=color_2020[idx], label="BT.2020_" + str(idx))
+    plt.legend(loc='lower left')
+    plt.show()
+
+
 def plot_lab_color_space(name='ITU-R BT.709', grid_num=17):
     data = cmn.get_3d_grid_cube_format(grid_num)
 
@@ -186,4 +230,5 @@ if __name__ == '__main__':
     # plot_lab_color_space('ITU-R BT.709', 33)
     # lab_increment_data(sample_num=9)
     # print(rgbmyc_data_for_lab(sample_num=5))
-    plot_lab_leaf(sample_num=101)
+    # plot_lab_leaf(sample_num=101)
+    plot_ab_pane_of_lab(sample_num=11)
