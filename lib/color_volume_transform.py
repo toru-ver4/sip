@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+## 概要
+
+* Color Volume 変換関連のライブラリ
+* とりあえず Tone Mapping 関数を置く
+* 将来的には色域変換とかも入れたい
+
+"""
+
+import os
+import numpy as np
+from sympy import init_printing, pprint
+from sympy import symbols, solve
+from sympy.utilities.lambdify import lambdify
+import matplotlib.pyplot as plt
+import plot_utility as pu
+import colour
+
+
+def get_top_side_bezier(**kwargs):
+
+    a_val = kwargs['x0']
+    b_val = kwargs['x1']
+    c_val = kwargs['x2']
+    p_val = kwargs['y0']
+    q_val = kwargs['y1']
+    r_val = kwargs['y2']
+
+    a, b, c, t, x = symbols('a, b, c, t, x')
+    f = (1 - t)**2 * a + 2 * (1 - t) * t * b + t**2 * c - x
+
+    # x について解く
+    # ----------------------
+    t = solve(f, t)[1]
+    t = t.subs({a: a_val, b: b_val, c: c_val})
+
+    # y と t(ここでは u と置いた) の関係式を記述
+    # -------------------------------------------
+    p, q, r, u, y = symbols('p, q, r, u, y')
+    y = (1 - u)**2 * p + 2 * (1 - u) * u * q + u**2 * r
+
+    # パラメータ u と事前に求めた t で置き換える
+    # -------------------------------------------
+    y = y.subs({p: p_val, q: q_val, r: r_val, u: t})
+
+    func = lambdify(x, y, 'numpy')
+
+    return func
+
+
+def tonemap_2dim_bezier(x, plot=False, **kwargs):
+    """
+    2次ベジェ曲線でトーンマップする。
+    """
+
+    y = np.zeros_like(x)
+    low_idx = (x <= kwargs['x0'])
+    middle_idx = (kwargs['x0'] < x) & (x <= kwargs['x2'])
+    high_idx = (kwargs['x2'] < x)
+
+    func = get_top_side_bezier(**kwargs)
+
+    y[low_idx] = x[low_idx].copy()
+    y[middle_idx] = func(x[middle_idx].copy())
+    y[high_idx] = kwargs['y2']
+
+    if plot:
+        ax1 = pu.plot_1_graph(fontsize=20,
+                              figsize=(10, 8),
+                              graph_title="Title",
+                              graph_title_size=None,
+                              xlabel="X Axis Label", ylabel="Y Axis Label",
+                              axis_label_size=None,
+                              legend_size=17,
+                              xlim=None,
+                              ylim=None,
+                              xtick=None,
+                              ytick=None,
+                              xtick_size=None, ytick_size=None,
+                              linewidth=3)
+        ax1.plot(x, y, label='bezier')
+        plt.legend(loc='upper left')
+        plt.show()
+
+    return y
+
+
+if __name__ == '__main__':
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    x = np.linspace(0, 1, 1024)
+    x2 = colour.models.eotf_ST2084(x) / 10000
+    print(x2)
+    param = {'x0': 0.03, 'y0': 0.03,
+             'x1': 0.05, 'y1': 0.05,
+             'x2': 0.2, 'y2': 0.05}
+    y = tonemap_2dim_bezier(x2, plot=False, **param)
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(10, 8),
+                          graph_title="Title",
+                          graph_title_size=None,
+                          xlabel="Video Level",
+                          ylabel="Y Axis Label",
+                          axis_label_size=None,
+                          legend_size=17,
+                          xlim=None,
+                          ylim=[0, 1000],
+                          xtick=[0, 256, 512, 768, 1024],
+                          ytick=None,
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3)
+    ax1.plot(x * 1023, y * 10000, label='bezier')
+    ax1.plot(x * 1023, x2 * 10000, label='st2084')
+    plt.legend(loc='upper left')
+    plt.show()
