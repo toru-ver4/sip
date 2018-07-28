@@ -56,7 +56,32 @@ def get_top_side_bezier(kind="top", **kwargs):
     return func
 
 
-def tonemap_2dim_bezier(x, plot=False, **kwargs):
+def tonemap_2dim_bezier(x, top_param, bottom_param, plot=False):
+    temp = tonemap_2dim_bezier_bottom(x, plot=False, **bottom_param)
+    y = tonemap_2dim_bezier_top(temp, plot=False, **top_param)
+
+    if plot:
+        ax1 = pu.plot_1_graph(fontsize=20,
+                              figsize=(10, 8),
+                              graph_title="Title",
+                              graph_title_size=None,
+                              xlabel="X Axis Label", ylabel="Y Axis Label",
+                              axis_label_size=None,
+                              legend_size=17,
+                              xlim=None,
+                              ylim=None,
+                              xtick=None,
+                              ytick=None,
+                              xtick_size=None, ytick_size=None,
+                              linewidth=3)
+        ax1.plot(x, y, label='bezier')
+        plt.legend(loc='upper left')
+        plt.show()
+
+    return y
+
+
+def tonemap_2dim_bezier_top(x, plot=False, **kwargs):
     """
     2次ベジェ曲線でトーンマップする。
     """
@@ -131,10 +156,14 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     x = np.linspace(0, 1, 1024)
     x2 = colour.models.eotf_ST2084(x) / 10000
-    param = {'x0': 0.0, 'y0': 0.1,
-             'x1': 0.1, 'y1': 0.1,
-             'x2': 0.3, 'y2': 0.3}
-    y = tonemap_2dim_bezier_bottom(x, plot=True, **param)
+    bottom_param = {'x0': 0.0, 'y0': 0.1,
+                    'x1': 0.1, 'y1': 0.1,
+                    'x2': 0.3, 'y2': 0.3}
+    top_param = {'x0': 0.5, 'y0': 0.5,
+                 'x1': 0.7, 'y1': 0.7,
+                 'x2': 1.0, 'y2': 0.7}
+    y = tonemap_2dim_bezier(x, bottom_param=bottom_param,
+                            top_param=top_param, plot=True)
     # ax1 = pu.plot_1_graph(fontsize=20,
     #                       figsize=(10, 8),
     #                       graph_title="Title",
