@@ -57,6 +57,33 @@ def get_top_side_bezier(kind="top", **kwargs):
 
 
 def tonemap_2dim_bezier(x, top_param, bottom_param, plot=False):
+    """
+    2次ベジェ曲線でトーンマップする
+
+    Parameters
+    ----------
+    x : array_like
+        target data.
+    top_param : dictionary
+        tonemapping parameters for top area.
+    bottom_param : dictionary
+        tonemapping parameters for bottom area.
+    plot : boolean
+        whether plotting or not.
+
+    Note
+    ----
+    An example of ```top_param``` is bellow.
+        {'x0': 0.5, 'y0': 0.5,
+         'x1': 0.7, 'y1': 0.7,
+         'x2': 1.0, 'y2': 0.7}
+    An example of ```bottom_param``` is bellow.
+        {'x0': 0.0, 'y0': 0.1,
+        'x1': 0.1, 'y1': 0.1,
+        'x2': 0.3, 'y2': 0.3}
+
+    """
+
     temp = tonemap_2dim_bezier_bottom(x, plot=False, **bottom_param)
     y = tonemap_2dim_bezier_top(temp, plot=False, **top_param)
 
@@ -83,7 +110,7 @@ def tonemap_2dim_bezier(x, top_param, bottom_param, plot=False):
 
 def tonemap_2dim_bezier_top(x, plot=False, **kwargs):
     """
-    2次ベジェ曲線でトーンマップする。
+    2次ベジェ曲線でトーンマップする。主に上の方。
     """
 
     y = np.zeros_like(x)
@@ -119,6 +146,9 @@ def tonemap_2dim_bezier_top(x, plot=False, **kwargs):
 
 
 def tonemap_2dim_bezier_bottom(x, plot=False, **kwargs):
+    """
+    2次ベジェ曲線でトーンマップする。主に下の方。
+    """
 
     y = np.zeros_like(x)
     low_idx = (x <= kwargs['x0'])
