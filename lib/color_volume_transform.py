@@ -186,29 +186,29 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     x = np.linspace(0, 1, 1024)
     x2 = colour.models.eotf_ST2084(x) / 10000
-    bottom_param = {'x0': 0.0, 'y0': 0.1,
-                    'x1': 0.1, 'y1': 0.1,
-                    'x2': 0.3, 'y2': 0.3}
-    top_param = {'x0': 0.5, 'y0': 0.5,
-                 'x1': 0.7, 'y1': 0.7,
-                 'x2': 1.0, 'y2': 0.7}
-    y = tonemap_2dim_bezier(x, bottom_param=bottom_param,
-                            top_param=top_param, plot=True)
-    # ax1 = pu.plot_1_graph(fontsize=20,
-    #                       figsize=(10, 8),
-    #                       graph_title="Title",
-    #                       graph_title_size=None,
-    #                       xlabel="Video Level",
-    #                       ylabel="Y Axis Label",
-    #                       axis_label_size=None,
-    #                       legend_size=17,
-    #                       xlim=None,
-    #                       ylim=[0, 1000],
-    #                       xtick=[0, 256, 512, 768, 1024],
-    #                       ytick=None,
-    #                       xtick_size=None, ytick_size=None,
-    #                       linewidth=3)
-    # ax1.plot(x * 1023, y * 10000, label='bezier')
-    # ax1.plot(x * 1023, x2 * 10000, label='st2084')
-    # plt.legend(loc='upper left')
-    # plt.show()
+    bottom_param = {'x0': 0.00, 'y0': 0.001,
+                    'x1': 0.001, 'y1': 0.001,
+                    'x2': 0.005, 'y2': 0.005}
+    top_param = {'x0': 0.02, 'y0': 0.02,
+                 'x1': 0.03, 'y1': 0.03,
+                 'x2': 0.12, 'y2': 0.03}
+    y = tonemap_2dim_bezier(x2, bottom_param=bottom_param,
+                            top_param=top_param, plot=False)
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(10, 8),
+                          graph_title="Title",
+                          graph_title_size=None,
+                          xlabel="Video Level",
+                          ylabel="Y Axis Label",
+                          axis_label_size=None,
+                          legend_size=17,
+                          xlim=None,
+                          ylim=[0, 500],
+                          xtick=[0, 256, 512, 768, 1024],
+                          ytick=None,
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3)
+    ax1.plot(x * 1023, x2 * 10000, label='st2084')
+    ax1.plot(x * 1023, y * 10000, label='bezier')
+    plt.legend(loc='upper left')
+    plt.show()
