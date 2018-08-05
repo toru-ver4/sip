@@ -225,10 +225,166 @@ def plot_lab_color_space(name='ITU-R BT.709', grid_num=17):
     plt.show()
 
 
+def get_rotation_matrix(degree=0):
+    rad = (degree % 360) / 180.0 * np.pi
+    rot = np.array([[np.cos(rad), -np.sin(rad)],
+                    [np.sin(rad), np.cos(rad)]])
+
+    return rot
+
+
+def vector_rotation_2dim(vector, degree):
+    rot = get_rotation_matrix(degree)
+    x = vector[..., 0]
+    y = vector[..., 1]
+
+    temp_x = x * rot[0][0] + y * rot[0][1]
+    temp_y = x * rot[1][0] + y * rot[1][1]
+
+    result = np.column_stack((temp_x, temp_y))
+
+    return result
+
+
+def lab_to_rgb_d65(lab, name='ITU-R BT.2020'):
+
+    illuminant_XYZ = tpg.D65_WHITE
+    illuminant_RGB = tpg.D65_WHITE
+    chromatic_adaptation_transform = 'CAT02'
+    xyz_to_rgb_matrix = tpg.get_xyz_to_rgb_matrix(name)
+
+    # Lab to XYZ
+    large_xyz = colour.Lab_to_XYZ(lab, illuminant_XYZ)
+
+    # XYZ to RGB
+    rgb = colour.XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
+                            xyz_to_rgb_matrix,
+                            chromatic_adaptation_transform)
+
+    return rgb
+
+
+def try_chroma_lightness_to_rgb(samples=1024, hue=0):
+    """
+    L*a*b の Chroma-Lightness 平面の外枠の調査。
+    RGB値として存在できない値の挙動を見る。
+    """
+
+    ab_max = 220
+    l = np.ones((samples)) * 50
+    chroma = np.linspace(0, 1, samples)
+    a_base = np.linspace(0, ab_max, samples)
+    b_base = np.zeros_like(a_base)
+    ab = np.column_stack((a_base, b_base))
+    ab = vector_rotation_2dim(ab, degree=hue)
+
+    lab = np.dstack((l, ab[..., 0], ab[..., 1]))
+    rgb = lab_to_rgb_d65(lab, name='ITU-R BT.2020')
+
+    print(rgb)
+
+
+def get_maximum_true_index(x):
+    """
+    x = [True, False, True, True, False, Flase]
+    的な配列から、True となる 最大 index を求める。
+    上の例だと index = 3 が求めたい値
+    """
+    for idx in range(x.shape[-1])[::-1]:
+        if x[..., idx]:
+            return idx
+    raise ValueError("True index was not found")
+    return 0
+
+
+def get_max_lab_value(lab, name='ITU-R BT.2020'):
+
+    rgb = lab_to_rgb_d65(lab, name)
+
+    # RGB個別に[0:1] の範囲内か確認する
+    ok_rgb = (rgb >= 0) & (rgb <= 1.0)
+
+    # R, G, B の結果をまとめて1次元にする
+    ok_val_list = ok_rgb[..., 0] & ok_rgb[..., 1] & ok_rgb[..., 2]
+
+    # True を維持する最大の index を得る
+    idx = get_maximum_true_index(ok_val_list)
+
+    return lab[0, idx]
+
+
+def get_chroma_lightness_pane(hue=120):
+    """
+    探索により Chroma-Lightness平面をプロットする。
+    とりあえず BT.2020 と BT.709 の平面を書くね！
+
+    やり方
+    ------
+    ```l = np.linspace(0, 100, l_samples)```
+    で L* を準備する。
+
+    各 L* に対して hue に応じた a*b* 値を算出する。
+
+    L*a*b* を RGB に戻す。そして RGB値が [0:1] を維持している
+    最大の a*b* を求める。
+    """
+    l_samples = 1024
+    ab_samples = 1024
+    ab_max = 220
+    l_max = 100
+
+    l_base = np.ones((ab_samples))  # 後で Lab にまとめるので ab_sample を指定
+    a_base = np.linspace(0, ab_max, ab_samples)
+    b_base = np.zeros_like(a_base)
+    ab_base = np.column_stack((a_base, b_base))
+    ab = vector_rotation_2dim(ab_base, degree=hue)
+
+    lab_709 = np.zeros((l_samples, 3))
+    lab_2020 = np.zeros((l_samples, 3))
+
+    for l_idx in range(l_samples):
+        l = l_base * l_max / l_samples * l_idx
+        lab = np.dstack((l, ab[..., 0], ab[..., 1]))
+
+        lab_709[l_idx] = get_max_lab_value(lab, name='ITU-R BT.709')
+        lab_2020[l_idx] = get_max_lab_value(lab, name='ITU-R BT.2020')
+
+    return lab_709, lab_2020
+
+
+def plot_chroma_lightness_pane(lab709, lab2020, hue):
+    chroma_709 = get_chroma(lab709)
+    chroma_2020 = get_chroma(lab2020)
+    title = "Constant Hue Angle Plane h={:d}°".format(hue)
+
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(10, 8),
+                          graph_title=title,
+                          graph_title_size=None,
+                          xlabel="Chroma",
+                          ylabel="Lightness",
+                          axis_label_size=None,
+                          legend_size=17,
+                          xlim=[0, 220],
+                          ylim=[0, 100],
+                          xtick=None,
+                          ytick=None,
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3)
+    ax1.plot(chroma_709, lab709[..., 0], c="#808080", label='BT.709')
+    ax1.plot(chroma_2020, lab2020[..., 0], c="#000000", label='BT.2020')
+    plt.legend(loc='upper right')
+    plt.show()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_lab_color_space('ITU-R BT.709', 33)
     # lab_increment_data(sample_num=9)
     # print(rgbmyc_data_for_lab(sample_num=5))
     # plot_lab_leaf(sample_num=101)
-    plot_ab_pane_of_lab(sample_num=11)
+    # plot_ab_pane_of_lab(sample_num=11)
+    # try_chroma_lightness_to_rgb(samples=5, hue=120)
+    hue = 150
+    lab709, lab2020 = get_chroma_lightness_pane(hue)
+    plot_chroma_lightness_pane(lab709, lab2020, hue)
