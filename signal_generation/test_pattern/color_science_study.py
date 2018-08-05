@@ -10,6 +10,7 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import rc
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
@@ -404,6 +405,64 @@ def plot_chroma_lightness_plane_multi():
     plt.show()
 
 
+def get_l_focal(hue=45):
+    """
+    hueから L_focal を得る
+    """
+
+    # まずは L_cusp を求める
+    # ---------------------
+    lab_709, lab_2020, rgb = get_lab_edge(hue)
+    chroma_709 = get_chroma(lab_709)
+    chroma_2020 = get_chroma(lab_2020)
+
+    bt709_cusp_idx = np.argmax(chroma_709)
+    bt2020_cusp_idx = np.argmax(chroma_2020)
+
+    bt709_point = sympy.Point(chroma_709[bt709_cusp_idx],
+                              lab_709[bt709_cusp_idx, 0])
+    bt2020_point = sympy.Point(chroma_2020[bt2020_cusp_idx],
+                               lab_2020[bt2020_cusp_idx, 0])
+    chroma_line = sympy.Line(bt709_point, bt2020_point)
+    lightness_line = sympy.Line(sympy.Point(0, 0), sympy.Point(0, 100))
+    intersection = sympy.intersection(chroma_line, lightness_line)[0].evalf()
+    l_cusp = np.array(intersection)
+
+    # BT.2407 に従って補正
+    # ---------------------
+
+    # plot
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(10, 8),
+                          graph_title=None,
+                          graph_title_size=None,
+                          xlabel="Chroma",
+                          ylabel="Lightness",
+                          axis_label_size=None,
+                          legend_size=17,
+                          xlim=[0, 220],
+                          ylim=[0, 100],
+                          xtick=None,
+                          ytick=None,
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3)
+    ax1.plot(chroma_709, lab_709[..., 0], c="#808080", label='BT.709')
+    ax1.plot(chroma_2020, lab_2020[..., 0], c="#000000", label='BT.2020')
+    ax1.plot(chroma_709[bt709_cusp_idx], lab_709[bt709_cusp_idx, 0], 'or',
+             markersize=10, alpha=0.5)
+    ax1.plot(chroma_2020[bt2020_cusp_idx], lab_2020[bt2020_cusp_idx, 0], 'or',
+             markersize=10, alpha=0.5)
+    ax1.plot(l_cusp[0], l_cusp[1], 'ok', markersize=10, alpha=0.5)
+    # annotation
+    ax1.annotate('L^*_{cusp}', xy=(l_cusp[0], l_cusp[1]),
+                 xytext=(l_cusp[0] + 10, l_cusp[1] + 10),
+                 arrowprops=dict(facecolor='black', shrink=0.1))
+    ax1.plot([chroma_2020[bt2020_cusp_idx], l_cusp[0]],
+             [lab_2020[bt2020_cusp_idx, 0], l_cusp[1]], '--k', alpha=0.3)
+    plt.legend(loc='upper right')
+    plt.show()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_lab_color_space('ITU-R BT.709', 33)
@@ -415,4 +474,5 @@ if __name__ == '__main__':
     # hue = 150
     # lab709, lab2020 = get_lab_edge(hue)
     # plot_chroma_lightness_pane(lab709, lab2020, hue)
-    plot_chroma_lightness_plane_multi()
+    # plot_chroma_lightness_plane_multi()
+    get_l_focal(hue=5)
