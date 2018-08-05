@@ -313,10 +313,10 @@ def get_max_lab_value(lab, name='ITU-R BT.2020'):
     return lab[0, idx]
 
 
-def get_chroma_lightness_pane(hue=120):
+def get_lab_edge(hue=120):
     """
-    探索により Chroma-Lightness平面をプロットする。
-    とりあえず BT.2020 と BT.709 の平面を書くね！
+    探索により Chroma-Lightness平面をプロットするためのエッジを求める。
+    とりあえず BT.2020 と BT.709 の平面を想定。
 
     やり方
     ------
@@ -341,6 +341,7 @@ def get_chroma_lightness_pane(hue=120):
 
     lab_709 = np.zeros((l_samples, 3))
     lab_2020 = np.zeros((l_samples, 3))
+    rgb = np.zeros((l_samples, 3))
 
     for l_idx in range(l_samples):
         l = l_base * l_max / l_samples * l_idx
@@ -348,8 +349,9 @@ def get_chroma_lightness_pane(hue=120):
 
         lab_709[l_idx] = get_max_lab_value(lab, name='ITU-R BT.709')
         lab_2020[l_idx] = get_max_lab_value(lab, name='ITU-R BT.2020')
+        rgb[l_idx] = lab_to_rgb_d65(lab_709[l_idx], name='ITU-R BT.709')
 
-    return lab_709, lab_2020
+    return lab_709, lab_2020, rgb
 
 
 def plot_chroma_lightness_pane(lab709, lab2020, hue):
@@ -377,6 +379,31 @@ def plot_chroma_lightness_pane(lab709, lab2020, hue):
     plt.show()
 
 
+def plot_chroma_lightness_plane_multi():
+    v_num = 6
+    h_hum = 2
+    hue = np.linspace(0, 360, v_num * h_hum, endpoint=False)
+
+    fig = plt.figure(figsize=(10, 14))
+
+    for idx in range(v_num * h_hum):
+        lab_709, lab_2020, rgb = get_lab_edge(hue[idx])
+        chroma_709 = get_chroma(lab_709)
+        chroma_2020 = get_chroma(lab_2020)
+        rgb = rgb[rgb.shape[0] // 2] ** (1/2.2)
+
+        ax1 = fig.add_subplot(v_num, h_hum, idx + 1)
+        ax1.set_xlim([0, 220])
+        ax1.set_ylim([0, 110])
+        ax1.set_xlabel("C*")
+        ax1.set_ylabel("L*")
+        ax1.text(170, 90, "h={}".format(hue[idx]))
+        ax1.plot(chroma_709, lab_709[..., 0], c=rgb, label='BT.709', alpha=0.5)
+        ax1.plot(chroma_2020, lab_2020[..., 0], c=rgb, label='BT.2020')
+    plt.legend(loc='lower right')
+    plt.show()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_lab_color_space('ITU-R BT.709', 33)
@@ -385,6 +412,7 @@ if __name__ == '__main__':
     # plot_lab_leaf(sample_num=101)
     # plot_ab_pane_of_lab(sample_num=11)
     # try_chroma_lightness_to_rgb(samples=5, hue=120)
-    hue = 150
-    lab709, lab2020 = get_chroma_lightness_pane(hue)
-    plot_chroma_lightness_pane(lab709, lab2020, hue)
+    # hue = 150
+    # lab709, lab2020 = get_lab_edge(hue)
+    # plot_chroma_lightness_pane(lab709, lab2020, hue)
+    plot_chroma_lightness_plane_multi()
