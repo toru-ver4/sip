@@ -26,6 +26,8 @@ PLUGE_HIGHER_LEVEL = {'sdr': 940, 'hdr': 399}
 PLUGE_BLACK_LEVEL = 64
 PLUGE_SLIGHTLY_LIGHTER_LEVEL = 80
 PLUGE_SLIGHTLY_DARKER_LEVEL = 48
+PLUGE_HORIZONTAL_STRIPE_TOAL_NUM = 39
+PLUGE_HORIZONTAL_STRIPE_EACH_NUM = 10
 
 Sa = {'1920x1080': 0, '3840x2160': 0, '7680x4320': 0}
 Sb = {'1920x1080': 312, '3840x2160': 624, '7680x4320': 1248}
@@ -94,6 +96,48 @@ def composite_pluge_higher_level(img, resolution, d_range):
     img[v_st_pos:v_ed_pos, h_st_pos:h_ed_pos] = higher_img
 
 
+def composite_horizontal_stripes(img, resolution):
+    height_all = Lh[resolution] - Lc[resolution] + 1
+    height = height_all // PLUGE_HORIZONTAL_STRIPE_TOAL_NUM
+
+    # 本来は端数が出ないはず。万が一出た場合はエラーを出しておく
+    if height * PLUGE_HORIZONTAL_STRIPE_TOAL_NUM != height_all:
+        raise ValueError('"Lh" or "Lc" parameter is invalid.')
+
+    h_st_pos = Sb[resolution]
+    h_ed_pos = Sc[resolution] + 1
+    v_st_pos = Lc[resolution]
+    v_ed_pos = v_st_pos + height
+    h_len = h_ed_pos - h_st_pos
+    v_len = v_ed_pos - v_st_pos
+
+    # まずは明るい方のループを実施
+    # -----------------------------
+    for idx in range(PLUGE_HORIZONTAL_STRIPE_EACH_NUM):
+        stripe_img = np.ones((v_len, h_len, 3), dtype=np.uint16)
+        stripe_img *= bit_shift_10_to_16(PLUGE_SLIGHTLY_LIGHTER_LEVEL)
+        img[v_st_pos:v_ed_pos, h_st_pos:h_ed_pos] = stripe_img
+
+        # update parameters
+        v_st_pos = v_ed_pos + height
+        v_ed_pos = v_st_pos + height
+
+    # 次に暗い方のループを実施
+    # -----------------------
+    for idx in range(PLUGE_HORIZONTAL_STRIPE_EACH_NUM):
+        stripe_img = np.ones((v_len, h_len, 3), dtype=np.uint16)
+        stripe_img *= bit_shift_10_to_16(PLUGE_SLIGHTLY_DARKER_LEVEL)
+        img[v_st_pos:v_ed_pos, h_st_pos:h_ed_pos] = stripe_img
+
+        # update parameters
+        v_st_pos = v_ed_pos + height
+        v_ed_pos = v_st_pos + height
+
+
+def composite_rectangular_patch(img, resolution):
+    pass
+
+
 def pluge_pattern(resolution='1920x1080', d_range='sdr'):
     """
     ITU-R BT.814-4 の PLUGE パターンを作成する。
@@ -102,8 +146,12 @@ def pluge_pattern(resolution='1920x1080', d_range='sdr'):
     """
     width, height = _get_widht_height_param(resolution)
     img = np.zeros((height, width, 3), dtype=np.uint16)
+    img *= bit_shift_10_to_16(PLUGE_BLACK_LEVEL)
 
     composite_pluge_higher_level(img, resolution, d_range)
+    composite_horizontal_stripes(img, resolution)
+    composite_rectangular_patch(img, resolution)
+
     tpg.preview_image(img)
 
 
@@ -111,3 +159,4 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     color_bar_bt2111(resolution='1920x1080')
     pluge_pattern(resolution='1920x1080', d_range='sdr')
+    pluge_pattern(resolution='3840x2160', d_range='sdr')
