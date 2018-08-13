@@ -135,7 +135,55 @@ def composite_horizontal_stripes(img, resolution):
 
 
 def composite_rectangular_patch(img, resolution):
-    pass
+    # まずは明るい方を実施
+    # -----------------------------
+    h_st_pos = Sf[resolution]
+    h_ed_pos = Sg[resolution] + 1
+    v_st_pos = Lb[resolution]
+    v_ed_pos = Ld[resolution] + 1
+    h_len = h_ed_pos - h_st_pos
+    v_len = v_ed_pos - v_st_pos
+    rectangle_img = np.ones((v_len, h_len, 3), dtype=np.uint16)
+    rectangle_img *= bit_shift_10_to_16(PLUGE_SLIGHTLY_LIGHTER_LEVEL)
+    img[v_st_pos:v_ed_pos, h_st_pos:h_ed_pos] = rectangle_img
+
+    # 次に暗い方を実施
+    # -----------------------------
+    h_st_pos = Sf[resolution]
+    h_ed_pos = Sg[resolution] + 1
+    v_st_pos = Lg[resolution]
+    v_ed_pos = Li[resolution] + 1
+    h_len = h_ed_pos - h_st_pos
+    v_len = v_ed_pos - v_st_pos
+    rectangle_img = np.ones((v_len, h_len, 3), dtype=np.uint16)
+    rectangle_img *= bit_shift_10_to_16(PLUGE_SLIGHTLY_DARKER_LEVEL)
+    img[v_st_pos:v_ed_pos, h_st_pos:h_ed_pos] = rectangle_img
+
+
+def write_dpx(sample_file, out_file, img):
+    """参考：https://github.com/guerilla-di/depix"""
+
+    with open(sample_file, 'rb') as f:
+        header = f.read(8192)
+
+    with open(out_file, 'wb') as f:
+        f.write(header)
+        img = np.uint32(img) >> 6
+        raw = ((img[:, :, 0] & 0x000003FF) << 22) | ((img[:, :, 1] & 0x000003FF) << 12) | ((img[:, :, 2] & 0x000003FF) << 2)
+        raw = raw.byteswap()
+        raw.tofile(f, sep="")
+
+
+def save_test_pattern(img, resolution, prefix='pluge_sdr'):
+    file_str = "./img/{:s}_{:s}.{:s}"
+    file_name_tiff = file_str.format(prefix, resolution, "tif   ")
+    cv2.imwrite(file_name_tiff, img)
+
+    # DPX
+    file_name_dpx = file_str.format(prefix, resolution, "dpx")
+    file_name_sample = "HDR_TEST_PATTEN_{}_bg_0.20nits.dpx".format(resolution)
+    file_name_sample = os.path.join("sample_dpx", file_name_sample)
+    write_dpx(file_name_sample, file_name_dpx, img)
 
 
 def pluge_pattern(resolution='1920x1080', d_range='sdr'):
@@ -145,7 +193,7 @@ def pluge_pattern(resolution='1920x1080', d_range='sdr'):
     ref: https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.814-4-201807-I!!PDF-E.pdf
     """
     width, height = _get_widht_height_param(resolution)
-    img = np.zeros((height, width, 3), dtype=np.uint16)
+    img = np.ones((height, width, 3), dtype=np.uint16)
     img *= bit_shift_10_to_16(PLUGE_BLACK_LEVEL)
 
     composite_pluge_higher_level(img, resolution, d_range)
@@ -153,6 +201,7 @@ def pluge_pattern(resolution='1920x1080', d_range='sdr'):
     composite_rectangular_patch(img, resolution)
 
     tpg.preview_image(img)
+    save_test_pattern(img, resolution, prefix='pluge_' + d_range)
 
 
 if __name__ == '__main__':
