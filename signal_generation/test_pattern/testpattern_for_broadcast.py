@@ -77,16 +77,19 @@ Step80 = {'hlg': [765, 765, 765], 'pq': [765, 765, 765], 'pq_full': [818, 818, 8
 Step90 = {'hlg': [852, 852, 852], 'pq': [852, 852, 852], 'pq_full': [921, 921, 921]}
 Step100 = {'hlg': [940, 940, 940], 'pq': [940, 940, 940], 'pq_full': [1023, 1023, 1023]}
 Step109 = {'hlg': [1019, 1019, 1019], 'pq': [1019, 1019, 1019], 'pq_full': [1023, 1023, 1023]}
-Y75 = {'hlg': [713, 719, 316], 'pq': [568, 571, 381], 'pq_full': [589, 592, 370]}
-C75 = {'hlg': [538, 709, 718], 'pq': [484, 566, 571], 'pq_full': [491, 586, 592]}
-G75 = {'hlg': [512, 706, 296], 'pq': [474, 564, 368], 'pq_full': [478, 584, 355]}
-M75 = {'hlg': [651, 286, 705], 'pq': [536, 361, 564], 'pq_full': [551, 347, 584]}
-R75 = {'hlg': [639, 269, 164], 'pq': [530, 350, 256], 'pq_full': [544, 334, 225]}
-B75 = {'hlg': [227, 147, 702], 'pq': [317, 236, 562], 'pq_full': [296, 201, 582]}
+BT709Y = {'hlg': [713, 719, 316], 'pq': [568, 571, 381], 'pq_full': [589, 592, 370]}
+BT709C = {'hlg': [538, 709, 718], 'pq': [484, 566, 571], 'pq_full': [491, 586, 592]}
+BT709G = {'hlg': [512, 706, 296], 'pq': [474, 564, 368], 'pq_full': [478, 584, 355]}
+BT709M = {'hlg': [651, 286, 705], 'pq': [536, 361, 564], 'pq_full': [551, 347, 584]}
+BT709R = {'hlg': [639, 269, 164], 'pq': [530, 350, 256], 'pq_full': [544, 334, 225]}
+BT709B = {'hlg': [227, 147, 702], 'pq': [317, 236, 562], 'pq_full': [296, 201, 582]}
 K0 = {'hlg': [64, 64, 64], 'pq': [64, 64, 64], 'pq_full': [0, 0, 0]}
 Ku2 = {'hlg': [48, 48, 48], 'pq': [48, 48, 48], 'pq_full': [0, 0, 0]}
 K2 = {'hlg': [80, 80, 80], 'pq': [80, 80, 80], 'pq_full': [20, 20, 20]}
 K4 = {'hlg': [99, 99, 99], 'pq': [99, 99, 99], 'pq_full': [41, 41, 41]}
+Ramp = {'hlg': {'min': [4, 4, 4], 'max': [1019, 1019, 1019]},
+        'pq': {'min': [4, 4, 4], 'max': [1019, 1019, 1019]},
+        'pq_full': {'min': [0, 0, 0], 'max': [1023, 1023, 1023]}}
 
 Aa = {'1920x1080': 1920, '3840x2160': 3840, '7680x4320': 7680}
 Bb = {'1920x1080': 1080, '3840x2160': 2160, '7680x4320': 4320}
@@ -228,6 +231,73 @@ def composite_color_bar_step_level(img, resolution, eotf):
                              rgb[eotf])
 
 
+def composite_color_bar_bottom(img, resolution, eotf):
+    """
+    カラーバーの一番下のブロックを作る
+    """
+    # 左端
+    h_st_pos = 0
+    h_ed_pos = h_st_pos + Cc[resolution] // 3
+    v_st_pos = Bb[resolution]//12 + Bb[resolution]//2 + + Bb[resolution]//6
+    v_ed_pos = v_st_pos + Bb[resolution]//4
+    _composite_color_img(img, h_st_pos, h_ed_pos, v_st_pos, v_ed_pos,
+                         BT709Y[eotf])
+
+    c3 = Cc[resolution] // 3
+    f = Ff[resolution]
+    g = Gg[resolution]
+    h = Hh[resolution]
+    i = Ii[resolution]
+    j = Jj[resolution]
+    k = Kk[resolution]
+    h_list = [c3, c3, f, g, h, g, h, g, i, j, k, c3, c3, c3]
+    rgb_list = [BT709C, BT709G, K0, Ku2, K0, K2, K0, K4, K0, W_Mid, K0,
+                BT709M, BT709R, BT709B]
+    for h, rgb in zip(h_list, rgb_list):
+        h_st_pos, h_ed_pos =\
+            _update_param_horizontal_cb(h_st_pos, h_ed_pos, h)
+        _composite_color_img(img, h_st_pos, h_ed_pos, v_st_pos, v_ed_pos,
+                             rgb[eotf])
+
+
+def composite_color_bar_ramp(img, resolution, eotf):
+    """
+    Rampパターンを合成するよん
+    """
+    # 左端に0% Black
+    h_st_pos = 0
+    h_ed_pos = h_st_pos + Cc[resolution]
+    v_st_pos = Bb[resolution]//12 + Bb[resolution]//2 + + Bb[resolution]//12
+    v_ed_pos = v_st_pos + Bb[resolution]//12
+    _composite_color_img(img, h_st_pos, h_ed_pos, v_st_pos, v_ed_pos,
+                         K0[eotf])
+    # Ramp の左端黒ベタ
+    h_st_pos, h_ed_pos =\
+        _update_param_horizontal_cb(h_st_pos, h_ed_pos, BB[eotf][resolution])
+    _composite_color_img(img, h_st_pos, h_ed_pos, v_st_pos, v_ed_pos,
+                         Ramp[eotf]['min'])
+
+    # とりあえずRamp作る
+    rate = _get_pixel_rate(resolution)
+    width = 1024 * rate
+    height = v_ed_pos - v_st_pos
+    ramp = tpg.gen_step_gradation(width=width, height=height,
+                                  step_num=1025, bit_depth=10,
+                                  color=(1.0, 1.0, 1.0), direction='h')
+    h_st_pos = h_ed_pos
+    h_ed_pos = h_st_pos + CC[eotf][resolution]
+    ramp_st_offset = Ramp[eotf]['min'][0] * rate
+    ramp_ed = (Ramp[eotf]['max'][0]) * rate
+    img[v_st_pos:v_ed_pos, h_st_pos:h_ed_pos] = ramp[:, ramp_st_offset:ramp_ed]
+
+    # 右端のフラットな領域
+    h_st_pos = h_ed_pos
+    h_ed_pos = h_st_pos + DD[eotf][resolution]
+    temp_img = np.ones((height, h_ed_pos - h_st_pos, 3), dtype=np.uint16)
+    temp_img *= bit_shift_10_to_16(Ramp[eotf]['max'][0])
+    img[v_st_pos:v_ed_pos, h_st_pos:h_ed_pos] = temp_img
+
+
 def color_bar_bt2111(resolution='1920x1080', eotf='hlg'):
     """
     ITU-R BT.2111-0 のテストパターンを作成する。
@@ -244,9 +314,11 @@ def color_bar_bt2111(resolution='1920x1080', eotf='hlg'):
     composite_color_bar_rgbmyc(img, resolution, eotf)
     composite_color_bar_top_max_level(img, resolution, eotf)
     composite_color_bar_step_level(img, resolution, eotf)
+    composite_color_bar_bottom(img, resolution, eotf)
+    composite_color_bar_ramp(img, resolution, eotf)
 
     tpg.preview_image(img)
-    # save_test_pattern(img, resolution, prefix='color_bar_' + eotf)
+    save_test_pattern(img, resolution, prefix='color_bar_' + eotf)
 
 
 def composite_pluge_higher_level(img, resolution, d_range):
