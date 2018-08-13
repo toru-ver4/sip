@@ -8,14 +8,7 @@ ITU-R BT.xxxx に書いてある放送業界向けのテストパターンを作
 import os
 import cv2
 import numpy as np
-import common as cmn
 import test_pattern_generator2 as tpg
-import colour
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageDraw
-import color_convert as cc
-from scipy import linalg
 import imp
 imp.reload(tpg)
 
@@ -298,29 +291,6 @@ def composite_color_bar_ramp(img, resolution, eotf):
     img[v_st_pos:v_ed_pos, h_st_pos:h_ed_pos] = temp_img
 
 
-def color_bar_bt2111(resolution='1920x1080', eotf='hlg'):
-    """
-    ITU-R BT.2111-0 のテストパターンを作成する。
-
-    ref: https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2111-0-201712-I!!PDF-E.pdf
-    """
-
-    width, height = _get_widht_height_param(resolution)
-    if eotf not in COLOR_BAR_EOTF_SET:
-        raise ValueError('"eotf" parameter is invalid')
-
-    img = np.zeros((height, width, 3), dtype=np.uint16)
-
-    composite_color_bar_rgbmyc(img, resolution, eotf)
-    composite_color_bar_top_max_level(img, resolution, eotf)
-    composite_color_bar_step_level(img, resolution, eotf)
-    composite_color_bar_bottom(img, resolution, eotf)
-    composite_color_bar_ramp(img, resolution, eotf)
-
-    tpg.preview_image(img)
-    save_test_pattern(img, resolution, prefix='color_bar_' + eotf)
-
-
 def composite_pluge_higher_level(img, resolution, d_range):
     h_st_pos = Sd[resolution]
     h_ed_pos = Se[resolution] + 1
@@ -415,7 +385,7 @@ def write_dpx(sample_file, out_file, img):
 def save_test_pattern(img, resolution, prefix='pluge_sdr'):
     file_str = "./img/{:s}_{:s}.{:s}"
     file_name_tiff = file_str.format(prefix, resolution, "tif   ")
-    cv2.imwrite(file_name_tiff, img)
+    cv2.imwrite(file_name_tiff, img[..., ::-1])
 
     # DPX
     file_name_dpx = file_str.format(prefix, resolution, "dpx")
@@ -438,14 +408,42 @@ def pluge_pattern(resolution='1920x1080', d_range='sdr'):
     composite_horizontal_stripes(img, resolution)
     composite_rectangular_patch(img, resolution)
 
-    tpg.preview_image(img)
+    # tpg.preview_image(img)
     save_test_pattern(img, resolution, prefix='pluge_' + d_range)
+
+
+def color_bar_bt2111(resolution='1920x1080', eotf='hlg'):
+    """
+    ITU-R BT.2111-0 のテストパターンを作成する。
+
+    ref: https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2111-0-201712-I!!PDF-E.pdf
+    """
+
+    width, height = _get_widht_height_param(resolution)
+    if eotf not in COLOR_BAR_EOTF_SET:
+        raise ValueError('"eotf" parameter is invalid')
+
+    img = np.zeros((height, width, 3), dtype=np.uint16)
+
+    composite_color_bar_rgbmyc(img, resolution, eotf)
+    composite_color_bar_top_max_level(img, resolution, eotf)
+    composite_color_bar_step_level(img, resolution, eotf)
+    composite_color_bar_bottom(img, resolution, eotf)
+    composite_color_bar_ramp(img, resolution, eotf)
+
+    # tpg.preview_image(img)
+    save_test_pattern(img, resolution, prefix='color_bar_' + eotf)
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     color_bar_bt2111(resolution='1920x1080', eotf='hlg')
-    # color_bar_bt2111(resolution='1920x1080', eotf='pq')
-    # color_bar_bt2111(resolution='1920x1080', eotf='pq_full')
-    # pluge_pattern(resolution='1920x1080', d_range='sdr')
-    # pluge_pattern(resolution='3840x2160', d_range='sdr')
+    color_bar_bt2111(resolution='3840x2160', eotf='hlg')
+    color_bar_bt2111(resolution='1920x1080', eotf='pq')
+    color_bar_bt2111(resolution='3840x2160', eotf='pq')
+    color_bar_bt2111(resolution='1920x1080', eotf='pq_full')
+    color_bar_bt2111(resolution='3840x2160', eotf='pq_full')
+    pluge_pattern(resolution='1920x1080', d_range='sdr')
+    pluge_pattern(resolution='3840x2160', d_range='sdr')
+    pluge_pattern(resolution='1920x1080', d_range='hdr')
+    pluge_pattern(resolution='3840x2160', d_range='hdr')
