@@ -7,20 +7,14 @@ BT.2407を実装するぞい！
 """
 
 import os
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import rc
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageDraw
 import test_pattern_generator2 as tpg
 import plot_utility as pu
 import common as cmn
 import colour
 import sympy
 import imp
-import numba
 imp.reload(tpg)
 
 
@@ -315,7 +309,6 @@ def get_max_lab_value(lab, name='ITU-R BT.2020'):
     return lab[0, idx]
 
 
-@numba.jit
 def get_lab_edge(hue=120):
     """
     探索により Chroma-Lightness平面をプロットするためのエッジを求める。
@@ -465,7 +458,6 @@ def get_l_focal(hue=45):
     plt.show()
 
 
-@numba.jit
 def get_l_cusp(hue=0):
     lab_709, lab_2020, rgb = get_lab_edge(hue)
     chroma_709 = get_chroma(lab_709)
@@ -486,7 +478,6 @@ def get_l_cusp(hue=0):
     return l_cusp[1]
 
 
-@numba.jit
 def plot_l_cusp():
     x = np.arange(0, 360, 10)
     y = np.zeros_like(x)
