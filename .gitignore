@@ -101,3 +101,5 @@ misc/ite_chart_convert/src/*.r
 misc/ite_chart_convert/src/*.g
 misc/ite_chart_convert/src/*.b
 signal_generation/test_pattern/icc_profile/gamut.icc
+signal_generation/test_pattern/img/*.tif
+signal_generation/test_pattern/img/*.dpx
