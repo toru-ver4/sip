@@ -38,7 +38,7 @@ def oiio_read_test(width=1024, height=768):
     img_channels = img_spec.nchannels
     img_data = img.read_image(oiio.INT16)
     print(img_width, img_height, img_channels)
-    print(img_data)
+    print(img_data.shape)
 
 
 def save_10bit_dpx(img, fname, attr=None):
@@ -64,6 +64,17 @@ def save_10bit_dpx(img, fname, attr=None):
     >>> 
     >>> 
     """
+    xres = img.shape[1]
+    yres = img.shape[0]
+    nchannels = img.shape[2]
+    type_desc = oiio.UINT16
+
+    img_spec = oiio.ImageSpec(xres, yres, nchannels, type_desc)
+    img_out = oiio.ImageOutput.create(fname)
+    img_out.open(fname, img_spec)
+    img_out.write_image(img / 0xFFC0)
+    img_out.close()
+    print(dir(img_out))
     print(dir(oiio))
 
 
@@ -76,5 +87,5 @@ def _test_save_10bit_dpx(width=1024, height=768):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    oiio_read_test()
+    # oiio_read_test()
     _test_save_10bit_dpx()
