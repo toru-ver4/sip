@@ -31,14 +31,34 @@ def oiio_read_test(width=1024, height=768):
     cv2.imwrite(test_tiff, grad_10)
 
     # データの読み込みテスト
-    img = oiio.ImageInput.open(test_tiff)
-    img_spec = img.spec()
+    img_input = oiio.ImageInput.open(test_tiff)
+    if not img_input:
+        raise Exception("Error: {}".format(oiio.geterror()))
+
+    img_spec = img_input.spec()
     img_width = img_spec.width
     img_height = img_spec.height
     img_channels = img_spec.nchannels
-    img_data = img.read_image(oiio.INT16)
+    img_data = img_input.read_image(oiio.INT16)
     print(img_width, img_height, img_channels)
     print(img_data.shape)
+
+
+def get_img_spec(img):
+    xres = img.shape[1]
+    yres = img.shape[0]
+    nchannels = img.shape[2]
+
+    return xres, yres, nchannels
+
+
+def normalize(img):
+    try:
+        img_max_value = np.iinfo(img.dtype).max
+    except:
+        img_max_value = 1.0
+
+    return np.double(img/img_max_value)
 
 
 def save_10bit_dpx(img, fname, attr=None):
@@ -64,25 +84,26 @@ def save_10bit_dpx(img, fname, attr=None):
     >>> 
     >>> 
     """
-    xres = img.shape[1]
-    yres = img.shape[0]
-    nchannels = img.shape[2]
-    type_desc = oiio.UINT16
 
-    img_spec = oiio.ImageSpec(xres, yres, nchannels, type_desc)
+    xres, yres, nchannels = get_img_spec(img)
     img_out = oiio.ImageOutput.create(fname)
+    if not img_out:
+        raise Exception("Error: {}".format(oiio.geterror()))
+    img_spec = oiio.ImageSpec(xres, yres, nchannels, oiio.UINT16)
+    img_spec.attribute("oiio:BitsPerSample", 12)
     img_out.open(fname, img_spec)
-    img_out.write_image(img / 0xFFC0)
+    img_out.write_image(normalize(img))
     img_out.close()
     print(dir(img_out))
-    print(dir(oiio))
+    print(dir(img_spec))
+    print(img_spec.getattribute("oiio:BitsPerSample"))
 
 
 def _test_save_10bit_dpx(width=1024, height=768):
     grad_10 = tpg.gen_step_gradation(width=width, height=height,
                                      step_num=1025, bit_depth=10,
                                      color=(1.0, 1.0, 1.0), direction='h')
-    save_10bit_dpx(grad_10, "test.dpx")
+    save_10bit_dpx(grad_10, "test12.dpx")
 
 
 if __name__ == '__main__':
