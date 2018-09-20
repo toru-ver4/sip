@@ -13,6 +13,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plot_utility as pu
 import test_pattern_generator2 as tpg
+import re
+
+ATTR_PATTERN = re.compile("^(.*): (.*)$")
 
 
 def oiio_read_test(width=1024, height=768):
@@ -132,7 +135,10 @@ def set_img_spec_attribute(img_spec, attr=None):
         return
 
     for key, value in attr.items():
-        img_spec.attribute(key, value)
+        if isinstance(value, list) or isinstance(value, tuple):
+            img_spec.attribute(key, value[0], value[1])
+        else:
+            img_spec.attribute(key, value)
 
 
 def save_img_using_oiio(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
@@ -169,6 +175,54 @@ def save_img_using_oiio(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
     img_out.open(fname, out_img_spec)
     img_out.write_image(img)
     img_out.close()
+
+
+def read_attr_data(img_spec):
+    attr = {}
+    for idx in range(len(img_spec.extra_attribs)):
+        key = img_spec.extra_attribs[idx].name
+        if key == 'smpte:TimeCode':
+            print(img_spec.extra_attribs[idx])
+            print(dir(img_spec.extra_attribs[idx]))
+        value = img_spec.extra_attribs[idx].value
+        attr[key] = value
+    print(attr)
+    return attr
+
+
+def load_img_using_oiio(fname):
+    """
+    OIIO を使った画像読込。
+
+    Parameters
+    ----------
+    fname : strings
+        filename of the image.
+
+    Returns
+    -------
+    img : ndarray
+        image data.
+    attr : dictionary
+        attribute parameters for dpx.
+
+    Examples
+    --------
+    >>> 
+    >>> 
+    >>> 
+    """
+    # データの読み込みテスト
+    img_input = oiio.ImageInput.open(fname)
+    if not img_input:
+        raise Exception("Error: {}".format(oiio.geterror()))
+
+    img_spec = img_input.spec()
+    attr = read_attr_data(img_spec)
+    typedesc = img_spec.format
+    img_data = img_input.read_image(typedesc)
+
+    return img_data, attr
 
 
 def save_10bit_dpx(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
@@ -221,29 +275,67 @@ def _test_save_various_format(width=1024, height=768):
                                      color=(1.0, 1.0, 1.0), direction='h')
     grad_10 = grad_10 / np.max(grad_10)
 
-    attr_dpx = {"oiio:BitsPerSample": 12}
-    save_img_using_oiio(grad_10, 'test_dpx_12bit.dpx',
-                        out_img_type_desc=oiio.UINT16, attr=attr_dpx)
+    # attr_dpx = {"oiio:BitsPerSample": 12}
+    # save_img_using_oiio(grad_10, 'test_dpx_12bit.dpx',
+    #                     out_img_type_desc=oiio.UINT16, attr=attr_dpx)
 
-    attr_dpx = {"oiio:BitsPerSample": 10}
+    timecode = '01:23:45:12'
+    timecode_bcd = timecode_str_to_bcd(timecode)
+    attr_dpx = {"oiio:BitsPerSample": 10,
+                # 'dpx:TimeCode': timecode,
+                'smpte:TimeCode': [oiio.TypeDesc.TypeTimeCode, (timecode_bcd, 0)],
+                'dpx:FrameRate': 24.0,
+                'dpx:TemporalFrameRate': 24.0,
+                'dpx:TimeOffset': 0.0,
+                'dpx:BlackLevel': 0.0,
+                'dpx:BlackGain': 0.0,
+                'dpx:BreakPoint': 0.0,
+                'dpx:WhiteLevel': 0.0}
     save_img_using_oiio(grad_10, 'test_dpx_10bit.dpx',
                         out_img_type_desc=oiio.UINT16, attr=attr_dpx)
 
-    attr_dpx = {"oiio:BitsPerSample": 16}
-    save_img_using_oiio(grad_10, 'test_dpx_16bit.dpx',
-                        out_img_type_desc=oiio.UINT16, attr=attr_dpx)
+    # attr_dpx = {"oiio:BitsPerSample": 16}
+    # save_img_using_oiio(grad_10, 'test_dpx_16bit.dpx',
+    #                     out_img_type_desc=oiio.UINT16, attr=attr_dpx)
 
-    save_img_using_oiio(grad_10, 'test_tiff_16bit.tiff',
-                        out_img_type_desc=oiio.UINT16, attr=None)
+    # save_img_using_oiio(grad_10, 'test_tiff_16bit.tiff',
+    #                     out_img_type_desc=oiio.UINT16, attr=None)
 
-    save_img_using_oiio(grad_10, 'test_tiff_8bit.tiff',
-                        out_img_type_desc=oiio.UINT8, attr=None)
+    # save_img_using_oiio(grad_10, 'test_tiff_8bit.tiff',
+    #                     out_img_type_desc=oiio.UINT8, attr=None)
 
-    save_img_using_oiio(grad_10, 'test_png_8bit.png',
-                        out_img_type_desc=oiio.UINT8, attr=None)
+    # save_img_using_oiio(grad_10, 'test_png_8bit.png',
+    #                     out_img_type_desc=oiio.UINT8, attr=None)
 
-    save_img_using_oiio(grad_10, 'test_png_16bit.png',
-                        out_img_type_desc=oiio.UINT16, attr=None)
+    # save_img_using_oiio(grad_10, 'test_png_16bit.png',
+    #                     out_img_type_desc=oiio.UINT16, attr=None)
+
+
+def timecode_str_to_bcd(time_code_str):
+    """
+    '01:23:45:12' のようなタイムコードの文字列表記を
+    0x01234512 に変換する。
+
+    Examples
+    --------
+    >>> bcd = timecode_str_to_bcd(time_code_str='01:23:45:12')
+    >>> print("0x{:08X}".format(bcd))
+    0x12345612
+    """
+    temp_str = time_code_str.replace(':', '')
+    if len(temp_str) != 8:
+        raise TypeError('invalid time code str!')
+
+    bcd = 0
+    for idx in range(len(temp_str)):
+        bcd += int(temp_str[idx]) << (8 - idx - 1) * 4
+
+    return bcd
+
+
+def _test_load_various_format():
+    img, attr = load_img_using_oiio(fname='test_dpx_10bit.dpx')
+    # print(attr)
 
 
 if __name__ == '__main__':
@@ -251,3 +343,4 @@ if __name__ == '__main__':
     # oiio_read_test()
     # _test_save_10bit_dpx()
     _test_save_various_format()
+    _test_load_various_format()
