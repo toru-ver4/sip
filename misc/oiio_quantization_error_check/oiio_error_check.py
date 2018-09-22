@@ -137,6 +137,7 @@ def set_img_spec_attribute(img_spec, attr=None):
     for key, value in attr.items():
         if isinstance(value, list) or isinstance(value, tuple):
             img_spec.attribute(key, value[0], value[1])
+            print(value[1])
         else:
             img_spec.attribute(key, value)
 
@@ -186,7 +187,6 @@ def read_attr_data(img_spec):
             print(dir(img_spec.extra_attribs[idx]))
         value = img_spec.extra_attribs[idx].value
         attr[key] = value
-    print(attr)
     return attr
 
 
@@ -269,7 +269,7 @@ def _test_save_10bit_dpx(width=1024, height=768):
     save_10bit_dpx(grad_10, "test12.dpx")
 
 
-def _test_save_various_format(width=1024, height=768):
+def _test_save_various_format(width=4096, height=2160):
     grad_10 = tpg.gen_step_gradation(width=width, height=height,
                                      step_num=1025, bit_depth=10,
                                      color=(1.0, 1.0, 1.0), direction='h')
@@ -280,17 +280,16 @@ def _test_save_various_format(width=1024, height=768):
     #                     out_img_type_desc=oiio.UINT16, attr=attr_dpx)
 
     timecode = '01:23:45:12'
-    timecode_bcd = timecode_str_to_bcd(timecode)
     attr_dpx = {"oiio:BitsPerSample": 10,
-                # 'dpx:TimeCode': timecode,
-                'smpte:TimeCode': [oiio.TypeDesc.TypeTimeCode, (timecode_bcd, 0)],
+                'dpx:TimeCode': timecode,
+                'dpx:UserBits': 0,
                 'dpx:FrameRate': 24.0,
                 'dpx:TemporalFrameRate': 24.0,
                 'dpx:TimeOffset': 0.0,
-                'dpx:BlackLevel': 0.0,
+                'dpx:BlackLevel': 64,
                 'dpx:BlackGain': 0.0,
                 'dpx:BreakPoint': 0.0,
-                'dpx:WhiteLevel': 0.0}
+                'dpx:WhiteLevel': 940}
     save_img_using_oiio(grad_10, 'test_dpx_10bit.dpx',
                         out_img_type_desc=oiio.UINT16, attr=attr_dpx)
 
@@ -330,12 +329,13 @@ def timecode_str_to_bcd(time_code_str):
     for idx in range(len(temp_str)):
         bcd += int(temp_str[idx]) << (8 - idx - 1) * 4
 
-    return bcd
+    return np.uint32(bcd)
 
 
 def _test_load_various_format():
     img, attr = load_img_using_oiio(fname='test_dpx_10bit.dpx')
-    # print(attr)
+    # img, attr = load_img_using_oiio(fname='Untitled00120612.dpx')
+    print(attr)
 
 
 if __name__ == '__main__':
