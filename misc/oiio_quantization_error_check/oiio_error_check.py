@@ -18,41 +18,6 @@ import re
 ATTR_PATTERN = re.compile("^(.*): (.*)$")
 
 
-def oiio_read_test(width=1024, height=768):
-    """
-    oiio でファイルを読む。
-
-    分かったこと
-    -----------
-    read_image() の第一引数で型を指定できる。無指定だと float32 になる。
-
-    更に分かったこと
-    -----------
-    上記の情報は公式ドキュメントに普通に書いてある。
-    まずはドキュメントを読もう。
-
-    """
-    grad_10 = tpg.gen_step_gradation(width=width, height=height,
-                                     step_num=1025, bit_depth=10,
-                                     color=(1.0, 1.0, 1.0), direction='h')
-    # tiff でテストデータ作成
-    test_tiff = "test.tiff"
-    cv2.imwrite(test_tiff, grad_10)
-
-    # データの読み込みテスト
-    img_input = oiio.ImageInput.open(test_tiff)
-    if not img_input:
-        raise Exception("Error: {}".format(oiio.geterror()))
-
-    img_spec = img_input.spec()
-    img_width = img_spec.width
-    img_height = img_spec.height
-    img_channels = img_spec.nchannels
-    img_data = img_input.read_image(oiio.INT16)
-    print(img_width, img_height, img_channels)
-    print(img_data.shape)
-
-
 def gen_out_img_spec(img, type_desk):
     xres = img.shape[1]
     yres = img.shape[0]
@@ -123,8 +88,8 @@ def set_img_spec_attribute(img_spec, attr=None):
     ----------
     img_spec : OIIO ImageSpec
         specification of the image
-    attr : oiio attribute
-        attribute parameters for dpx.
+    attr : dictionary
+        attribute parameters.
 
     Returns
     -------
@@ -142,6 +107,28 @@ def set_img_spec_attribute(img_spec, attr=None):
             img_spec.attribute(key, value)
 
 
+def get_img_spec_attribute(img_spec):
+    """
+    OIIO の ImageSpec から OIIO Attribute を取得する。
+
+    Parameters
+    ----------
+    img_spec : OIIO ImageSpec
+        specification of the image
+
+    Returns
+    -------
+    attr : dictionary
+        attribute parameters.
+    """
+    attr = {}
+    for idx in range(len(img_spec.extra_attribs)):
+        key = img_spec.extra_attribs[idx].name
+        value = img_spec.extra_attribs[idx].value
+        attr[key] = value
+    return attr
+
+
 def save_img_using_oiio(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
     """
     OIIO を使った画像保存。
@@ -154,8 +141,8 @@ def save_img_using_oiio(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
         filename of the image.
     out_img_type_desc : oiio.desc
         type descripter of img
-    attr : ???
-        attribute parameters for dpx.
+    attr : dictionary
+        attribute parameters.
 
     Returns
     -------
@@ -176,18 +163,6 @@ def save_img_using_oiio(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
     img_out.open(fname, out_img_spec)
     img_out.write_image(img)
     img_out.close()
-
-
-def read_attr_data(img_spec):
-    attr = {}
-    for idx in range(len(img_spec.extra_attribs)):
-        key = img_spec.extra_attribs[idx].name
-        if key == 'smpte:TimeCode':
-            print(img_spec.extra_attribs[idx])
-            print(dir(img_spec.extra_attribs[idx]))
-        value = img_spec.extra_attribs[idx].value
-        attr[key] = value
-    return attr
 
 
 def load_img_using_oiio(fname):
@@ -218,7 +193,7 @@ def load_img_using_oiio(fname):
         raise Exception("Error: {}".format(oiio.geterror()))
 
     img_spec = img_input.spec()
-    attr = read_attr_data(img_spec)
+    attr = get_img_spec_attribute(img_spec)
     typedesc = img_spec.format
     img_data = img_input.read_image(typedesc)
 
@@ -235,7 +210,9 @@ def save_10bit_dpx(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
         image data.
     fname : strings
         filename of the image.
-    attr : ???
+    out_img_type_desc : oiio.TypeDesc
+        type descripter of the out image.
+    attr : dictionary
         attribute parameters for dpx.
 
     Returns
@@ -260,13 +237,6 @@ def save_10bit_dpx(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
     print(dir(img_out))
     print(dir(out_img_spec))
     print(out_img_spec.getattribute("oiio:BitsPerSample"))
-
-
-def _test_save_10bit_dpx(width=1024, height=768):
-    grad_10 = tpg.gen_step_gradation(width=width, height=height,
-                                     step_num=1025, bit_depth=10,
-                                     color=(1.0, 1.0, 1.0), direction='h')
-    save_10bit_dpx(grad_10, "test12.dpx")
 
 
 def _test_save_various_format(width=4096, height=2160):
@@ -340,7 +310,5 @@ def _test_load_various_format():
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # oiio_read_test()
-    # _test_save_10bit_dpx()
     _test_save_various_format()
     _test_load_various_format()
