@@ -102,7 +102,6 @@ def set_img_spec_attribute(img_spec, attr=None):
     for key, value in attr.items():
         if isinstance(value, list) or isinstance(value, tuple):
             img_spec.attribute(key, value[0], value[1])
-            print(value[1])
         else:
             img_spec.attribute(key, value)
 
@@ -150,9 +149,8 @@ def save_img_using_oiio(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
 
     Examples
     --------
-    >>> 
-    >>> 
-    >>> 
+    see ```_test_save_various_format()```
+
     """
 
     img_out = oiio.ImageOutput.create(fname)
@@ -183,9 +181,8 @@ def load_img_using_oiio(fname):
 
     Examples
     --------
-    >>> 
-    >>> 
-    >>> 
+    see ```_test_load_various_format()```
+
     """
     # データの読み込みテスト
     img_input = oiio.ImageInput.open(fname)
@@ -198,86 +195,6 @@ def load_img_using_oiio(fname):
     img_data = img_input.read_image(typedesc)
 
     return img_data, attr
-
-
-def save_10bit_dpx(img, fname, out_img_type_desc=oiio.UINT16, attr=None):
-    """
-    10bit dpx形式で保存。
-
-    Parameters
-    ----------
-    img : ndarray
-        image data.
-    fname : strings
-        filename of the image.
-    out_img_type_desc : oiio.TypeDesc
-        type descripter of the out image.
-    attr : dictionary
-        attribute parameters for dpx.
-
-    Returns
-    -------
-    -
-
-    Examples
-    --------
-    >>> 
-    >>> 
-    >>> 
-    """
-
-    img_out = oiio.ImageOutput.create(fname)
-    if not img_out:
-        raise Exception("Error: {}".format(oiio.geterror()))
-    out_img_spec = gen_out_img_spec(img, oiio.UINT16)
-    out_img_spec.attribute("oiio:BitsPerSample", 12)
-    img_out.open(fname, out_img_spec)
-    img_out.write_image(normalize_by_dtype(img))
-    img_out.close()
-    print(dir(img_out))
-    print(dir(out_img_spec))
-    print(out_img_spec.getattribute("oiio:BitsPerSample"))
-
-
-def _test_save_various_format(width=4096, height=2160):
-    grad_10 = tpg.gen_step_gradation(width=width, height=height,
-                                     step_num=1025, bit_depth=10,
-                                     color=(1.0, 1.0, 1.0), direction='h')
-    grad_10 = grad_10 / np.max(grad_10)
-
-    # attr_dpx = {"oiio:BitsPerSample": 12}
-    # save_img_using_oiio(grad_10, 'test_dpx_12bit.dpx',
-    #                     out_img_type_desc=oiio.UINT16, attr=attr_dpx)
-
-    timecode = '01:23:45:12'
-    attr_dpx = {"oiio:BitsPerSample": 10,
-                'dpx:TimeCode': timecode,
-                'dpx:UserBits': 0,
-                'dpx:FrameRate': 24.0,
-                'dpx:TemporalFrameRate': 24.0,
-                'dpx:TimeOffset': 0.0,
-                'dpx:BlackLevel': 64,
-                'dpx:BlackGain': 0.0,
-                'dpx:BreakPoint': 0.0,
-                'dpx:WhiteLevel': 940}
-    save_img_using_oiio(grad_10, 'test_dpx_10bit.dpx',
-                        out_img_type_desc=oiio.UINT16, attr=attr_dpx)
-
-    # attr_dpx = {"oiio:BitsPerSample": 16}
-    # save_img_using_oiio(grad_10, 'test_dpx_16bit.dpx',
-    #                     out_img_type_desc=oiio.UINT16, attr=attr_dpx)
-
-    # save_img_using_oiio(grad_10, 'test_tiff_16bit.tiff',
-    #                     out_img_type_desc=oiio.UINT16, attr=None)
-
-    # save_img_using_oiio(grad_10, 'test_tiff_8bit.tiff',
-    #                     out_img_type_desc=oiio.UINT8, attr=None)
-
-    # save_img_using_oiio(grad_10, 'test_png_8bit.png',
-    #                     out_img_type_desc=oiio.UINT8, attr=None)
-
-    # save_img_using_oiio(grad_10, 'test_png_16bit.png',
-    #                     out_img_type_desc=oiio.UINT16, attr=None)
 
 
 def timecode_str_to_bcd(time_code_str):
@@ -299,16 +216,132 @@ def timecode_str_to_bcd(time_code_str):
     for idx in range(len(temp_str)):
         bcd += int(temp_str[idx]) << (8 - idx - 1) * 4
 
-    return np.uint32(bcd)
+    return (int(bcd), int(0))
+
+
+def _test_save_various_format(width=1024, height=768):
+    grad_10 = tpg.gen_step_gradation(width=width, height=height,
+                                     step_num=1025, bit_depth=10,
+                                     color=(1.0, 1.0, 1.0), direction='h')
+    grad_10 = grad_10 / np.max(grad_10)
+
+    # attr_dpx = {"oiio:BitsPerSample": 12}
+    # save_img_using_oiio(grad_10, 'test_dpx_12bit.dpx',
+    #                     out_img_type_desc=oiio.UINT16, attr=attr_dpx)
+
+    # timecode = '01:23:45:12'
+    # attr_dpx = {"oiio:BitsPerSample": 10,
+    #             'dpx:TimeCode': timecode,
+    #             'dpx:UserBits': 0,
+    #             'dpx:FrameRate': 24.0,
+    #             'dpx:TemporalFrameRate': 24.0,
+    #             'dpx:TimeOffset': 0.0,
+    #             'dpx:BlackLevel': 64,
+    #             'dpx:BlackGain': 0.0,
+    #             'dpx:BreakPoint': 0.0,
+    #             'dpx:WhiteLevel': 940}
+    # save_img_using_oiio(grad_10, 'test_dpx_10bit.dpx',
+    #                     out_img_type_desc=oiio.UINT16, attr=attr_dpx)
+
+    # OpenEXR へのタイムコード埋め込みは失敗。どうすればいいの？
+    timecode = '02:31:59:19'
+    timecode_bcd = timecode_str_to_bcd(timecode)
+    attr_openexr = {'smpte:TimeCode': [oiio.TypeDesc.TypeTimeCode, timecode_bcd]}
+    save_img_using_oiio(grad_10, 'test_dpx_10bit.exr',
+                        out_img_type_desc=oiio.UINT16, attr=attr_openexr)
+
+    # attr_dpx = {"oiio:BitsPerSample": 16}
+    # save_img_using_oiio(grad_10, 'test_dpx_16bit.dpx',
+    #                     out_img_type_desc=oiio.UINT16, attr=attr_dpx)
+
+    # save_img_using_oiio(grad_10, 'test_tiff_16bit.tiff',
+    #                     out_img_type_desc=oiio.UINT16, attr=None)
+
+    # save_img_using_oiio(grad_10, 'test_tiff_8bit.tiff',
+    #                     out_img_type_desc=oiio.UINT8, attr=None)
+
+    # save_img_using_oiio(grad_10, 'test_png_8bit.png',
+    #                     out_img_type_desc=oiio.UINT8, attr=None)
+
+    # save_img_using_oiio(grad_10, 'test_png_16bit.png',
+    #                     out_img_type_desc=oiio.UINT16, attr=None)
 
 
 def _test_load_various_format():
-    img, attr = load_img_using_oiio(fname='test_dpx_10bit.dpx')
+    # img, attr = load_img_using_oiio(fname='test_exr01087116.exr')
+    img, attr = load_img_using_oiio(fname='test_dpx_10bit.exr')
+    # img, attr = load_img_using_oiio(fname='test_dpx_10bit.dpx')
     # img, attr = load_img_using_oiio(fname='Untitled00120612.dpx')
     print(attr)
 
 
+def test_10bit_error():
+    # 1024x1024 のRampパターン作成
+    inc10 = np.arange(1024)
+    img_org = np.dstack([inc10, inc10, inc10])
+    img_org = img_org * np.ones((1024, 1, 3))  # V方向に拡張
+    img_normalized = img_org / np.max(img_org)
+
+    # 保存
+    fname = 'inc10.dpx'
+    attr_dpx = {"oiio:BitsPerSample": 10}
+    save_img_using_oiio(img_normalized, fname,
+                        out_img_type_desc=oiio.UINT16, attr=attr_dpx)
+
+    # 読み込み
+    img_load, attr = load_img_using_oiio(fname)
+    img_load_10bit = np.uint16(np.round(normalize_by_dtype(img_load) * 1023))
+
+    # とりあえずプロット
+    ax1 = pu.plot_1_graph()
+    ax1.plot(img_load_10bit[0, :, 0])
+    plt.show()
+
+    # オリジナルデータとの差分確認
+    diff = np.sum(np.abs(img_org - img_load_10bit))
+    print(diff)
+
+    # 隣接ピクセルとの差分確認
+    line_data = img_load_10bit[0, :, 0]
+    diff = line_data[1:] - line_data[:-1]
+    print(np.sum(diff != 1))
+
+
+def test_12bit_error():
+    # 1024x1024 のRampパターン作成
+    inc12 = np.arange(4096)
+    img_org = np.dstack([inc12, inc12, inc12])
+    img_org = img_org * np.ones((2160, 1, 3))  # V方向に拡張
+    img_normalized = img_org / np.max(img_org)
+
+    # 保存
+    fname = 'inc12.dpx'
+    attr_dpx = {"oiio:BitsPerSample": 12}
+    save_img_using_oiio(img_normalized, fname,
+                        out_img_type_desc=oiio.UINT16, attr=attr_dpx)
+
+    # 読み込み
+    img_load, attr = load_img_using_oiio(fname)
+    img_load_12bit = np.uint16(np.round(normalize_by_dtype(img_load) * 4095))
+
+    # とりあえずプロット
+    ax1 = pu.plot_1_graph()
+    ax1.plot(img_load_12bit[0, :, 0])
+    plt.show()
+
+    # オリジナルデータとの差分確認
+    diff = np.sum(np.abs(img_org - img_load_12bit))
+    print(diff)
+
+    # 隣接ピクセルとの差分確認
+    line_data = img_load_12bit[0, :, 0]
+    diff = line_data[1:] - line_data[:-1]
+    print(np.sum(diff != 1))
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    _test_save_various_format()
-    _test_load_various_format()
+    # _test_save_various_format()
+    # _test_load_various_format()
+    # test_10bit_error()
+    test_12bit_error()
