@@ -24,45 +24,55 @@ from scipy import linalg
 import imp
 imp.reload(tpg)
 
-REVISION = 9
+REVISION = 0
+BIT_DEPTH = 10
 
 
-class LuminanceCodeValue:
+class TpgIO:
     """
-    Luminance と CodeValue の相互変換を行う
+    TestPattern作成に特化した File IO の提供
     """
-    def __init__(self, name):
+
+    def __init__(self, img=None, bit_depth=10):
+        self.img = img
+        self.bit_depth = BIT_DEPTH
+        self.img_max = (2 ** self.bit_depth) - 1
+
+    def save_dpx_image(self, fname):
+        attr = {"oiio:BitsPerSample": self.bit_depth}
+        writer = tyio.TyWriter(self.img / self.img_max, fname, attr)
+        writer.write()
+
+    def save_exr_image(self, fname):
+        print("This Function is not implemented.")
+
+    def save_tiff_image(self, fname):
+        writer2 = tyio.TyWriter(self.img / self.img_max, fname)
+        writer2.write(out_img_type_desc=oiio.UINT16)
+
+    def save_image(self, fname):
+        root, ext = os.path.splitext(fname)
+        if ext == '.dpx':
+            self.save_dpx_image(fname)
+        elif ext == '.exr':
+            self.save_exr_image(fname)
+
+        # TIFFファイルも合わせて吐き出しておく
+        self.save_tiff_image(root + '.tiff')
+
+    def load_image(self, fname):
         """
-        Parameters
-        ----------
-        img : name
-            eotf/oetf name.
-
-        Examples
-        --------
-        >>> lc = LuminanceCodeValue("gm24")
-        >>> lc.l_to_cv(100)
-        1.0
-        >>> lc = LuminanceCodeValue("st2084")
-        >>> lc.l_to_cv(100)
-        0.01
+        UIをどうするか、まだ決まっていない。
         """
-        # define gray Luminance
-        gray_luminance = 20
-        
-        # get gray code value
-        # gray = 0.18  # this value is writtten int the eotf specification.
+        reader = tyio.TyReader(fname)
+        self.load_img = reader.read()
+        self.load_attr = reader.get_attr()
+        self.load_img = self.load_img \
+            / reader.get_max_value_from_dtype(self.load_img)
+        img = np.uint16(np.round(self.load_img * self.img_max))
+        print(img)
 
-        # [0:1] に正規化した際の gray の Linear空間での値を算出
-        # gray_linear = eotf(eotf_name, gray)
-
-        # max_luminance = 1 / gray_linear * gray_luminance
-
-    def l_to_cv(self, value):
-        pass
-
-    def cv_to_l(self, value):
-        pass
+        return img
 
 
 class TpgControl:
@@ -126,21 +136,19 @@ class TpgControl:
         self.draw_outline()
 
     def save_image(self, fname):
-        # メインのDPXファイル吐き出し
-        attr = {"oiio:BitsPerSample": 10}
-        writer = tyio.TyWriter(self.img / self.img_max, fname, attr)
-        writer.write()
+        io = TpgIO(self.img, BIT_DEPTH)
+        io.save_image(fname)
 
-        # TIFFファイルも合わせて吐き出しておく
-        root, ext = os.path.splitext(fname)
-        fname_tiff = root + '.tiff'
-        writer2 = tyio.TyWriter(self.img / self.img_max, fname_tiff)
-        writer2.write(out_img_type_desc=oiio.UINT16)
+    def load_image(self, fname):
+        io = TpgIO(BIT_DEPTH)
+        self.load_img = io.load_image(fname)
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     tpg_ctrl = TpgControl(resolution='1920x1080', transfer_function=tf.GAMMA24)
     tpg_ctrl.make_image()
-    tpg_ctrl.preview_iamge()
-    tpg_ctrl.save_image("./img/hoge.dpx")
+    # tpg_ctrl.preview_iamge()
+    fname = "./img/hoge.dpx"
+    tpg_ctrl.save_image(fname)
+    tpg_ctrl.load_image(fname)

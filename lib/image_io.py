@@ -35,12 +35,16 @@ class TyImageIo:
 
         return img_spec
 
-    def normalize_by_dtype(self, img):
+    def get_max_value_from_dtype(self, img):
         try:
             img_max_value = np.iinfo(img.dtype).max
         except:
-            img_max_value = np.max(img)
+            img_max_value = 1.0
 
+        return img_max_value
+
+    def normalize_by_dtype(self, img):
+        img_max_value = self.get_max_value_from_dtype(img)
         return np.double(img/img_max_value)
 
     def np_img_to_oiio_type_desc(self, img):
@@ -193,12 +197,14 @@ class TyImageIo:
         if not img_input:
             raise Exception("Error: {}".format(oiio.geterror()))
 
-        img_spec = img_input.spec()
-        attr = self.get_img_spec_attribute(img_spec)
-        typedesc = img_spec.format
-        img_data = img_input.read_image(typedesc)
+        self.img_spec = img_input.spec()
+        self.attr = self.get_img_spec_attribute(self.img_spec)
+        self.typedesc = self.img_spec.format
+        img_data = img_input.read_image(self.typedesc)
 
-        return img_data, attr
+        img_input.close()
+
+        return img_data
 
     def timecode_str_to_bcd(self, time_code_str):
         """
@@ -243,14 +249,17 @@ class TyWriter(TyImageIo):
 
 
 class TyReader(TyImageIo):
-    def __init__(self, img, fname, attr=None):
+    def __init__(self, fname):
         super().__init__()
-        self.img = img
         self.fname = fname
-        self.attr = attr
+        self.attr = None
 
     def read(self):
-        self.load_img_using_oiio(fname=self.fname)
+        img = self.load_img_using_oiio(fname=self.fname)
+        return img
+
+    def get_attr(self):
+        return self.attr
 
 
 if __name__ == '__main__':
