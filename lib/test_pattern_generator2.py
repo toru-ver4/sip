@@ -682,7 +682,7 @@ def gen_step_gradation(width=1024, height=128, step_num=17,
 
     # np.uint16 にコンバート
     # ------------------------------
-    img = np.uint16(np.round(img * (2 ** (16 - bit_depth))))
+    # img = np.uint16(np.round(img * (2 ** (16 - bit_depth))))
 
     if debug:
         preview_image(img, 'rgb')
@@ -697,7 +697,10 @@ def merge(img_a, img_b, pos=(0, 0)):
 
     pos = (horizontal_st, vertical_st)
     """
-    pass
+    b_width = img_b.shape[1]
+    b_height = img_b.shape[0]
+
+    img_a[pos[1]:b_height+pos[1], pos[0]:b_width+pos[0]] = img_b
 
 
 if __name__ == '__main__':

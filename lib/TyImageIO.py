@@ -18,7 +18,7 @@ import numpy as np
 import OpenImageIO as oiio
 
 
-class TyImageIo:
+class TyImageIO:
     """
     OpenImageIOを利用したファイルのWrite/Readを提供。
     拡張子でファイルの型を判別。最大値で正規化して保存する。
@@ -228,7 +228,7 @@ class TyImageIo:
         return (int(bcd), int(0))
 
 
-class TyWriter(TyImageIo):
+class TyWriter(TyImageIO):
     def __init__(self, img, fname, attr=None):
         super().__init__()
         self.is_float_dtype(img)
@@ -248,7 +248,7 @@ class TyWriter(TyImageIo):
                                  attr=self.attr)
 
 
-class TyReader(TyImageIo):
+class TyReader(TyImageIO):
     def __init__(self, fname):
         super().__init__()
         self.fname = fname
