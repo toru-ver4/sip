@@ -34,9 +34,9 @@ D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
 
 
 def preview_image(img, order='rgb', over_disp=False):
-    if order == 'rgb':
+    if order == 'bgr':
         cv2.imshow('preview', img[:, :, ::-1])
-    elif order == 'bgr':
+    elif order == 'rgb':
         cv2.imshow('preview', img)
     else:
         raise ValueError("order parameter is invalid")
@@ -688,6 +688,16 @@ def gen_step_gradation(width=1024, height=128, step_num=17,
         preview_image(img, 'rgb')
 
     return img
+
+
+def merge(img_a, img_b, pos=(0, 0)):
+    """
+    img_a に img_b をマージする。
+    img_a にデータを上書きする。
+
+    pos = (horizontal_st, vertical_st)
+    """
+    pass
 
 
 if __name__ == '__main__':
