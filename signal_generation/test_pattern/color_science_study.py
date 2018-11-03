@@ -303,6 +303,7 @@ def get_maximum_true_index(x):
 def get_max_lab_value(lab, name='ITU-R BT.2020'):
 
     rgb = lab_to_rgb_d65(lab, name)
+    print(rgb)
 
     # RGB個別に[0:1] の範囲内か確認する
     ok_rgb = (rgb >= 0) & (rgb <= 1.0)
@@ -314,47 +315,6 @@ def get_max_lab_value(lab, name='ITU-R BT.2020'):
     idx = get_maximum_true_index(ok_val_list)
 
     return lab[0, idx]
-
-
-def get_lab_edge_old(hue=120):
-    """
-    探索により Chroma-Lightness平面をプロットするためのエッジを求める。
-    とりあえず BT.2020 と BT.709 の平面を想定。
-
-    やり方
-    ------
-    ```l = np.linspace(0, 100, l_samples)```
-    で L* を準備する。
-
-    各 L* に対して hue に応じた a*b* 値を算出する。
-
-    L*a*b* を RGB に戻す。そして RGB値が [0:1] を維持している
-    最大の a*b* を求める。
-    """
-    l_samples = 1024
-    ab_samples = 1024
-    ab_max = 220
-    l_max = 100
-
-    l_base = np.ones((ab_samples))  # 後で Lab にまとめるので ab_sample を指定
-    a_base = np.linspace(0, ab_max, ab_samples)
-    b_base = np.zeros_like(a_base)
-    ab_base = np.column_stack((a_base, b_base))
-    ab = vector_rotation_2dim(ab_base, degree=hue)
-
-    lab_709 = np.zeros((l_samples, 3))
-    lab_2020 = np.zeros((l_samples, 3))
-    rgb = np.zeros((l_samples, 3))
-
-    for l_idx in range(l_samples):
-        l = l_base * l_max / l_samples * l_idx
-        lab = np.dstack((l, ab[..., 0], ab[..., 1]))
-
-        lab_709[l_idx] = get_max_lab_value(lab, name='ITU-R BT.709')
-        lab_2020[l_idx] = get_max_lab_value(lab, name='ITU-R BT.2020')
-        rgb[l_idx] = lab_to_rgb_d65(lab_709[l_idx], name='ITU-R BT.709')
-
-    return lab_709, lab_2020, rgb
 
 
 def get_lab_edge(hue=120):
@@ -396,6 +356,50 @@ def get_lab_edge(hue=120):
         rgb[l_idx] = lab_to_rgb_d65(lab_709[l_idx], name='ITU-R BT.709')
 
     return lab_709, lab_2020, rgb
+
+
+def get_l_focal_v2(hue=120):
+    """
+    hue から L_focal を得る。
+    探索アルゴリズムを改良した高速動作版
+
+    やり方
+    ------
+    ```l = np.linspace(0, 100, l_samples)```
+    で L* を準備する。
+
+    各 L* に対して hue に応じた a*b* 値を算出する。
+
+    L*a*b* を RGB に戻す。そして RGB値が [0:1] を維持している
+    最大の a*b* を求める。
+    """
+
+    ab_roop_num = 20
+
+    # 4分割
+    # ------
+    l_st = 0
+    l_ed = 100
+    l_base = np.linspace(l_st, l_ed, 5)
+
+    # 各ポイントに対してエッジを調べる
+    # ------------------------------
+
+    for l in l_base:
+        ab_st = 0
+        ab_ed = 300
+        a_base = np.linspace(ab_st, ab_ed, 3)
+        b_base = np.zeros_like(a_base)
+        ab_base = np.column_stack((a_base, b_base))
+        ab = vector_rotation_2dim(ab_base, degree=hue)
+        # print(ab)
+        lab = np.dstack((np.ones_like(a_base) * l, ab[..., 0], ab[..., 1]))
+        # print(lab)
+        # lab_709 = get_max_lab_value(lab, name='ITU-R BT.709')
+        lab_2020 = get_max_lab_value(lab, name='ITU-R BT.2020')
+        # rgb = lab_to_rgb_d65(lab_709, name='ITU-R BT.709')
+
+        # 後でサブルーチン化しよう。端点を求める
 
 
 def plot_chroma_lightness_pane(lab709, lab2020, hue):
@@ -564,5 +568,7 @@ if __name__ == '__main__':
     # lab709, lab2020 = get_lab_edge(hue)
     # plot_chroma_lightness_pane(lab709, lab2020, hue)
     # plot_chroma_lightness_plane_multi()
-    get_l_focal(hue=5)
+    # get_l_focal(hue=5)
     # plot_l_cusp()
+    # get_lab_edge(hue=120)
+    get_l_focal_v2(hue=120)
