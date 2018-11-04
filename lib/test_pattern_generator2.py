@@ -35,9 +35,9 @@ D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
 
 
 def preview_image(img, order='rgb', over_disp=False):
-    if order == 'bgr':
+    if order == 'rgb':
         cv2.imshow('preview', img[:, :, ::-1])
-    elif order == 'rgb':
+    elif order == 'bgr':
         cv2.imshow('preview', img)
     else:
         raise ValueError("order parameter is invalid")

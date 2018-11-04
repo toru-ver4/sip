@@ -39,11 +39,12 @@ class TpgDraw:
         self.convert_from_10bit_coef = 2 ** (16 - self.bit_depth)
 
         # TpgDraw 内部パラメータ(細かい座標など)
-        self.ramp_height_coef = 0.075  # range is [0.0:1.0]
-        self.ramp_st_pos_h_coef = 0.4  # range is [0.0:1.0]
-        self.ramp_st_pos_v_coef = 0.2  # range is [0.0:1.0]
-        self.checker_8bit_st_pos_v_coef = 0.31  # range is [0.0:1.0]
-        self.checker_10bit_st_pos_v_coef = 0.42  # range is [0.0:1.0]
+        self.ramp_height_coef = 0.06  # range is [0.0:1.0]
+        self.ramp_st_pos_h_coef = 0.442  # range is [0.0:1.0]
+        self.ramp_st_pos_v_coef = 0.31  # range is [0.0:1.0]
+        self.checker_8bit_st_pos_v_coef = self.ramp_st_pos_v_coef + 0.09
+        self.checker_10bit_st_pos_v_coef\
+            = self.checker_8bit_st_pos_v_coef + 0.09
         self.each_spec_text_size_coef = 0.02  # range is [0.0:1.0]
         self.outline_text_size_coef = 0.02  # range is [0.0:1.0]
         self.step_bar_width_coef = 0.95
@@ -51,10 +52,10 @@ class TpgDraw:
         self.step_bar_st_pos_v_coef = 0.75
         self.step_bar_text_width = 0.3
 
-        self.color_checker_size_coef = 0.05
-        self.color_checker_padding_coef = 0.005
-        self.color_checker_st_pos_v_coef = 0.1
-        self.color_checker_st_pos_h_coef = 0.1
+        self.color_checker_size_coef = 0.053
+        self.color_checker_padding_coef = 0.0033
+        self.color_checker_st_pos_v_coef = 0.15
+        self.color_checker_st_pos_h_coef = 0.025
 
         self.set_fg_code_value()
         self.set_bg_code_value()
@@ -313,6 +314,14 @@ class TpgDraw:
         text_pos = self.get_text_st_pos_for_over_info(st_pos, txt_img.shape[0])
         self.merge_text(txt_img, text_pos)
 
+        # 説明文を下に追加する
+        text_pos_v = st_pos[1] + color_bar.shape[0]
+        text_pos = (st_pos[0], text_pos_v)
+        text_height, font_size = self.get_each_spec_text_height_and_size()
+        text = "▲ WRGBMYC Color Gradation (64 Step)"
+        self.merge_each_spec_text(text_pos, font_size,
+                                  (width, text_height), text)
+
     def get_video_level_text_img(self, scale_step, width):
         """
         ステップカラーに付与する VideoLevel & Luminance 情報。
@@ -382,9 +391,7 @@ class TpgDraw:
         rgb[rgb > 1.0] = 1.0
 
         point_100nits = 100 / tf.PEAK_LUMINANCE[self.transfer_function]
-        print(point_100nits)
         rgb = tf.oetf(rgb * point_100nits, self.transfer_function)
-        print(rgb)
         rgb = np.uint16(np.round(rgb * self.img_max))
 
         return rgb
@@ -400,6 +407,12 @@ class TpgDraw:
         img_width = patch_width * h_num + patch_space * (h_num - 1)
         img_height = patch_height * v_num + patch_space * (v_num - 1)
         rgb = self.get_color_checker_rgb_value()
+        st_pos_h = int(self.color_checker_st_pos_h_coef * self.img_width)
+        st_pos_v = int(self.color_checker_st_pos_v_coef * self.img_height)
+        pos = (st_pos_h, st_pos_v)
+        text = "▼ ColorChecker (It is based on 100 nit)"
+        text_height, font_size = self.get_each_spec_text_height_and_size()
+        text_pos = self.get_text_st_pos_for_over_info(pos, text_height)
 
         # 24ループで1枚の画像に24パッチを描画
         # -------------------------------------------------
@@ -414,7 +427,9 @@ class TpgDraw:
             img_all_patch[st_v:st_v+patch_height, st_h:st_h+patch_width]\
                 = patch
 
-        self.preview_iamge(img_all_patch / self.img_max)
+        tpg.merge(self.img, img_all_patch, pos)
+        self.merge_each_spec_text(text_pos, font_size,
+                                  (img_width, text_height), text)
 
     def draw(self):
         self.img = np.ones((self.img_height, self.img_width, 3),
