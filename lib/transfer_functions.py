@@ -22,15 +22,16 @@ import plot_utility as pu
 import matplotlib.pyplot as plt
 
 # NAME
-GAMMA24 = 'gm24'
-ST2084 = 'st2084'
-HLG = 'hlg'
-LOGC = 'logc'
-CANON_LOG3 = 'canon_log3'
-VLOG = 'vlog'
+GAMMA24 = 'Gamma 2.4'
+ST2084 = 'SMPTE ST2084'
+HLG = 'BT.2100 HLG'
+LOGC = 'ARRI LOG_C'
+CANON_LOG3 = 'Cannon Log3'
+VLOG = 'Panasonic VLog'
+SLOG3 = "SONY S-Log3"
 
 PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
-                  VLOG: 10, CANON_LOG3: 10, LOGC: 10}
+                  VLOG: 10, CANON_LOG3: 10, LOGC: 10, SLOG3: 10}
 
 
 def oetf(x, name=GAMMA24):

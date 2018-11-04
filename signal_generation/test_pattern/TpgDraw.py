@@ -57,6 +57,10 @@ class TpgDraw:
         self.color_checker_st_pos_v_coef = 0.15
         self.color_checker_st_pos_h_coef = 0.025
 
+        self.info_text_st_pos_h_coef = self.ramp_st_pos_h_coef
+        self.info_text_st_pos_v_coef = 0.01
+        self.info_text_size_coef = 0.3
+
         self.set_fg_code_value()
         self.set_bg_code_value()
         self.set_color_space()
@@ -127,6 +131,15 @@ class TpgDraw:
         各パーツ説明のテキストの高さ(px)とフォントサイズを吐く
         """
         font_size = self.img_height * self.each_spec_text_size_coef
+        text_height = font_size / 72 * 96 * 1.1
+
+        return int(text_height), int(font_size)
+
+    def get_info_text_height_and_size(self):
+        """
+        冒頭の解説用テキストの情報を取得
+        """
+        font_size = self.img_height * self.info_text_size_coef
         text_height = font_size / 72 * 96 * 1.1
 
         return int(text_height), int(font_size)
@@ -431,6 +444,20 @@ class TpgDraw:
         self.merge_each_spec_text(text_pos, font_size,
                                   (img_width, text_height), text)
 
+    def draw_info_text(self):
+        text_list = ["■ Information",
+                     "    OETF: {}".format(self.transfer_function),
+                     "    White Point: {}".format(self.white_point),
+                     "    Gamut: {}".format(self.color_space.name)]
+        text_height, font_size = self.get_each_spec_text_height_and_size()
+        st_pos_h = int(self.info_text_st_pos_h_coef * self.img_width)
+        st_pos_v = int(self.info_text_st_pos_v_coef * self.img_height)
+        for text in text_list:
+            pos = (st_pos_h, st_pos_v)
+            text_img_size = (self.img_width - st_pos_h, text_height)
+            self.merge_each_spec_text(pos, font_size, text_img_size, text)
+            st_pos_v += text_height
+
     def draw(self):
         self.img = np.ones((self.img_height, self.img_width, 3),
                            dtype=np.uint16)
@@ -441,6 +468,7 @@ class TpgDraw:
         self.draw_8bit_10bit_checker('10bit', self.checker_10bit_st_pos_v_coef)
         self.draw_wrgbmyc_color_bar()
         self.draw_color_checker()
+        self.draw_info_text()
 
         self.preview_iamge(self.img / self.img_max)
 
