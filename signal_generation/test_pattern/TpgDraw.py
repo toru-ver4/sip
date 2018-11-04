@@ -125,8 +125,7 @@ class TpgDraw:
         return fg_color
 
     def convert_from_pillow_to_numpy(self, img):
-        img = np.asarray(img) * 0x100
-        img = np.uint16(np.round(img / self.convert_from_10bit_coef))
+        img = np.uint16(np.asarray(img)) * self.convert_to_8bit_coef
 
         return img
 

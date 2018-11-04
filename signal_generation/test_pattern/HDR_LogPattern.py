@@ -24,7 +24,7 @@ class TpgControl:
     """
     def __init__(self, resolution='3840x2160', transfer_function=tf.GAMMA24):
         self.bg_color = 0.75  # unit is nits
-        self.fg_color = 100  # unit is nits
+        self.fg_color = 50  # unit is nits
         self.transfer_function = transfer_function
         self.parse_resolution(resolution)
         self.bit_depth = 10
