@@ -22,12 +22,17 @@ class TpgControl:
     """
     必要なパラメータの受け取り。各種命令の実行。
     """
-    def __init__(self, resolution='3840x2160', transfer_function=tf.GAMMA24):
+    def __init__(self, resolution='3840x2160', transfer_function=tf.GAMMA24,
+                 white_point="D65"):
+        """
+        white_point は 次のいずれか。'D50', 'D55', 'D60', 'D65', 'DCI-P3'
+        """
         self.bg_color = 0.75  # unit is nits
         self.fg_color = 50  # unit is nits
         self.transfer_function = transfer_function
         self.parse_resolution(resolution)
         self.bit_depth = 10
+        self.white_point = white_point
         self.draw_param = self.gen_keywords_for_draw()
 
     def parse_resolution(self, resolution):
@@ -47,7 +52,8 @@ class TpgControl:
         kwargs = {'bg_color': self.bg_color, 'fg_color': self.fg_color,
                   'img_width': self.img_width, 'img_height': self.img_height,
                   'bit_depth': self.bit_depth,
-                  'transfer_function': self.transfer_function}
+                  'transfer_function': self.transfer_function,
+                  'white_point': self.white_point}
 
         return kwargs
 
@@ -66,7 +72,8 @@ class TpgControl:
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    tpg_ctrl = TpgControl(resolution='1920x1080', transfer_function=tf.GAMMA24)
+    tpg_ctrl = TpgControl(resolution='1920x1080', transfer_function=tf.GAMMA24,
+                          white_point='D65')
     tpg_ctrl.draw_image()
     # tpg_ctrl.preview_iamge()
     fname = "./img/hoge.dpx"

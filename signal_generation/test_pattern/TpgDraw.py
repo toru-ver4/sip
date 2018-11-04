@@ -15,6 +15,7 @@ import test_pattern_generator2 as tpg
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
+import colour
 import imp
 imp.reload(tpg)
 
@@ -32,6 +33,7 @@ class TpgDraw:
         self.bit_depth = draw_param['bit_depth']
         self.img_max = (2 ** self.bit_depth) - 1
         self.transfer_function = draw_param['transfer_function']
+        self.white_point = draw_param['white_point']
 
         self.convert_to_8bit_coef = 2 ** (self.bit_depth - 8)
         self.convert_from_10bit_coef = 2 ** (16 - self.bit_depth)
@@ -49,8 +51,31 @@ class TpgDraw:
         self.step_bar_st_pos_v_coef = 0.75
         self.step_bar_text_width = 0.3
 
+        self.color_checker_size_coef = 0.05
+        self.color_checker_padding_coef = 0.005
+        self.color_checker_st_pos_v_coef = 0.1
+        self.color_checker_st_pos_h_coef = 0.1
+
         self.set_fg_code_value()
         self.set_bg_code_value()
+        self.set_color_space()
+
+    def set_color_space(self):
+        """
+        Color Checker の色域変換のために Color Space を設定する。
+        """
+        if self.transfer_function == tf.GAMMA24:
+            self.color_space = colour.models.BT709_COLOURSPACE
+        elif self.transfer_function == tf.HLG:
+            self.color_space = colour.models.BT2020_COLOURSPACE
+        elif self.transfer_function == tf.ST2084:
+            self.color_space = colour.models.BT2020_COLOURSPACE
+        elif self.transfer_function == tf.VLOG:
+            self.color_space = colour.models.V_GAMUT_COLOURSPACE
+        elif self.transfer_function == tf.LOGC:
+            self.color_space = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
+        else:
+            raise ValueError("invalid transfer function name")
 
     def set_bg_code_value(self):
         code_value = tf.oetf_from_luminance(self.bg_color,
@@ -324,6 +349,73 @@ class TpgDraw:
 
         return txt_img
 
+    def get_color_checker_rgb_value(self):
+        """
+        24パターンの Color Checker の RGB値を得る
+        """
+        colour_checker_param = colour.COLOURCHECKERS.get('ColorChecker 2005')
+
+        # 今回の処理では必要ないデータもあるので xyY と whitepoint だけ抽出
+        # -------------------------------------------------------------
+        _name, data, whitepoint = colour_checker_param
+        temp_xyY = []
+        for _index, label, xyY in data:
+            temp_xyY.append(xyY)
+        temp_xyY = np.array(temp_xyY)
+        large_xyz = colour.models.xyY_to_XYZ(temp_xyY)
+
+        rgb_white_point\
+            = colour.colorimetry.ILLUMINANTS['cie_2_1931'][self.white_point]
+
+        illuminant_XYZ = whitepoint   # ColorCheckerのオリジナルデータの白色点
+        illuminant_RGB = rgb_white_point  # RGBの白色点を設定
+        chromatic_adaptation_transform = 'CAT02'
+        large_xyz_to_rgb_matrix = self.color_space.XYZ_to_RGB_matrix
+        rgb = colour.models.XYZ_to_RGB(large_xyz, illuminant_XYZ,
+                                       illuminant_RGB,
+                                       large_xyz_to_rgb_matrix,
+                                       chromatic_adaptation_transform)
+
+        # overflow, underflow check
+        # -----------------------------
+        rgb[rgb < 0.0] = 0.0
+        rgb[rgb > 1.0] = 1.0
+
+        point_100nits = 100 / tf.PEAK_LUMINANCE[self.transfer_function]
+        print(point_100nits)
+        rgb = tf.oetf(rgb * point_100nits, self.transfer_function)
+        print(rgb)
+        rgb = np.uint16(np.round(rgb * self.img_max))
+
+        return rgb
+
+    def draw_color_checker(self):
+        # 基本パラメータ算出
+        # --------------------------------------
+        h_num = 6
+        v_num = 4
+        patch_width = int(self.color_checker_size_coef * self.img_width)
+        patch_height = patch_width
+        patch_space = int(self.color_checker_padding_coef * self.img_width)
+        img_width = patch_width * h_num + patch_space * (h_num - 1)
+        img_height = patch_height * v_num + patch_space * (v_num - 1)
+        rgb = self.get_color_checker_rgb_value()
+
+        # 24ループで1枚の画像に24パッチを描画
+        # -------------------------------------------------
+        img_all_patch = np.zeros((img_height, img_width, 3))
+        for idx in range(h_num * v_num):
+            v_idx = idx // h_num
+            h_idx = (idx % h_num)
+            patch = np.ones((patch_height, patch_width, 3))
+            patch[:, :] = rgb[idx]
+            st_h = (patch_width + patch_space) * h_idx
+            st_v = (patch_height + patch_space) * v_idx
+            img_all_patch[st_v:st_v+patch_height, st_h:st_h+patch_width]\
+                = patch
+
+        self.preview_iamge(img_all_patch / self.img_max)
+
     def draw(self):
         self.img = np.ones((self.img_height, self.img_width, 3),
                            dtype=np.uint16)
@@ -333,6 +425,7 @@ class TpgDraw:
         self.draw_8bit_10bit_checker('8bit', self.checker_8bit_st_pos_v_coef)
         self.draw_8bit_10bit_checker('10bit', self.checker_10bit_st_pos_v_coef)
         self.draw_wrgbmyc_color_bar()
+        self.draw_color_checker()
 
         self.preview_iamge(self.img / self.img_max)
 

@@ -29,7 +29,8 @@ LOGC = 'logc'
 CANON_LOG3 = 'canon_log3'
 VLOG = 'vlog'
 
-PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000}
+PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
+                  VLOG: 10, CANON_LOG3: 10, LOGC: 10}
 
 
 def oetf(x, name=GAMMA24):
