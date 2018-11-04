@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+import math
 from colour.colorimetry import CMFS, ILLUMINANTS
 from colour.models import XYZ_to_xy, xy_to_XYZ, XYZ_to_RGB, RGB_to_XYZ
 from colour.models import xy_to_xyY, xyY_to_XYZ
@@ -45,6 +46,40 @@ def preview_image(img, order='rgb', over_disp=False):
         cv2.resizeWindow('preview', )
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+
+def equal_devision(length, div_num):
+    """
+    # 概要
+    length を div_num で分割する。
+    端数が出た場合は誤差拡散法を使って上手い具合に分散させる。
+    """
+    base = length / div_num
+    ret_array = [base for x in range(div_num)]
+
+    # 誤差拡散法を使った辻褄合わせを適用
+    # -------------------------------------------
+    diff = 0
+    for idx in range(div_num):
+        diff += math.modf(ret_array[idx])[0]
+        if diff >= 1.0:
+            diff -= 1.0
+            ret_array[idx] = int(math.floor(ret_array[idx]) + 1)
+        else:
+            ret_array[idx] = int(math.floor(ret_array[idx]))
+
+    # 計算誤差により最終点が +1 されない場合への対処
+    # -------------------------------------------
+    diff = length - sum(ret_array)
+    if diff != 0:
+        ret_array[-1] += diff
+
+    # 最終確認
+    # -------------------------------------------
+    if length != sum(ret_array):
+        raise ValueError("the output of equal_division() is abnormal.")
+
+    return ret_array
 
 
 def do_matrix(img, mtx):
@@ -410,10 +445,10 @@ def get_csf_color_image(width=640, height=480,
     array_like
         a cms pattern image.
     """
-    width_list = cmn.equal_devision(width, stripe_num)
-    height_list = cmn.equal_devision(height, stripe_num)
-    h_pos_list = cmn.equal_devision(width // 2, stripe_num)
-    v_pos_list = cmn.equal_devision(height // 2, stripe_num)
+    width_list = equal_devision(width, stripe_num)
+    height_list = equal_devision(height, stripe_num)
+    h_pos_list = equal_devision(width // 2, stripe_num)
+    v_pos_list = equal_devision(height // 2, stripe_num)
     lv1_16bit = lv1
     lv2_16bit = lv2
     img = np.zeros((height, width, 3), dtype=np.uint16)
