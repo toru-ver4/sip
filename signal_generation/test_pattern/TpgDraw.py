@@ -24,8 +24,9 @@ class TpgDraw:
     """
     テストパターン用の各種描画を行う。
     """
-    def __init__(self, draw_param):
+    def __init__(self, draw_param, preview):
         # TpgControl から受け通るパラメータ
+        self.preview = preview
         self.bg_color = draw_param['bg_color']
         self.fg_color = draw_param['fg_color']
         self.img_width = draw_param['img_width']
@@ -39,26 +40,28 @@ class TpgDraw:
         self.convert_from_10bit_coef = 2 ** (16 - self.bit_depth)
 
         # TpgDraw 内部パラメータ(細かい座標など)
-        self.ramp_height_coef = 0.06  # range is [0.0:1.0]
-        self.ramp_st_pos_h_coef = 0.442  # range is [0.0:1.0]
-        self.ramp_st_pos_v_coef = 0.31  # range is [0.0:1.0]
-        self.checker_8bit_st_pos_v_coef = self.ramp_st_pos_v_coef + 0.09
+        self.ramp_height_coef = 0.08  # range is [0.0:1.0]
+        # self.ramp_st_pos_h_coef = 0.442  # range is [0.0:1.0]
+        self.ramp_st_pos_h_coef = 0.03  # range is [0.0:1.0]
+        self.ramp_st_pos_v_coef = 0.21  # range is [0.0:1.0]
+        self.checker_8bit_st_pos_v_coef = self.ramp_st_pos_v_coef + 0.11
         self.checker_10bit_st_pos_v_coef\
-            = self.checker_8bit_st_pos_v_coef + 0.09
+            = self.checker_8bit_st_pos_v_coef + 0.11
         self.each_spec_text_size_coef = 0.02  # range is [0.0:1.0]
         self.outline_text_size_coef = 0.02  # range is [0.0:1.0]
         self.step_bar_width_coef = 0.95
         self.step_bar_height_coef = 0.2
-        self.step_bar_st_pos_v_coef = 0.75
+        self.step_bar_st_pos_v_coef = 0.74
         self.step_bar_text_width = 0.3
 
-        self.color_checker_size_coef = 0.053
+        self.color_checker_size_coef = 0.057
         self.color_checker_padding_coef = 0.0033
-        self.color_checker_st_pos_v_coef = 0.15
-        self.color_checker_st_pos_h_coef = 0.025
+        self.color_checker_st_pos_v_coef = 0.089
+        # self.color_checker_st_pos_h_coef = 0.03
+        self.color_checker_st_pos_h_coef = 0.615
 
         self.info_text_st_pos_h_coef = self.ramp_st_pos_h_coef
-        self.info_text_st_pos_v_coef = 0.01
+        self.info_text_st_pos_v_coef = 0.043
         self.info_text_size_coef = 0.3
 
         self.set_fg_code_value()
@@ -79,6 +82,8 @@ class TpgDraw:
             self.color_space = colour.models.V_GAMUT_COLOURSPACE
         elif self.transfer_function == tf.LOGC:
             self.color_space = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
+        elif self.transfer_function == tf.SLOG3:
+            self.color_space = colour.models.S_GAMUT3_CINE_COLOURSPACE
         else:
             raise ValueError("invalid transfer function name")
 
@@ -331,7 +336,7 @@ class TpgDraw:
         text_pos_v = st_pos[1] + color_bar.shape[0]
         text_pos = (st_pos[0], text_pos_v)
         text_height, font_size = self.get_each_spec_text_height_and_size()
-        text = "▲ WRGBMYC Color Gradation (64 Step)"
+        text = "▲ WRGBMYC Color Gradation (16 Step)"
         self.merge_each_spec_text(text_pos, font_size,
                                   (width, text_height), text)
 
@@ -423,7 +428,7 @@ class TpgDraw:
         st_pos_h = int(self.color_checker_st_pos_h_coef * self.img_width)
         st_pos_v = int(self.color_checker_st_pos_v_coef * self.img_height)
         pos = (st_pos_h, st_pos_v)
-        text = "▼ ColorChecker (It is based on 100 nit)"
+        text = "▼ Color Checker"
         text_height, font_size = self.get_each_spec_text_height_and_size()
         text_pos = self.get_text_st_pos_for_over_info(pos, text_height)
 
@@ -470,7 +475,8 @@ class TpgDraw:
         self.draw_color_checker()
         self.draw_info_text()
 
-        self.preview_iamge(self.img / self.img_max)
+        if self.preview:
+            self.preview_iamge(self.img / self.img_max)
 
         return self.img
 

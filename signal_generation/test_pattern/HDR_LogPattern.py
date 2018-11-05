@@ -57,8 +57,8 @@ class TpgControl:
 
         return kwargs
 
-    def draw_image(self):
-        draw = TpgDraw(self.draw_param)
+    def draw_image(self, preview=False):
+        draw = TpgDraw(self.draw_param, preview)
         self.img = draw.draw()
 
     def save_image(self, fname):
@@ -70,12 +70,22 @@ class TpgControl:
         self.load_img = io.load_image(fname)
 
 
+def main_func():
+    tf_list = [tf.GAMMA24, tf.HLG, tf.ST2084, tf.SLOG3]
+    resolution_list = ['1920x1080', '3840x2160']
+
+    for transfer_function in tf_list:
+        for resolution in resolution_list:
+            tpg_ctrl = TpgControl(resolution=resolution,
+                                  transfer_function=transfer_function,
+                                  white_point='D65')
+            tpg_ctrl.draw_image(preview=False)
+            fname = "./img/{}_{}.dpx".format(transfer_function,
+                                             resolution)
+            tpg_ctrl.save_image(fname)
+            # tpg_ctrl.load_image(fname)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    tpg_ctrl = TpgControl(resolution='1920x1080', transfer_function=tf.GAMMA24,
-                          white_point='D65')
-    tpg_ctrl.draw_image()
-    # tpg_ctrl.preview_iamge()
-    fname = "./img/hoge.dpx"
-    tpg_ctrl.save_image(fname)
-    tpg_ctrl.load_image(fname)
+    main_func()

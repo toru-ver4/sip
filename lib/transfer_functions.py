@@ -30,8 +30,10 @@ CANON_LOG3 = 'Cannon Log3'
 VLOG = 'Panasonic VLog'
 SLOG3 = "SONY S-Log3"
 
+slog_max = colour.models.log_decoding_SLog3((1023 / 1023),
+                                            out_reflection=False) * 100
 PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
-                  VLOG: 10, CANON_LOG3: 10, LOGC: 10, SLOG3: 10}
+                  VLOG: 10, CANON_LOG3: 10, LOGC: 10, SLOG3: slog_max}
 
 
 def oetf(x, name=GAMMA24):
@@ -67,6 +69,9 @@ def oetf(x, name=GAMMA24):
     elif name == ST2084:
         # fix me!
         y = colour.models.oetf_ST2084(x * 10000)
+    elif name == SLOG3:
+        max_val = colour.models.log_decoding_SLog3(1.0, out_reflection=False)
+        y = colour.models.log_encoding_SLog3(x * max_val, in_reflection=False)
     else:
         raise ValueError("invalid transfer fucntion name")
 
@@ -134,6 +139,9 @@ def eotf(x, name=GAMMA24):
         y = colour.models.eotf_ST2084(x) / PEAK_LUMINANCE[name]
     elif name == HLG:
         y = colour.models.eotf_BT2100_HLG(x) / PEAK_LUMINANCE[name]
+    elif name == SLOG3:
+        max_val = colour.models.log_decoding_SLog3(1.0, out_reflection=False)
+        y = colour.models.log_decoding_SLog3(x, out_reflection=False) / max_val
     else:
         raise ValueError("invaid tranfer function name")
 
