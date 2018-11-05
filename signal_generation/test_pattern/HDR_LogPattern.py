@@ -11,11 +11,25 @@ import os
 from TpgIO import TpgIO
 from TpgDraw import TpgDraw
 import transfer_functions as tf
-import numpy as np
+import colour
 # import gamma_func as gm
 
 REVISION = 0
 BIT_DEPTH = 10
+
+BT709_CS = colour.models.BT709_COLOURSPACE
+BT2020_CS = colour.models.BT2020_COLOURSPACE
+V_GAMUT_CS = colour.models.V_GAMUT_COLOURSPACE
+ALEXA_WIDE_GAMUT_CS = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
+S_GAMUT3_CINE_CS = colour.models.S_GAMUT3_CINE_COLOURSPACE
+S_GAMUT3_CS = colour.models.S_GAMUT3_COLOURSPACE
+
+PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
+              {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.HLG, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
+              {'tf': tf.SLOG3, 'cs': S_GAMUT3_CINE_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
@@ -23,7 +37,7 @@ class TpgControl:
     必要なパラメータの受け取り。各種命令の実行。
     """
     def __init__(self, resolution='3840x2160', transfer_function=tf.GAMMA24,
-                 white_point="D65"):
+                 color_space=BT709_CS, white_point="D65"):
         """
         white_point は 次のいずれか。'D50', 'D55', 'D60', 'D65', 'DCI-P3'
         """
@@ -32,6 +46,7 @@ class TpgControl:
         self.transfer_function = transfer_function
         self.parse_resolution(resolution)
         self.bit_depth = 10
+        self.color_space = color_space
         self.white_point = white_point
         self.draw_param = self.gen_keywords_for_draw()
 
@@ -53,6 +68,7 @@ class TpgControl:
                   'img_width': self.img_width, 'img_height': self.img_height,
                   'bit_depth': self.bit_depth,
                   'transfer_function': self.transfer_function,
+                  'color_space': self.color_space,
                   'white_point': self.white_point}
 
         return kwargs
@@ -74,14 +90,20 @@ def main_func():
     tf_list = [tf.GAMMA24, tf.HLG, tf.ST2084, tf.SLOG3]
     resolution_list = ['1920x1080', '3840x2160']
 
-    for transfer_function in tf_list:
+    for param in PARAM_LIST:
+        transfer_function = param['tf']
+        color_space = param['cs']
+        white_point = param['wp']
         for resolution in resolution_list:
             tpg_ctrl = TpgControl(resolution=resolution,
                                   transfer_function=transfer_function,
-                                  white_point='D65')
+                                  color_space=color_space,
+                                  white_point=white_point)
             tpg_ctrl.draw_image(preview=False)
-            fname = "./img/{}_{}.dpx".format(transfer_function,
-                                             resolution)
+            fname = "./img/{}_{}_{}_{}.dpx".format(transfer_function,
+                                                   color_space.name,
+                                                   white_point,
+                                                   resolution)
             tpg_ctrl.save_image(fname)
             # tpg_ctrl.load_image(fname)
 

@@ -34,6 +34,7 @@ class TpgDraw:
         self.bit_depth = draw_param['bit_depth']
         self.img_max = (2 ** self.bit_depth) - 1
         self.transfer_function = draw_param['transfer_function']
+        self.color_space = draw_param['color_space']
         self.white_point = draw_param['white_point']
 
         self.convert_to_8bit_coef = 2 ** (self.bit_depth - 8)
@@ -66,26 +67,26 @@ class TpgDraw:
 
         self.set_fg_code_value()
         self.set_bg_code_value()
-        self.set_color_space()
+        # self.set_color_space()
 
-    def set_color_space(self):
-        """
-        Color Checker の色域変換のために Color Space を設定する。
-        """
-        if self.transfer_function == tf.GAMMA24:
-            self.color_space = colour.models.BT709_COLOURSPACE
-        elif self.transfer_function == tf.HLG:
-            self.color_space = colour.models.BT2020_COLOURSPACE
-        elif self.transfer_function == tf.ST2084:
-            self.color_space = colour.models.BT2020_COLOURSPACE
-        elif self.transfer_function == tf.VLOG:
-            self.color_space = colour.models.V_GAMUT_COLOURSPACE
-        elif self.transfer_function == tf.LOGC:
-            self.color_space = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
-        elif self.transfer_function == tf.SLOG3:
-            self.color_space = colour.models.S_GAMUT3_CINE_COLOURSPACE
-        else:
-            raise ValueError("invalid transfer function name")
+    # def set_color_space(self):
+    #     """
+    #     Color Checker の色域変換のために Color Space を設定する。
+    #     """
+    #     if self.transfer_function == tf.GAMMA24:
+    #         self.color_space = colour.models.BT709_COLOURSPACE
+    #     elif self.transfer_function == tf.HLG:
+    #         self.color_space = colour.models.BT2020_COLOURSPACE
+    #     elif self.transfer_function == tf.ST2084:
+    #         self.color_space = colour.models.BT2020_COLOURSPACE
+    #     elif self.transfer_function == tf.VLOG:
+    #         self.color_space = colour.models.V_GAMUT_COLOURSPACE
+    #     elif self.transfer_function == tf.LOGC:
+    #         self.color_space = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
+    #     elif self.transfer_function == tf.SLOG3:
+    #         self.color_space = colour.models.S_GAMUT3_CINE_COLOURSPACE
+    #     else:
+    #         raise ValueError("invalid transfer function name")
 
     def set_bg_code_value(self):
         code_value = tf.oetf_from_luminance(self.bg_color,
