@@ -23,13 +23,21 @@ V_GAMUT_CS = colour.models.V_GAMUT_COLOURSPACE
 ALEXA_WIDE_GAMUT_CS = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
 S_GAMUT3_CINE_CS = colour.models.S_GAMUT3_CINE_COLOURSPACE
 S_GAMUT3_CS = colour.models.S_GAMUT3_COLOURSPACE
+V_LOG_CS = colour.models.V_GAMUT_COLOURSPACE
+ALEXA_WIDE_GAMUT_CS = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
+RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
 
 PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
               {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
               {'tf': tf.HLG, 'cs': BT2020_CS, 'wp': 'D65'},
               {'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'},
               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
-              {'tf': tf.SLOG3, 'cs': S_GAMUT3_CINE_CS, 'wp': 'D65'}]
+              {'tf': tf.VLOG, 'cs': V_LOG_CS, 'wp': 'D65'},
+              {'tf': tf.LOGC, 'cs': ALEXA_WIDE_GAMUT_CS, 'wp': 'D65'},
+              {'tf': tf.REDLOG, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+              {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+              {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+              {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
@@ -87,8 +95,7 @@ class TpgControl:
 
 
 def main_func():
-    tf_list = [tf.GAMMA24, tf.HLG, tf.ST2084, tf.SLOG3]
-    resolution_list = ['1920x1080', '3840x2160']
+    resolution_list = ['1920x1080']
 
     for param in PARAM_LIST:
         transfer_function = param['tf']

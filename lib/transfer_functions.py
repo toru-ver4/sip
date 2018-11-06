@@ -26,19 +26,34 @@ GAMMA24 = 'Gamma 2.4'
 ST2084 = 'SMPTE ST2084'
 HLG = 'BT.2100 HLG'
 LOGC = 'ARRI LOG_C'
-CANON_LOG3 = 'Cannon Log3'
 VLOG = 'Panasonic VLog'
 SLOG3 = "SONY S-Log3"
+REDLOG = "RED REDLog"
+LOG3G10 = "RED Log3G10"
+LOG3G12 = "RED Log3G12"
 
 slog_max = colour.models.log_decoding_SLog3((1023 / 1023),
-                                            out_reflection=False) * 100
+                                            out_reflection=False)
+logc_max = colour.models.log_decoding_ALEXALogC(1.0)
+vlog_max = colour.models.log_decoding_VLog(1.0, out_reflection=False) 
+red_max = colour.models.log_decoding_REDLog(1.0)
+log3g10_max = colour.models.log_decoding_Log3G10(1.0)
+log3g12_max = colour.models.log_decoding_Log3G12(1.0)
+
+MAX_VALUE = {GAMMA24: 1.0, ST2084: 10000, HLG: 1000,
+             VLOG: vlog_max, LOGC: logc_max,
+             SLOG3: slog_max, REDLOG: red_max,
+             LOG3G10: log3g10_max, LOG3G12: log3g12_max}
+
 PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
-                  VLOG: 10, CANON_LOG3: 10, LOGC: 10, SLOG3: slog_max}
+                  VLOG: vlog_max * 100, LOGC: logc_max * 100,
+                  SLOG3: slog_max * 100, REDLOG: red_max * 100,
+                  LOG3G10: log3g10_max * 100, LOG3G12: log3g12_max * 100}
 
 
 def oetf(x, name=GAMMA24):
     """
-    輝度値[cd/m2]からOETFを算出して返す。
+    [0:1] で正規化された Scene Luminace 値から OETF値 を算出して返す。
 
     Parameters
     ----------
@@ -63,15 +78,26 @@ def oetf(x, name=GAMMA24):
     """
 
     if name == GAMMA24:
-        y = x ** (1/2.4)
+        y = (x * MAX_VALUE[name]) ** (1/2.4)
     elif name == HLG:
-        y = colour.models.eotf_reverse_BT2100_HLG(x * 1000)
+        y = colour.models.eotf_reverse_BT2100_HLG(x * MAX_VALUE[name])
     elif name == ST2084:
         # fix me!
-        y = colour.models.oetf_ST2084(x * 10000)
+        y = colour.models.oetf_ST2084(x * MAX_VALUE[name])
     elif name == SLOG3:
-        max_val = colour.models.log_decoding_SLog3(1.0, out_reflection=False)
-        y = colour.models.log_encoding_SLog3(x * max_val, in_reflection=False)
+        y = colour.models.log_encoding_SLog3(x * MAX_VALUE[name],
+                                             in_reflection=False)
+    elif name == VLOG:
+        y = colour.models.log_encoding_VLog(x * MAX_VALUE[name],
+                                            in_reflection=False)
+    elif name == LOGC:
+        y = colour.models.log_encoding_ALEXALogC(x * MAX_VALUE[name])
+    elif name == REDLOG:
+        y = colour.models.log_encoding_REDLog(x * MAX_VALUE[name])
+    elif name == LOG3G10:
+        y = colour.models.log_encoding_Log3G10(x * MAX_VALUE[name])
+    elif name == LOG3G12:
+        y = colour.models.log_encoding_Log3G12(x * MAX_VALUE[name])
     else:
         raise ValueError("invalid transfer fucntion name")
 
@@ -136,14 +162,25 @@ def eotf(x, name=GAMMA24):
         y = x ** 2.4
     elif name == ST2084:
         # fix me!
-        y = colour.models.eotf_ST2084(x) / PEAK_LUMINANCE[name]
+        y = colour.models.eotf_ST2084(x) / MAX_VALUE[name]
     elif name == HLG:
-        y = colour.models.eotf_BT2100_HLG(x) / PEAK_LUMINANCE[name]
+        y = colour.models.eotf_BT2100_HLG(x) / MAX_VALUE[name]
     elif name == SLOG3:
-        max_val = colour.models.log_decoding_SLog3(1.0, out_reflection=False)
-        y = colour.models.log_decoding_SLog3(x, out_reflection=False) / max_val
+        y = colour.models.log_decoding_SLog3(x, out_reflection=False)\
+            / MAX_VALUE[name]
+    elif name == VLOG:
+        y = colour.models.log_decoding_VLog(x, out_reflection=False)\
+            / MAX_VALUE[name]
+    elif name == LOGC:
+        y = colour.models.log_decoding_ALEXALogC(x) / MAX_VALUE[name]
+    elif name == REDLOG:
+        y = colour.models.log_decoding_REDLog(x) / MAX_VALUE[name]
+    elif name == LOG3G10:
+        y = colour.models.log_decoding_Log3G10(x) / MAX_VALUE[name]
+    elif name == LOG3G12:
+        y = colour.models.log_decoding_Log3G12(x) / MAX_VALUE[name]
     else:
-        raise ValueError("invaid tranfer function name")
+        raise ValueError("invalid transfer fucntion name")
 
     return y
 
@@ -180,10 +217,17 @@ def eotf_to_luminance(x, name=GAMMA24):
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     x = np.linspace(0, 1, 1024)
-    g_name = GAMMA24
+    g_name = VLOG
     x_luminance = x * PEAK_LUMINANCE[g_name]
-    y = oetf_from_luminance(x_luminance, g_name)
-    x2 = eotf_to_luminance(y, g_name)
+    # y = oetf_from_luminance(x_luminance, g_name)
+    y = oetf(x, g_name)
     ax1 = pu.plot_1_graph()
-    ax1.plot(x_luminance, x2)
+    # ax1.plot(x_luminance, y)
+    ax1.plot(x, y)
+    plt.show()
+    # x2 = eotf_to_luminance(y, g_name)
+    x2 = eotf(y, g_name)
+    ax1 = pu.plot_1_graph()
+    # ax1.plot(x_luminance, x2)
+    ax1.plot(x, x2)
     plt.show()
