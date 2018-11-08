@@ -26,28 +26,38 @@ GAMMA24 = 'Gamma 2.4'
 ST2084 = 'SMPTE ST2084'
 HLG = 'BT.2100 HLG'
 LOGC = 'ARRI LOG_C'
-VLOG = 'Panasonic VLog'
-SLOG3 = "SONY S-Log3"
+VLOG = 'Panasonic VLog (IRE BASE)'
+VLOG_REF = 'Panasonic VLog (Reflection BASE)'
+SLOG3 = "SONY S-Log3 (IRE Base)"
+SLOG3_REF = "SONY S-Log3 (Reflection Base)"
 REDLOG = "RED REDLog"
 LOG3G10 = "RED Log3G10"
 LOG3G12 = "RED Log3G12"
 
 slog_max = colour.models.log_decoding_SLog3((1023 / 1023),
                                             out_reflection=False)
+slog_ref_max = colour.models.log_decoding_SLog3((1023 / 1023),
+                                                out_reflection=True)
 logc_max = colour.models.log_decoding_ALEXALogC(1.0)
-vlog_max = colour.models.log_decoding_VLog(1.0, out_reflection=False) 
+vlog_max = colour.models.log_decoding_VLog(1.0, out_reflection=False)
+vlog_max = colour.models.log_decoding_VLog(1.0, out_reflection=False)
+vlog_ref_max = colour.models.log_decoding_VLog(1.0, out_reflection=True)
 red_max = colour.models.log_decoding_REDLog(1.0)
 log3g10_max = colour.models.log_decoding_Log3G10(1.0)
 log3g12_max = colour.models.log_decoding_Log3G12(1.0)
 
 MAX_VALUE = {GAMMA24: 1.0, ST2084: 10000, HLG: 1000,
-             VLOG: vlog_max, LOGC: logc_max,
-             SLOG3: slog_max, REDLOG: red_max,
+             VLOG: vlog_max, VLOG_REF: vlog_ref_max,
+             LOGC: logc_max,
+             SLOG3: slog_max, SLOG3_REF: slog_ref_max,
+             REDLOG: red_max,
              LOG3G10: log3g10_max, LOG3G12: log3g12_max}
 
 PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
-                  VLOG: vlog_max * 100, LOGC: logc_max * 100,
-                  SLOG3: slog_max * 100, REDLOG: red_max * 100,
+                  VLOG: vlog_max * 100, VLOG_REF: vlog_ref_max * 100,
+                  LOGC: logc_max * 100,
+                  SLOG3: slog_max * 100, SLOG3_REF: slog_ref_max * 100,
+                  REDLOG: red_max * 100,
                   LOG3G10: log3g10_max * 100, LOG3G12: log3g12_max * 100}
 
 
@@ -87,9 +97,15 @@ def oetf(x, name=GAMMA24):
     elif name == SLOG3:
         y = colour.models.log_encoding_SLog3(x * MAX_VALUE[name],
                                              in_reflection=False)
+    elif name == SLOG3_REF:
+        y = colour.models.log_encoding_SLog3(x * MAX_VALUE[name],
+                                             in_reflection=True)
     elif name == VLOG:
         y = colour.models.log_encoding_VLog(x * MAX_VALUE[name],
                                             in_reflection=False)
+    elif name == VLOG_REF:
+        y = colour.models.log_encoding_VLog(x * MAX_VALUE[name],
+                                            in_reflection=True)
     elif name == LOGC:
         y = colour.models.log_encoding_ALEXALogC(x * MAX_VALUE[name])
     elif name == REDLOG:
@@ -168,8 +184,14 @@ def eotf(x, name=GAMMA24):
     elif name == SLOG3:
         y = colour.models.log_decoding_SLog3(x, out_reflection=False)\
             / MAX_VALUE[name]
+    elif name == SLOG3_REF:
+        y = colour.models.log_decoding_SLog3(x, out_reflection=True)\
+            / MAX_VALUE[name]
     elif name == VLOG:
         y = colour.models.log_decoding_VLog(x, out_reflection=False)\
+            / MAX_VALUE[name]
+    elif name == VLOG_REF:
+        y = colour.models.log_decoding_VLog(x, out_reflection=True)\
             / MAX_VALUE[name]
     elif name == LOGC:
         y = colour.models.log_decoding_ALEXALogC(x) / MAX_VALUE[name]

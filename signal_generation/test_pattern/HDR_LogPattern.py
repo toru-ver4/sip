@@ -27,17 +27,27 @@ V_LOG_CS = colour.models.V_GAMUT_COLOURSPACE
 ALEXA_WIDE_GAMUT_CS = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
 RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
 
+# PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
+#               {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.HLG, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
+#               {'tf': tf.VLOG, 'cs': V_LOG_CS, 'wp': 'D65'},
+#               {'tf': tf.LOGC, 'cs': ALEXA_WIDE_GAMUT_CS, 'wp': 'D65'},
+#               {'tf': tf.REDLOG, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+#               {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+#               {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+#               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'}]
+
 PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
-              {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.HLG, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
-              {'tf': tf.VLOG, 'cs': V_LOG_CS, 'wp': 'D65'},
-              {'tf': tf.LOGC, 'cs': ALEXA_WIDE_GAMUT_CS, 'wp': 'D65'},
-              {'tf': tf.REDLOG, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
-              {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
-              {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
-              {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'}]
+              {'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'},
+              {'tf': tf.SLOG3_REF, 'cs': BT709_CS, 'wp': 'D65'},
+              {'tf': tf.VLOG, 'cs': BT709_CS, 'wp': 'D65'},
+              {'tf': tf.VLOG_REF, 'cs': BT709_CS, 'wp': 'D65'},
+              {'tf': tf.LOGC, 'cs': BT709_CS, 'wp': 'D65'},
+              {'tf': tf.LOG3G10, 'cs': BT709_CS, 'wp': 'D65'}]
+
+# PARAM_LIST = [{'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
