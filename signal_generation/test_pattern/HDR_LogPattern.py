@@ -39,13 +39,13 @@ RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
 #               {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
 #               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'}]
 
-PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
-              {'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'},
-              {'tf': tf.SLOG3_REF, 'cs': BT709_CS, 'wp': 'D65'},
-              {'tf': tf.VLOG, 'cs': BT709_CS, 'wp': 'D65'},
-              {'tf': tf.VLOG_REF, 'cs': BT709_CS, 'wp': 'D65'},
-              {'tf': tf.LOGC, 'cs': BT709_CS, 'wp': 'D65'},
-              {'tf': tf.LOG3G10, 'cs': BT709_CS, 'wp': 'D65'}]
+PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
+            #   {'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'},
+            #   {'tf': tf.SLOG3_REF, 'cs': BT709_CS, 'wp': 'D65'},
+            #   {'tf': tf.VLOG, 'cs': BT709_CS, 'wp': 'D65'},
+            #   {'tf': tf.VLOG_REF, 'cs': BT709_CS, 'wp': 'D65'},
+            #   {'tf': tf.LOGC, 'cs': BT709_CS, 'wp': 'D65'},
+            #   {'tf': tf.LOG3G10, 'cs': BT709_CS, 'wp': 'D65'}]
 
 # PARAM_LIST = [{'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'}]
 
@@ -55,7 +55,8 @@ class TpgControl:
     必要なパラメータの受け取り。各種命令の実行。
     """
     def __init__(self, resolution='3840x2160', transfer_function=tf.GAMMA24,
-                 color_space=BT709_CS, white_point="D65"):
+                 color_space=BT709_CS, white_point="D65",
+                 revision=REVISION):
         """
         white_point は 次のいずれか。'D50', 'D55', 'D60', 'D65', 'DCI-P3'
         """
@@ -66,6 +67,7 @@ class TpgControl:
         self.bit_depth = 10
         self.color_space = color_space
         self.white_point = white_point
+        self.revision = revision
         self.draw_param = self.gen_keywords_for_draw()
 
     def parse_resolution(self, resolution):
@@ -87,13 +89,18 @@ class TpgControl:
                   'bit_depth': self.bit_depth,
                   'transfer_function': self.transfer_function,
                   'color_space': self.color_space,
-                  'white_point': self.white_point}
+                  'white_point': self.white_point,
+                  'revision': self.revision}
 
         return kwargs
 
-    def draw_image(self, preview=False):
+    def draw_image_type1(self, preview=False):
         draw = TpgDraw(self.draw_param, preview)
-        self.img = draw.draw()
+        self.img = draw.draw_tpg_type1()
+
+    def draw_image_type2(self, preview=False):
+        draw = TpgDraw(self.draw_param, preview)
+        self.img = draw.draw_tpg_type2()
 
     def save_image(self, fname):
         io = TpgIO(self.img, BIT_DEPTH)
@@ -115,14 +122,23 @@ def main_func():
             tpg_ctrl = TpgControl(resolution=resolution,
                                   transfer_function=transfer_function,
                                   color_space=color_space,
-                                  white_point=white_point)
-            tpg_ctrl.draw_image(preview=False)
-            fname = "./img/{}_{}_{}_{}.dpx".format(transfer_function,
-                                                   color_space.name,
-                                                   white_point,
-                                                   resolution)
+                                  white_point=white_point,
+                                  revision=REVISION)
+            # tpg_ctrl.draw_image_type1(preview=False)
+            # fname_str = "./img/{}_{}_{}_{}_rev{:02d}_type1.dpx"
+            # fname = fname_str.format(transfer_function,
+            #                          color_space.name,
+            #                          white_point,
+            #                          resolution,
+            #                          REVISION)
+            # tpg_ctrl.save_image(fname)
+
+            tpg_ctrl.draw_image_type2(preview=False)
+            fname_str = "./img/{}_{}_rev{:02d}_type2.dpx"
+            fname = fname_str.format(transfer_function,
+                                     resolution,
+                                     REVISION)
             tpg_ctrl.save_image(fname)
-            # tpg_ctrl.load_image(fname)
 
 
 if __name__ == '__main__':

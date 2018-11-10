@@ -36,6 +36,7 @@ class TpgDraw:
         self.transfer_function = draw_param['transfer_function']
         self.color_space = draw_param['color_space']
         self.white_point = draw_param['white_point']
+        self.revision = draw_param['revision']
 
         self.convert_to_8bit_coef = 2 ** (self.bit_depth - 8)
         self.convert_from_10bit_coef = 2 ** (16 - self.bit_depth)
@@ -65,28 +66,17 @@ class TpgDraw:
         self.info_text_st_pos_v_coef = 0.043
         self.info_text_size_coef = 0.3
 
+        self.info2_text_st_pos_h_coef = 0.7
+        self.info2_text_st_pos_v_coef = 0.043
+        self.info2_text_size_coef = 0.02
+
+        self.step_bar_width_coef_type2 = 0.7
+        self.step_bar_height_coef_type2 = 0.2 * self.step_bar_width_coef_type2
+        self.step_bar_st_pos_v_coef_type2 = 0.1
+        self.step_bar_text_width_type2 = 0.3
+
         self.set_fg_code_value()
         self.set_bg_code_value()
-        # self.set_color_space()
-
-    # def set_color_space(self):
-    #     """
-    #     Color Checker の色域変換のために Color Space を設定する。
-    #     """
-    #     if self.transfer_function == tf.GAMMA24:
-    #         self.color_space = colour.models.BT709_COLOURSPACE
-    #     elif self.transfer_function == tf.HLG:
-    #         self.color_space = colour.models.BT2020_COLOURSPACE
-    #     elif self.transfer_function == tf.ST2084:
-    #         self.color_space = colour.models.BT2020_COLOURSPACE
-    #     elif self.transfer_function == tf.VLOG:
-    #         self.color_space = colour.models.V_GAMUT_COLOURSPACE
-    #     elif self.transfer_function == tf.LOGC:
-    #         self.color_space = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
-    #     elif self.transfer_function == tf.SLOG3:
-    #         self.color_space = colour.models.S_GAMUT3_CINE_COLOURSPACE
-    #     else:
-    #         raise ValueError("invalid transfer function name")
 
     def set_bg_code_value(self):
         code_value = tf.oetf_from_luminance(self.bg_color,
@@ -146,6 +136,15 @@ class TpgDraw:
         冒頭の解説用テキストの情報を取得
         """
         font_size = self.img_height * self.info_text_size_coef
+        text_height = font_size / 72 * 96 * 1.1
+
+        return int(text_height), int(font_size)
+
+    def get_info2_text_height_and_size(self):
+        """
+        冒頭の解説用テキストの情報を取得
+        """
+        font_size = self.img_height * self.info2_text_size_coef
         text_height = font_size / 72 * 96 * 1.1
 
         return int(text_height), int(font_size)
@@ -454,7 +453,8 @@ class TpgDraw:
         text_list = ["■ Information",
                      "    OETF: {}".format(self.transfer_function),
                      "    White Point: {}".format(self.white_point),
-                     "    Gamut: {}".format(self.color_space.name)]
+                     "    Gamut: {}".format(self.color_space.name),
+                     "    Revision: {}".format(self.revision)]
         text_height, font_size = self.get_each_spec_text_height_and_size()
         st_pos_h = int(self.info_text_st_pos_h_coef * self.img_width)
         st_pos_v = int(self.info_text_st_pos_v_coef * self.img_height)
@@ -464,7 +464,23 @@ class TpgDraw:
             self.merge_each_spec_text(pos, font_size, text_img_size, text)
             st_pos_v += text_height
 
-    def draw(self):
+    def draw_info_text_type2(self):
+        text_list = ["■ Information",
+                     "    OETF: {}".format(self.transfer_function),
+                     "    Revison: {:02d}".format(self.revision)]
+        text_height, font_size = self.get_info2_text_height_and_size()
+        st_pos_h = int(self.info2_text_st_pos_h_coef * self.img_width)
+        st_pos_v = int(self.info2_text_st_pos_v_coef * self.img_height)
+        for text in text_list:
+            pos = (st_pos_h, st_pos_v)
+            text_img_size = (self.img_width - st_pos_h, text_height)
+            self.merge_each_spec_text(pos, font_size, text_img_size, text)
+            st_pos_v += text_height
+
+    def draw_tpg_type1(self):
+        """
+        Color Checker付きの基本的なパターンを描画。
+        """
         self.img = np.ones((self.img_height, self.img_width, 3),
                            dtype=np.uint16)
         self.draw_bg_color()
@@ -479,6 +495,93 @@ class TpgDraw:
         if self.preview:
             self.preview_iamge(self.img / self.img_max)
 
+        return self.img
+
+    def get_video_level_text_img_type2(self, scale_step, width):
+        """
+        ステップカラーに付与する VideoLevel & Luminance 情報。
+        最初は縦向きで作って、最後に横向きにする
+        """
+        fg_color = self.get_fg_color_for_pillow()
+        text_height_list = tpg.equal_devision(width, scale_step)
+        font_size = self.get_color_bar_text_font_size(width / scale_step)
+        video_level = np.linspace(0, 2 ** self.bit_depth, scale_step)
+        video_level[-1] -= 1
+        video_level_float = video_level / self.img_max
+        bright_list = tf.eotf_to_luminance(video_level_float,
+                                           self.transfer_function)
+        text_width = int(self.step_bar_text_width * self.img_height)
+        txt_img = Image.new("RGB", (text_width, width), (0x00, 0x00, 0x00))
+        draw = ImageDraw.Draw(txt_img)
+        font = ImageFont.truetype("./fonts/NotoSansMonoCJKjp-Regular.otf",
+                                  font_size)
+        st_pos_h = 0
+        st_pos_v = 0
+        for idx in range(scale_step):
+            pos = (st_pos_h, st_pos_v)
+            if bright_list[idx] < 999.99999:
+                text_data = " {:>4.0f},{:>7.1f} nit".format(video_level[idx],
+                                                            bright_list[idx])
+            else:
+                text_data = " {:>4.0f},{:>6.0f} nit".format(video_level[idx],
+                                                            bright_list[idx])
+            draw.text(pos, text_data, font=font, fill=fg_color)
+            st_pos_v += text_height_list[idx]
+
+        txt_img = self.convert_from_pillow_to_numpy(txt_img)
+        txt_img = np.rot90(txt_img)
+
+        return txt_img
+
+    def draw_wrgbmyc_color_bar_type2(self):
+        """
+        階段状のカラーバーをプロットする
+        """
+        scale_step = 65
+        color_list = [(1, 1, 1), (1, 1, 1), (1, 0, 0), (0, 1, 0), (0, 0, 1),
+                      (1, 0, 1), (1, 1, 0), (0, 1, 1)]
+        width = int(self.img_width * self.step_bar_width_coef)
+        height = int(self.img_height * self.step_bar_height_coef)
+        color_bar_st_pos_h = self.get_color_bar_st_pos_h(width)
+        color_bar_st_pos_v = int(self.img_height * self.step_bar_st_pos_v_coef)
+        st_pos = (color_bar_st_pos_h, color_bar_st_pos_v)
+
+        bar_height_list = tpg.equal_devision(height, len(color_list))
+        bar_img_list = []
+        for color, bar_height in zip(color_list, bar_height_list):
+            color_bar = tpg.gen_step_gradation(width=width, height=bar_height,
+                                               step_num=scale_step,
+                                               bit_depth=self.bit_depth,
+                                               color=color, direction='h')
+            bar_img_list.append(color_bar)
+        color_bar = np.vstack(bar_img_list)
+        tpg.merge(self.img, color_bar, st_pos)
+
+        # ここからテキスト。あらかじめV方向で作っておき、最後に回転させる
+        txt_img = self.get_video_level_text_img_type2(scale_step, width)
+        text_pos = self.get_text_st_pos_for_over_info(st_pos, txt_img.shape[0])
+        self.merge_text(txt_img, text_pos)
+
+        # 説明文を下に追加する
+        text_pos_v = st_pos[1] + color_bar.shape[0]
+        text_pos = (st_pos[0], text_pos_v)
+        text_height, font_size = self.get_each_spec_text_height_and_size()
+        text = "▲ WRGBMYC Color Gradation (16 Step)"
+        self.merge_each_spec_text(text_pos, font_size,
+                                  (width, text_height), text)
+
+    def draw_tpg_type2(self):
+        """
+        グレースケールを4stepで描画した画像
+        """
+        self.img = np.ones((self.img_height, self.img_width, 3),
+                           dtype=np.uint16)
+        self.draw_bg_color()
+        self.draw_outline()
+
+        self.draw_info_text_type2()
+        self.draw_wrgbmyc_color_bar_type2()
+        self.preview_iamge(self.img / self.img_max)
         return self.img
 
 
