@@ -18,6 +18,8 @@ from PIL import ImageDraw
 import colour
 import imp
 imp.reload(tpg)
+import plot_utility as pu
+import matplotlib.pyplot as plt
 
 
 class TpgDraw:
@@ -70,10 +72,12 @@ class TpgDraw:
         self.info2_text_st_pos_v_coef = 0.043
         self.info2_text_size_coef = 0.02
 
-        self.step_bar_width_coef_type2 = 0.7
+        self.step_bar_width_coef_type2 = 0.8
         self.step_bar_height_coef_type2 = 0.2 * self.step_bar_width_coef_type2
-        self.step_bar_st_pos_v_coef_type2 = 0.1
-        self.step_bar_text_width_type2 = 0.3
+        self.step_bar_st_pos_h_coef_type2 = 0.01
+        self.step_bar_st_pos_v_coef_type2 = 0.2
+        self.step_bar_v_space_coef_type2 = 0.2
+        self.step_bar_text_width_type2 = 0.2
 
         self.set_fg_code_value()
         self.set_bg_code_value()
@@ -340,7 +344,7 @@ class TpgDraw:
         self.merge_each_spec_text(text_pos, font_size,
                                   (width, text_height), text)
 
-    def get_video_level_text_img(self, scale_step, width):
+    def get_video_level_text_img(self, scale_step, width, type=1):
         """
         ステップカラーに付与する VideoLevel & Luminance 情報。
         最初は縦向きで作って、最後に横向きにする
@@ -353,7 +357,12 @@ class TpgDraw:
         video_level_float = video_level / self.img_max
         bright_list = tf.eotf_to_luminance(video_level_float,
                                            self.transfer_function)
-        text_width = int(self.step_bar_text_width * self.img_height)
+        if type == 1:
+            text_width = int(self.step_bar_text_width * self.img_height)
+        elif type == 2:
+            text_width = int(self.step_bar_text_width_type2 * self.img_height)
+        else:
+            raise ValueError('invalid tpg-type')
         txt_img = Image.new("RGB", (text_width, width), (0x00, 0x00, 0x00))
         draw = ImageDraw.Draw(txt_img)
         font = ImageFont.truetype("./fonts/NotoSansMonoCJKjp-Regular.otf",
@@ -497,53 +506,20 @@ class TpgDraw:
 
         return self.img
 
-    def get_video_level_text_img_type2(self, scale_step, width):
-        """
-        ステップカラーに付与する VideoLevel & Luminance 情報。
-        最初は縦向きで作って、最後に横向きにする
-        """
-        fg_color = self.get_fg_color_for_pillow()
-        text_height_list = tpg.equal_devision(width, scale_step)
-        font_size = self.get_color_bar_text_font_size(width / scale_step)
-        video_level = np.linspace(0, 2 ** self.bit_depth, scale_step)
-        video_level[-1] -= 1
-        video_level_float = video_level / self.img_max
-        bright_list = tf.eotf_to_luminance(video_level_float,
-                                           self.transfer_function)
-        text_width = int(self.step_bar_text_width * self.img_height)
-        txt_img = Image.new("RGB", (text_width, width), (0x00, 0x00, 0x00))
-        draw = ImageDraw.Draw(txt_img)
-        font = ImageFont.truetype("./fonts/NotoSansMonoCJKjp-Regular.otf",
-                                  font_size)
-        st_pos_h = 0
-        st_pos_v = 0
-        for idx in range(scale_step):
-            pos = (st_pos_h, st_pos_v)
-            if bright_list[idx] < 999.99999:
-                text_data = " {:>4.0f},{:>7.1f} nit".format(video_level[idx],
-                                                            bright_list[idx])
-            else:
-                text_data = " {:>4.0f},{:>6.0f} nit".format(video_level[idx],
-                                                            bright_list[idx])
-            draw.text(pos, text_data, font=font, fill=fg_color)
-            st_pos_v += text_height_list[idx]
-
-        txt_img = self.convert_from_pillow_to_numpy(txt_img)
-        txt_img = np.rot90(txt_img)
-
-        return txt_img
-
     def draw_wrgbmyc_color_bar_type2(self):
         """
         階段状のカラーバーをプロットする
         """
-        scale_step = 65
+        scale_step = 257
         color_list = [(1, 1, 1), (1, 1, 1), (1, 0, 0), (0, 1, 0), (0, 0, 1),
                       (1, 0, 1), (1, 1, 0), (0, 1, 1)]
-        width = int(self.img_width * self.step_bar_width_coef)
-        height = int(self.img_height * self.step_bar_height_coef)
-        color_bar_st_pos_h = self.get_color_bar_st_pos_h(width)
-        color_bar_st_pos_v = int(self.img_height * self.step_bar_st_pos_v_coef)
+        width = int(self.img_width * self.step_bar_width_coef_type2) * 4
+        height = int(self.img_height * self.step_bar_height_coef_type2)
+        vspace = int(self.img_height * self.step_bar_v_space_coef_type2)
+        color_bar_st_pos_h = int(self.img_width
+                                 * self.step_bar_st_pos_h_coef_type2)
+        color_bar_st_pos_v = int(self.img_height
+                                 * self.step_bar_st_pos_v_coef_type2)
         st_pos = (color_bar_st_pos_h, color_bar_st_pos_v)
 
         bar_height_list = tpg.equal_devision(height, len(color_list))
@@ -555,20 +531,25 @@ class TpgDraw:
                                                color=color, direction='h')
             bar_img_list.append(color_bar)
         color_bar = np.vstack(bar_img_list)
-        tpg.merge(self.img, color_bar, st_pos)
 
-        # ここからテキスト。あらかじめV方向で作っておき、最後に回転させる
-        txt_img = self.get_video_level_text_img_type2(scale_step, width)
-        text_pos = self.get_text_st_pos_for_over_info(st_pos, txt_img.shape[0])
-        self.merge_text(txt_img, text_pos)
+        # テキストデータ作成
+        txt_img = self.get_video_level_text_img(scale_step, width, type=2)
 
-        # 説明文を下に追加する
-        text_pos_v = st_pos[1] + color_bar.shape[0]
-        text_pos = (st_pos[0], text_pos_v)
-        text_height, font_size = self.get_each_spec_text_height_and_size()
-        text = "▲ WRGBMYC Color Gradation (16 Step)"
-        self.merge_each_spec_text(text_pos, font_size,
-                                  (width, text_height), text)
+        # 最終データだけ削除（後で4分割できるように）
+        width = int(round(width/257*256))
+        color_bar = color_bar[:, :width, :]
+        txt_img = txt_img[:, :width, :]
+
+        for idx in range(4):
+            img_pos_h = (width // 4) * idx
+            img_merge_width = (width // 4)
+            color_bar_temp = color_bar[:, img_pos_h:img_pos_h+img_merge_width]
+            txt_img_temp = txt_img[:, img_pos_h:img_pos_h+img_merge_width]
+            tpg.merge(self.img, color_bar_temp, st_pos)
+            text_pos = self.get_text_st_pos_for_over_info(st_pos,
+                                                          txt_img.shape[0])
+            self.merge_text(txt_img_temp, text_pos)
+            st_pos = (st_pos[0], st_pos[1] + vspace)
 
     def draw_tpg_type2(self):
         """
