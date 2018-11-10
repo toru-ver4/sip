@@ -44,13 +44,13 @@ class TpgDraw:
         self.convert_from_10bit_coef = 2 ** (16 - self.bit_depth)
 
         # TpgDraw 内部パラメータ(細かい座標など)
-        self.ramp_height_coef = 0.08  # range is [0.0:1.0]
+        self.ramp_height_coef = 0.079  # range is [0.0:1.0]
         # self.ramp_st_pos_h_coef = 0.442  # range is [0.0:1.0]
         self.ramp_st_pos_h_coef = 0.03  # range is [0.0:1.0]
-        self.ramp_st_pos_v_coef = 0.21  # range is [0.0:1.0]
-        self.checker_8bit_st_pos_v_coef = self.ramp_st_pos_v_coef + 0.11
+        self.ramp_st_pos_v_coef = 0.235  # range is [0.0:1.0]
+        self.checker_8bit_st_pos_v_coef = self.ramp_st_pos_v_coef + 0.115
         self.checker_10bit_st_pos_v_coef\
-            = self.checker_8bit_st_pos_v_coef + 0.11
+            = self.checker_8bit_st_pos_v_coef + 0.115
         self.each_spec_text_size_coef = 0.02  # range is [0.0:1.0]
         self.outline_text_size_coef = 0.02  # range is [0.0:1.0]
         self.step_bar_width_coef = 0.95
@@ -58,26 +58,26 @@ class TpgDraw:
         self.step_bar_st_pos_v_coef = 0.74
         self.step_bar_text_width = 0.3
 
-        self.color_checker_size_coef = 0.057
-        self.color_checker_padding_coef = 0.0033
-        self.color_checker_st_pos_v_coef = 0.089
+        self.color_checker_size_coef = 0.060
+        self.color_checker_padding_coef = 0.0035
+        self.color_checker_st_pos_v_coef = 0.1
         # self.color_checker_st_pos_h_coef = 0.03
-        self.color_checker_st_pos_h_coef = 0.615
+        self.color_checker_st_pos_h_coef = 0.59
 
-        self.info_text_st_pos_h_coef = self.ramp_st_pos_h_coef
+        self.info_text_st_pos_h_coef = 0.3
         self.info_text_st_pos_v_coef = 0.043
         self.info_text_size_coef = 0.3
 
-        self.info2_text_st_pos_h_coef = 0.7
-        self.info2_text_st_pos_v_coef = 0.043
+        self.info2_text_st_pos_h_coef = 0.83
+        self.info2_text_st_pos_v_coef = 0.03
         self.info2_text_size_coef = 0.02
 
         self.step_bar_width_coef_type2 = 0.8
-        self.step_bar_height_coef_type2 = 0.2 * self.step_bar_width_coef_type2
-        self.step_bar_st_pos_h_coef_type2 = 0.01
-        self.step_bar_st_pos_v_coef_type2 = 0.2
-        self.step_bar_v_space_coef_type2 = 0.2
-        self.step_bar_text_width_type2 = 0.2
+        self.step_bar_height_coef_type2 = 0.09 * self.step_bar_width_coef_type2
+        self.step_bar_st_pos_h_coef_type2 = 0.02
+        self.step_bar_st_pos_v_coef_type2 = 0.17
+        self.step_bar_v_space_coef_type2 = 0.24
+        self.step_bar_text_width_type2 = 0.15
 
         self.set_fg_code_value()
         self.set_bg_code_value()
@@ -372,11 +372,11 @@ class TpgDraw:
         for idx in range(scale_step):
             pos = (st_pos_h, st_pos_v)
             if bright_list[idx] < 999.99999:
-                text_data = " {:>4.0f},{:>7.1f} nit".format(video_level[idx],
+                text_data = " {:>4.0f},{:>6.1f} nit".format(video_level[idx],
                                                             bright_list[idx])
             else:
-                text_data = " {:>4.0f},{:>6.0f} nit".format(video_level[idx],
-                                                            bright_list[idx])
+                text_data = " {:>4.0f},{:>5.0f}  nit".format(video_level[idx],
+                                                             bright_list[idx])
             draw.text(pos, text_data, font=font, fill=fg_color)
             st_pos_v += text_height_list[idx]
 
@@ -463,7 +463,7 @@ class TpgDraw:
                      "    OETF: {}".format(self.transfer_function),
                      "    White Point: {}".format(self.white_point),
                      "    Gamut: {}".format(self.color_space.name),
-                     "    Revision: {}".format(self.revision)]
+                     "    Revision: {:02d}".format(self.revision)]
         text_height, font_size = self.get_each_spec_text_height_and_size()
         st_pos_h = int(self.info_text_st_pos_h_coef * self.img_width)
         st_pos_v = int(self.info_text_st_pos_v_coef * self.img_height)
@@ -511,8 +511,7 @@ class TpgDraw:
         階段状のカラーバーをプロットする
         """
         scale_step = 257
-        color_list = [(1, 1, 1), (1, 1, 1), (1, 0, 0), (0, 1, 0), (0, 0, 1),
-                      (1, 0, 1), (1, 1, 0), (0, 1, 1)]
+        color_list = [(1, 1, 1)]
         width = int(self.img_width * self.step_bar_width_coef_type2) * 4
         height = int(self.img_height * self.step_bar_height_coef_type2)
         vspace = int(self.img_height * self.step_bar_v_space_coef_type2)

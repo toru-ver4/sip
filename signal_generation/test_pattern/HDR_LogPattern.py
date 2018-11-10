@@ -39,7 +39,7 @@ RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
 #               {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
 #               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'}]
 
-PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
+PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT709_CS, 'wp': 'D65'}]
             #   {'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'},
             #   {'tf': tf.SLOG3_REF, 'cs': BT709_CS, 'wp': 'D65'},
             #   {'tf': tf.VLOG, 'cs': BT709_CS, 'wp': 'D65'},
@@ -124,7 +124,7 @@ def main_func():
                                   color_space=color_space,
                                   white_point=white_point,
                                   revision=REVISION)
-            # tpg_ctrl.draw_image_type1(preview=False)
+            # tpg_ctrl.draw_image_type1(preview=True)
             # fname_str = "./img/{}_{}_{}_{}_rev{:02d}_type1.dpx"
             # fname = fname_str.format(transfer_function,
             #                          color_space.name,
