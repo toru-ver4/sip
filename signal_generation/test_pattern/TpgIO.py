@@ -9,9 +9,11 @@ TestPattern作成時の File への Write/Read を使いやすいように
 カスタムしたモジュール。TyImageIO の用途を更に制限した感じ。
 """
 import os
+import struct
 import OpenImageIO as oiio
 import numpy as np
 from TyImageIO import TyWriter, TyReader
+from PIL import ImageCms
 
 
 class TpgIO:
@@ -33,7 +35,12 @@ class TpgIO:
         print("This Function is not implemented.")
 
     def save_tiff_image(self, fname):
-        attr = {'Compression': 'none'}
+        icc_fname = "HDR_P3_D65_ST2084.icc"
+        icc_profile = ImageCms.getOpenProfile(icc_fname).tobytes()
+        icc_profile = struct.unpack("{}B".format(len(icc_profile)),
+                                    icc_profile)
+
+        attr = {'Compression': 'none', "ICCProfile": icc_profile}
         writer2 = TyWriter(self.img / self.img_max, fname, attr)
         writer2.write(out_img_type_desc=oiio.UINT16)
 

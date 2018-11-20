@@ -110,7 +110,9 @@ class TyImageIO:
             return
 
         for key, value in attr.items():
-            if isinstance(value, list) or isinstance(value, tuple):
+            if key == "ICCProfile":
+                img_spec.attribute(key, oiio.UINT8, value)
+            elif isinstance(value, list) or isinstance(value, tuple):
                 img_spec.attribute(key, value[0], value[1])
             else:
                 img_spec.attribute(key, value)
