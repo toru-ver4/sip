@@ -406,7 +406,9 @@ class TpgDraw:
         illuminant_XYZ = whitepoint   # ColorCheckerのオリジナルデータの白色点
         illuminant_RGB = rgb_white_point  # RGBの白色点を設定
         chromatic_adaptation_transform = 'CAT02'
-        large_xyz_to_rgb_matrix = self.color_space.XYZ_to_RGB_matrix
+        large_xyz_to_rgb_matrix\
+            = tpg.get_xyz_to_rgb_matrix(self.color_space.name)
+        # large_xyz_to_rgb_matrix = self.color_space.XYZ_to_RGB_matrix
         rgb = colour.models.XYZ_to_RGB(large_xyz, illuminant_XYZ,
                                        illuminant_RGB,
                                        large_xyz_to_rgb_matrix,
@@ -561,7 +563,8 @@ class TpgDraw:
 
         self.draw_info_text_type2()
         self.draw_wrgbmyc_color_bar_type2()
-        self.preview_iamge(self.img / self.img_max)
+        if self.preview:
+            self.preview_iamge(self.img / self.img_max)
         return self.img
 
 

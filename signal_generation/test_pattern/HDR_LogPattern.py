@@ -17,6 +17,15 @@ import colour
 REVISION = 0
 BIT_DEPTH = 10
 
+
+class DciP3ColorSpace:
+    """
+    DCI-P3 D65 の定義
+    """
+    def __init__(self):
+        self.name = "DCI-P3"
+
+
 BT709_CS = colour.models.BT709_COLOURSPACE
 BT2020_CS = colour.models.BT2020_COLOURSPACE
 V_GAMUT_CS = colour.models.V_GAMUT_COLOURSPACE
@@ -26,6 +35,7 @@ S_GAMUT3_CS = colour.models.S_GAMUT3_COLOURSPACE
 V_LOG_CS = colour.models.V_GAMUT_COLOURSPACE
 ALEXA_WIDE_GAMUT_CS = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
 RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
+DCI_P3_CS = DciP3ColorSpace()
 
 # PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
 #               {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
@@ -34,12 +44,15 @@ RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
 #               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
 #               {'tf': tf.VLOG, 'cs': V_LOG_CS, 'wp': 'D65'},
 #               {'tf': tf.LOGC, 'cs': ALEXA_WIDE_GAMUT_CS, 'wp': 'D65'},
-#               {'tf': tf.REDLOG, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+#               {'tf': tf.LOGC, 'cs': BT2020_CS, 'wp': 'D65'},
+#             #   {'tf': tf.REDLOG, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
 #               {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
 #               {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+#               {'tf': tf.LOG3G10, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.LOG3G12, 'cs': BT2020_CS, 'wp': 'D65'},
 #               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'}]
 
-PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT709_CS, 'wp': 'D65'}]
+# PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT709_CS, 'wp': 'D65'}]
             #   {'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'},
             #   {'tf': tf.SLOG3_REF, 'cs': BT709_CS, 'wp': 'D65'},
             #   {'tf': tf.VLOG, 'cs': BT709_CS, 'wp': 'D65'},
@@ -47,7 +60,7 @@ PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT709_CS, 'wp': 'D65'}]
             #   {'tf': tf.LOGC, 'cs': BT709_CS, 'wp': 'D65'},
             #   {'tf': tf.LOG3G10, 'cs': BT709_CS, 'wp': 'D65'}]
 
-# PARAM_LIST = [{'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'}]
+PARAM_LIST = [{'tf': tf.ST2084, 'cs': DCI_P3_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
@@ -124,14 +137,14 @@ def main_func():
                                   color_space=color_space,
                                   white_point=white_point,
                                   revision=REVISION)
-            # tpg_ctrl.draw_image_type1(preview=True)
-            # fname_str = "./img/{}_{}_{}_{}_rev{:02d}_type1.dpx"
-            # fname = fname_str.format(transfer_function,
-            #                          color_space.name,
-            #                          white_point,
-            #                          resolution,
-            #                          REVISION)
-            # tpg_ctrl.save_image(fname)
+            tpg_ctrl.draw_image_type1(preview=False)
+            fname_str = "./img/{}_{}_{}_{}_rev{:02d}_type1.dpx"
+            fname = fname_str.format(transfer_function,
+                                     color_space.name,
+                                     white_point,
+                                     resolution,
+                                     REVISION)
+            tpg_ctrl.save_image(fname)
 
             tpg_ctrl.draw_image_type2(preview=False)
             fname_str = "./img/{}_{}_rev{:02d}_type2.dpx"
