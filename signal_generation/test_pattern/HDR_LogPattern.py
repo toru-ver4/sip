@@ -115,8 +115,8 @@ class TpgControl:
         draw = TpgDraw(self.draw_param, preview)
         self.img = draw.draw_tpg_type2()
 
-    def save_image(self, fname):
-        io = TpgIO(self.img, BIT_DEPTH)
+    def save_image(self, fname, transfer_function):
+        io = TpgIO(self.img, BIT_DEPTH, transfer_function)
         io.save_image(fname)
 
     def load_image(self, fname):
@@ -144,14 +144,14 @@ def main_func():
                                      white_point,
                                      resolution,
                                      REVISION)
-            tpg_ctrl.save_image(fname)
+            tpg_ctrl.save_image(fname, transfer_function)
 
             tpg_ctrl.draw_image_type2(preview=False)
             fname_str = "./img/{}_{}_rev{:02d}_type2.dpx"
             fname = fname_str.format(transfer_function,
                                      resolution,
                                      REVISION)
-            tpg_ctrl.save_image(fname)
+            tpg_ctrl.save_image(fname, transfer_function)
 
 
 if __name__ == '__main__':
