@@ -11,6 +11,11 @@ import plot_utility as pu
 import matplotlib.pyplot as plt
 
 
+M = np.array([[0.5, -1.0, 0.5],
+              [-1.0, 1.0, 0.5],
+              [0.5, 0.0, 0.0]])
+
+
 RRT_PARAMS = {
     'coefsLow': [-4.0000000000, -4.0000000000, -3.1573765773, -0.4852499958,
                  1.8477324706, 1.8477324706],
@@ -26,10 +31,30 @@ RRT_PARAMS = {
 HALF_MIN = np.finfo('float16').tiny
 
 
-def rrt_tonecurve(x, spine_param, plot=False):
+def rrt_tonecurve(x, param=RRT_PARAMS, plot=False):
     N_KNOTS_LOW = 4
     N_KNOTS_HIGH = 4
     logx = np.log10(np.fmax(x, HALF_MIN))
+
+    if logx <= np.log10(param['minPoint'][0]):
+        logy = logx * param['slopeLow']\
+            + (np.log10(param['minPoint'][1]) - param['slopeLow'] * np.log10(param['minPoint'][0]))
+    elif (logx > np.log10(param['minPoint'][0])) and (logx < np.log10(param['midPoint'][0])):
+        knot_coord = (N_KNOTS_LOW - 1)\
+            * (np.log(x) - np.log10(param['minPoint'][0]))\
+            / (np.log10(param['midPoint'][0]) - np.log10(param['minPoint'][0]))
+        j = np.int32(np.floor(knot_coord))
+        t = knot_coord - j
+        cf = np.array([param['coefsLow'][j], param['coefsLow'][j+1],
+                       param['coefsLow'][j+2]])
+        monomials = np.array([t * t, t, 1.0])
+        logy = 
+    elif (logx >= np.log10(param['midPoint'][0])) and (logx < np.log10(param['maxPoint'][0])):
+        pass
+    else:
+        pass
+
+    return 
 
 
 ODT_PARAM_1000nits = {
