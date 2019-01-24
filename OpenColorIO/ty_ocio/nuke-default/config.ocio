@@ -20,6 +20,7 @@ displays:
     - !<View> {name: None, colorspace: raw}
     - !<View> {name: sRGB, colorspace: sRGB}
     - !<View> {name: rec709, colorspace: rec709}
+    - !<View> {name: rec709, colorspace: ST2084_10000nits}
 
 active_displays: [default]
 active_views: [sRGB]
@@ -179,6 +180,18 @@ colorspaces:
     allocation: uniform
     allocationvars: [-0.125, 1.125]
     to_reference: !<FileTransform> {src: slog.spi1d, interpolation: linear}
+
+  - !<ColorSpace>
+    name: ST2084_10000nits
+    family: ""
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      Sony SLog
+    isdata: false
+    allocation: uniform
+    allocationvars: [-0.0, 100.0]
+    to_reference: !<FileTransform> {src: out_10000nits.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
     name: raw
