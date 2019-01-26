@@ -120,6 +120,14 @@ S-Log3, S-Gamut3 の colorspace 記述例を以下に抜粋する
 
 ACESで使うものであり、OCIOでは必須ではない。省略可能。Canon-Log3 にはタグ無し。
 
+allocation は linear か log かの識別子。詳細は [ここ](http://opencolorio.org/configurations/allocation_vars.html) 。
+  * linear: uniform
+  * log: lg2
+
+allocationvars は 3DLUT の入力レンジを示す。```.spi3d``` ファイルに記述すればよくね？
+とも思ったが、そもそも ```.spi3d``` はヘッダに入力レンジを記載する領域が無かった。
+余談だが、```.spi1d``` には記述する領域がある。
+
 上記の ```<MatrixTransform>``` の係数は S-Gamut3 to ACES AP0 変換Matrixだった。
 よって入力のWhite(D65)をACESのWhite(D60) に変換している。
 
