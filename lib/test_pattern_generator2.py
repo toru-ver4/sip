@@ -195,6 +195,19 @@ def xy_to_rgb(xy, name='ITU-R BT.2020', normalize='maximum', specific=None):
     return rgb
 
 
+def get_white_point(name):
+    """
+    white point を求める。CIE1931ベース。
+    """
+    if name != "DCI-P3":
+        illuminant = RGB_COLOURSPACES[name].illuminant
+        white_point = ILLUMINANTS[CMFS_NAME][illuminant]
+    else:
+        white_point = ILLUMINANTS[CMFS_NAME]["D65"]
+
+    return white_point
+
+
 def get_rgb_to_xyz_matrix(name):
     """
     RGB to XYZ の Matrix を求める。
