@@ -21,6 +21,8 @@ displays:
     - !<View> {name: sRGB, colorspace: sRGB}
     - !<View> {name: rec709, colorspace: rec709}
     - !<View> {name: ST2084, colorspace: ST2084_10000nits}
+    - !<View> {name: S-Log3, colorspace: S-Log3}
+    - !<View> {name: ARRI_LOGC, colorspace: ARRI_LOGC}
 
 active_displays: [default]
 active_views: [sRGB]
@@ -191,8 +193,34 @@ colorspaces:
     isdata: false
     allocation: uniform
     allocationvars: [-0.0, 1.0]
-    to_reference: !<FileTransform> {src: ST2084_to_Linear_10000nits.spi1d, interpolation: linear}
-    from_reference: !<FileTransform> {src: ST2084_to_Linear_10000nits.spi1d, interpolation: linear, direction: inverse}
+    to_reference: !<FileTransform> {src: SMPTE_ST2084_to_Linear.spi1d, interpolation: linear}
+    from_reference: !<FileTransform> {src: SMPTE_ST2084_to_Linear.spi1d, interpolation: linear, direction: inverse}
+
+  - !<ColorSpace>
+    name: S-Log3
+    family: ""
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      S-Log3
+    isdata: false
+    allocation: uniform
+    allocationvars: [-0.0, 1.0]
+    to_reference: !<FileTransform> {src: SONY_S-Log3_(IRE_Base)_to_Linear.spi1d, interpolation: linear}
+    from_reference: !<FileTransform> {src: SONY_S-Log3_(IRE_Base)_to_Linear.spi1d, interpolation: linear, direction: inverse}
+
+  - !<ColorSpace>
+    name: ARRI_LOGC
+    family: ""
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      ARRI LOGC
+    isdata: false
+    allocation: uniform
+    allocationvars: [-0.0, 1.0]
+    to_reference: !<FileTransform> {src: ARRI_LOG_C_to_Linear.spi1d, interpolation: linear}
+    from_reference: !<FileTransform> {src: ARRI_LOG_C_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
     name: raw
