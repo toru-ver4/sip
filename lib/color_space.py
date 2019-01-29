@@ -160,7 +160,6 @@ def rgb2rgb_mtx(src_name, dst_name):
 
 def ocio_config_mtx_str(src_name, dst_name):
     mtx = rgb2rgb_mtx(src_name, dst_name)
-    print(mtx)
     a1 = ", ".join(map(str, mtx[0, :].tolist()))
     a2 = ", ".join(map(str, mtx[1, :].tolist()))
     a3 = ", ".join(map(str, mtx[2, :].tolist()))
@@ -173,4 +172,7 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # print(rgb2rgb_mtx(DCI_P3, ACES_AP0))
     # print(rgb2rgb_mtx(BT709, DCI_P3))
-    ocio_config_mtx_str(S_GAMUT3, ACES_AP0)
+    # ocio_config_mtx_str(ACES_AP0, DCI_P3)
+    # ocio_config_mtx_str(DCI_P3, ACES_AP0)
+    ocio_config_mtx_str(ACES_AP0, BT709)
+    ocio_config_mtx_str(BT709, ACES_AP0)
