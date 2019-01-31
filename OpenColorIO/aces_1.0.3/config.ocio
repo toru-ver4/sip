@@ -36,9 +36,11 @@ displays:
     - !<View> {name: sRGB D60 sim., colorspace: Output - sRGB (D60 sim.)}
     - !<View> {name: Raw, colorspace: Utility - Raw}
     - !<View> {name: Log, colorspace: Input - ADX - ADX10}
+    - !<View> {name: P3-D65-ST2084, colorspace: Output - P3-D65 ST2084 (10000 nits)}
+    - !<View> {name: BT709-D65-GAMMA24, colorspace: Output - BT709-D65 GAMMA24 (100 nits)}
 
 active_displays: [ACES]
-active_views: [sRGB, DCDM, DCDM P3 gamut clip, P3-D60, P3-D60 ST2084 1000 nits, P3-D60 ST2084 2000 nits, P3-D60 ST2084 4000 nits, P3-DCI, Rec.2020, Rec.2020 ST2084 1000 nits, Rec.709, Rec.709 D60 sim., sRGB D60 sim., Raw, Log]
+active_views: [sRGB, DCDM, DCDM P3 gamut clip, P3-D60, P3-D60 ST2084 1000 nits, P3-D60 ST2084 2000 nits, P3-D60 ST2084 4000 nits, P3-DCI, Rec.2020, Rec.2020 ST2084 1000 nits, Rec.709, Rec.709 D60 sim., sRGB D60 sim., Raw, Log, P3-D65-ST2084, BT709-D65-GAMMA24]
 
 colorspaces:
   - !<ColorSpace>
@@ -1375,6 +1377,46 @@ colorspaces:
       children:
         - !<FileTransform> {src: Dolby_PQ_2000_nits_Shaper_to_linear.spi1d, interpolation: linear, direction: inverse}
         - !<FileTransform> {src: Dolby_PQ_2000_nits_Shaper.RRT.P3-D60_ST2084__2000_nits_.spi3d, interpolation: tetrahedral}
+
+  - !<ColorSpace>
+    name: Output - P3-D65 ST2084 (10000 nits)
+    family: Output
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      ty_ocio output - P3-D65 ST2084 (10000 nits) Output Transform
+      
+    isdata: false
+    allocation: uniform
+    allocationvars: [0, 1]
+    to_reference: !<GroupTransform>
+      children:
+        - !<FileTransform> {src: SMPTE_ST2084_to_Linear.spi1d, interpolation: linear}
+        - !<MatrixTransform> {matrix: [0.5188414630660481, 0.2873003676579024, 0.1938581693189168, 0, 0.07361168404321847, 0.8212994981474907, 0.10508881781504453, 0, -0.00040039156270921895, 0.04067382482695071, 0.9597265667352549, 0, 0, 0, 0, 1]}
+    from_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.025287327569135, -0.6919621723088936, -0.3333251554520117, 0, -0.1826215060726654, 1.2866160058179315, -0.1039944996861809, 0, 0.008584552508200815, -0.05481629005504889, 1.0462317375942687, 0, 0, 0, 0, 1]}
+        - !<FileTransform> {src: SMPTE_ST2084_to_Linear.spi1d, interpolation: linear, direction: inverse}
+
+  - !<ColorSpace>
+    name: Output - BT709-D65 GAMMA24 (100 nits)
+    family: Output
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      ty_ocio output - BT709-D65 GAMMA24 (100 nits) Output Transform
+      
+    isdata: false
+    allocation: uniform
+    allocationvars: [0, 1]
+    to_reference: !<GroupTransform>
+      children:
+        - !<FileTransform> {src: Gamma_2.4_to_Linear.spi1d, interpolation: linear}
+        - !<MatrixTransform> {matrix: [0.43957568421668025, 0.3839125893365086, 0.17651172648967858, 0, 0.08960038290392143, 0.8147141542066522, 0.09568546289518032, 0, 0.017415482729199242, 0.10873435223667391, 0.8738501650336234, 0, 0, 0, 0, 1]}
+    from_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.5219347298199275, -1.13702389648161, -0.38491083358651407, 0, -0.27547942789225904, 1.3698289786449884, -0.09434955068309422, 0, -0.015982869997415383, -0.14778923413163852, 1.1637721041802542, 0, 0, 0, 0, 1]}
+        - !<FileTransform> {src: Gamma_2.4_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
     name: Output - P3-D60 ST2084 (4000 nits)
