@@ -566,50 +566,5 @@ class TpgDraw:
         return self.img
 
 
-def dot_pattern(dot_size=4, repeat=4, color=(1.0, 1.0, 1.0)):
-    """
-    dot pattern 作る。
-    dot_size: 1なら 1dot, 2なら2dot.
-    repeat: 4なら high-lowのペアが4組.
-    color: [0:1] で正規化した色を指定
-    """
-    pixel_num = dot_size * 2 * repeat
-    even_logic = [(np.arange(pixel_num) % (dot_size * 2)) - dot_size < 0]
-    even_logic = np.dstack((even_logic, even_logic, even_logic))
-    odd_logic = np.logical_not(even_logic)
-    color = np.array(color).reshape((1, 1, 3))
-
-    even_line = (np.ones((1, pixel_num, 3)) * even_logic) * color
-    odd_line = (np.ones((1, pixel_num, 3)) * odd_logic) * color
-
-    even_block = np.repeat(even_line, dot_size, axis=0)
-    odd_block = np.repeat(odd_line, dot_size, axis=0)
-
-    pair_block = np.vstack((even_block, odd_block))
-
-    img = np.vstack([pair_block for x in range(repeat)])
-
-    # tpg.preview_image(img)
-
-    return img
-
-
-def complex_dot_pattern(size_num=2, width=64, color=(1.0, 1.0, 1.0)):
-    base_repeat = width // 2
-    img = dot_pattern(dot_size=1, repeat=base_repeat, color=color)
-    for idx in range(1, size_num):
-        dot_size = 2 ** idx
-        temp_width = width // (2 ** idx)
-        num = temp_width // 2 // dot_size
-
-        temp_img = dot_pattern(dot_size=dot_size, repeat=num, color=color)
-
-        img[-temp_width:, -temp_width:, :] = temp_img
-
-    tpg.preview_image(img)
-
-
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # dot_pattern(dot_size=32, repeat=4, color=(1.0, 1.0, 1.0))
-    complex_dot_pattern(size_num=4, width=256, color=(1.0, 1.0, 1.0))
