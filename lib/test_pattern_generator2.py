@@ -754,27 +754,41 @@ def merge(img_a, img_b, pos=(0, 0)):
 def dot_pattern(dot_size=4, repeat=4, color=(1.0, 1.0, 1.0)):
     """
     dot pattern 作る。
-    dot_size: 1なら 1dot, 2なら2dot.
-    repeat: 4なら high-lowのペアが4組.
-    color: [0:1] で正規化した色を指定
+
+    Parameters
+    ----------
+    dot_size : integer
+        dot size.
+    repeat : integer
+        The number of high-low pairs.
+    color : array_like
+        color value (min=0.0, max=1.0, linear, not encoded).
+
+    Returns
+    -------
+    array_like
+        dot pattern image.
+
     """
+    # 水平・垂直のピクセル数
     pixel_num = dot_size * 2 * repeat
+
+    # High-Log の 論理配列を生成
     even_logic = [(np.arange(pixel_num) % (dot_size * 2)) - dot_size < 0]
     even_logic = np.dstack((even_logic, even_logic, even_logic))
     odd_logic = np.logical_not(even_logic)
-    color = np.array(color).reshape((1, 1, 3))
 
+    # 着色
+    color = np.array(color).reshape((1, 1, 3))
     even_line = (np.ones((1, pixel_num, 3)) * even_logic) * color
     odd_line = (np.ones((1, pixel_num, 3)) * odd_logic) * color
 
+    # V方向にコピー＆Even-Oddの結合
     even_block = np.repeat(even_line, dot_size, axis=0)
     odd_block = np.repeat(odd_line, dot_size, axis=0)
-
     pair_block = np.vstack((even_block, odd_block))
 
     img = np.vstack([pair_block for x in range(repeat)])
-
-    # tpg.preview_image(img)
 
     return img
 
@@ -782,8 +796,27 @@ def dot_pattern(dot_size=4, repeat=4, color=(1.0, 1.0, 1.0)):
 def complex_dot_pattern(kind_num=3, whole_repeat=2,
                         fg_color=(1.0, 1.0, 1.0), bg_color=(0.15, 0.15, 0.15)):
     """
-    kind_num: 何段階の大きさよ用意するか
-    whole_repeat: kind_num * 2 のセットを何回ループするのか？
+    dot pattern 作る。
+
+    Parameters
+    ----------
+    kind_num : integer
+        作成するドットサイズの種類。
+        例えば、kind_num=3 ならば、1dot, 2dot, 4dot のパターンを作成。
+    whole_repeat : integer
+        異なる複数種類のドットパターンの組数。
+        例えば、kind_num=3, whole_repeat=2 ならば、
+        1dot, 2dot, 4dot のパターンを水平・垂直に2組作る。
+    fg_color : array_like
+        foreground color value (min=0.0, max=1.0, linear, not encoded).
+    bg_color : array_like
+        background color value (min=0.0, max=1.0, linear, not encoded).
+
+    Returns
+    -------
+    array_like
+        dot pattern image.
+
     """
     max_dot_width = 2 ** kind_num
     img_list = []
