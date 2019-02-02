@@ -465,7 +465,7 @@ def get_csf_color_image(width=640, height=480,
     lv1_16bit = lv1
     lv2_16bit = lv2
     img = np.zeros((height, width, 3), dtype=np.uint16)
-    
+
     width_temp = width
     height_temp = height
     h_pos_temp = 0
@@ -841,6 +841,59 @@ def complex_dot_pattern(kind_num=3, whole_repeat=2,
     return img
 
 
+def make_csf_color_image(width=640, height=640,
+                         lv1=np.array([940, 940, 940], dtype=np.uint16),
+                         lv2=np.array([1023, 1023, 1023], dtype=np.uint16),
+                         stripe_num=6):
+    """
+    長方形を複数個ズラして重ねることでCSFパターンっぽいのを作る。
+    入力信号レベルは10bitに限定する。
+
+    Parameters
+    ----------
+    width : numeric.
+        width of the pattern image.
+    height : numeric.
+        height of the pattern image.
+    lv1 : array_like
+        video level 1. this value must be 10bit.
+    lv2 : array_like
+        video level 2. this value must be 10bit.
+    stripe_num : numeric
+        number of the stripe.
+
+    Returns
+    -------
+    array_like
+        a cms pattern image.
+    """
+    width_list = equal_devision(width, stripe_num)
+    height_list = equal_devision(height, stripe_num)
+    h_pos_list = equal_devision(width // 2, stripe_num)
+    v_pos_list = equal_devision(height // 2, stripe_num)
+    img = np.zeros((height, width, 3), dtype=np.uint16)
+
+    width_temp = width
+    height_temp = height
+    h_pos_temp = 0
+    v_pos_temp = 0
+    for idx in range(stripe_num):
+        lv = lv1 if (idx % 2) == 0 else lv2
+        temp_img = np.ones((height_temp, width_temp, 3), dtype=np.uint16)
+        temp_img = temp_img * lv.reshape((1, 1, 3))
+        ed_pos_h = h_pos_temp + width_temp
+        ed_pos_v = v_pos_temp + height_temp
+        img[v_pos_temp:ed_pos_v, h_pos_temp:ed_pos_h] = temp_img
+        width_temp -= width_list[stripe_num - 1 - idx]
+        height_temp -= height_list[stripe_num - 1 - idx]
+        h_pos_temp += h_pos_list[idx]
+        v_pos_temp += v_pos_list[idx]
+
+    preview_image(img / 1023)
+
+    return img
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_chromaticity_diagram()
@@ -852,6 +905,10 @@ if __name__ == '__main__':
     # x = np.linspace(0, 1.0, samples)
     # quadratic_bezier_curve(x, p0, p1, p2, samples)
     # dot_pattern(dot_size=32, repeat=4, color=(1.0, 1.0, 1.0))
-    complex_dot_pattern(kind_num=3, whole_repeat=1,
-                        fg_color=np.array([1.0, 1.0, 1.0]),
-                        bg_color=np.array([0.15, 0.15, 0.15]))
+    # complex_dot_pattern(kind_num=3, whole_repeat=1,
+    #                     fg_color=np.array([1.0, 1.0, 1.0]),
+    #                     bg_color=np.array([0.15, 0.15, 0.15]))
+    make_csf_color_image(width=640, height=640,
+                         lv1=np.array([940, 0, 940], dtype=np.uint16),
+                         lv2=np.array([1023, 1023, 0], dtype=np.uint16),
+                         stripe_num=6)
