@@ -779,30 +779,42 @@ def dot_pattern(dot_size=4, repeat=4, color=(1.0, 1.0, 1.0)):
     return img
 
 
-def complex_dot_pattern(size_num=2, width=64, color=(1.0, 1.0, 1.0)):
-    base_repeat = width // 2
-    img = dot_pattern(dot_size=1, repeat=base_repeat, color=color)
-    for idx in range(1, size_num):
-        dot_size = 2 ** idx
-        temp_width = width // (2 ** idx)
-        num = temp_width // 2 // dot_size
+def complex_dot_pattern(kind_num=3, whole_repeat=2,
+                        fg_color=(1.0, 1.0, 1.0), bg_color=(0.15, 0.15, 0.15)):
+    """
+    kind_num: 何段階の大きさよ用意するか
+    whole_repeat: kind_num * 2 のセットを何回ループするのか？
+    """
+    max_dot_width = 2 ** kind_num
+    img_list = []
+    for size_idx in range(kind_num)[::-1]:
+        dot_size = 2 ** size_idx
+        repeat = max_dot_width // dot_size
+        dot_img = dot_pattern(dot_size, repeat, fg_color)
+        img_list.append(dot_img)
+        img_list.append(np.ones_like(dot_img) * bg_color)
+        # preview_image(dot_img)
 
-        temp_img = dot_pattern(dot_size=dot_size, repeat=num, color=color)
+    line_upper_img = np.hstack(img_list)
+    line_upper_img = np.hstack([line_upper_img for x in range(whole_repeat)])
+    line_lower_img = line_upper_img.copy()[:, ::-1, :]
+    h_unit_img = np.vstack((line_upper_img, line_lower_img))
 
-        img[-temp_width:, -temp_width:, :] = temp_img
-
-    tpg.preview_image(img)
+    img = np.vstack([h_unit_img for x in range(kind_num * whole_repeat)])
+    preview_image(img)
+    cv2.imwrite("hoge.tiff", np.uint8(img * 0xFF)[..., ::-1])
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_chromaticity_diagram()
     # plot_xyY_color_space(name='ITU-R BT.2020', samples=256)
-    samples = 1024
-    p0 = np.array([0.5, 0.5])
-    p1 = np.array([0.75, 1.0])
-    p2 = np.array([1.0, 1.0])
-    x = np.linspace(0, 1.0, samples)
-    quadratic_bezier_curve(x, p0, p1, p2, samples)
+    # samples = 1024
+    # p0 = np.array([0.5, 0.5])
+    # p1 = np.array([0.75, 1.0])
+    # p2 = np.array([1.0, 1.0])
+    # x = np.linspace(0, 1.0, samples)
+    # quadratic_bezier_curve(x, p0, p1, p2, samples)
     # dot_pattern(dot_size=32, repeat=4, color=(1.0, 1.0, 1.0))
-    complex_dot_pattern(size_num=4, width=256, color=(1.0, 1.0, 1.0))
+    complex_dot_pattern(kind_num=3, whole_repeat=1, fg_color=(1.0, 1.0, 1.0),
+                        bg_color=(0.15, 0.15, 0.15))
