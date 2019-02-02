@@ -751,7 +751,7 @@ def merge(img_a, img_b, pos=(0, 0)):
     img_a[pos[1]:b_height+pos[1], pos[0]:b_width+pos[0]] = img_b
 
 
-def dot_pattern(dot_size=4, repeat=4, color=(1.0, 1.0, 1.0)):
+def dot_pattern(dot_size=4, repeat=4, color=np.array([1.0, 1.0, 1.0])):
     """
     dot pattern 作る。
 
@@ -762,7 +762,7 @@ def dot_pattern(dot_size=4, repeat=4, color=(1.0, 1.0, 1.0)):
     repeat : integer
         The number of high-low pairs.
     color : array_like
-        color value (min=0.0, max=1.0, linear, not encoded).
+        color value.
 
     Returns
     -------
@@ -779,7 +779,7 @@ def dot_pattern(dot_size=4, repeat=4, color=(1.0, 1.0, 1.0)):
     odd_logic = np.logical_not(even_logic)
 
     # 着色
-    color = np.array(color).reshape((1, 1, 3))
+    color = color.reshape((1, 1, 3))
     even_line = (np.ones((1, pixel_num, 3)) * even_logic) * color
     odd_line = (np.ones((1, pixel_num, 3)) * odd_logic) * color
 
@@ -794,7 +794,8 @@ def dot_pattern(dot_size=4, repeat=4, color=(1.0, 1.0, 1.0)):
 
 
 def complex_dot_pattern(kind_num=3, whole_repeat=2,
-                        fg_color=(1.0, 1.0, 1.0), bg_color=(0.15, 0.15, 0.15)):
+                        fg_color=np.array([1.0, 1.0, 1.0]),
+                        bg_color=np.array([0.15, 0.15, 0.15])):
     """
     dot pattern 作る。
 
@@ -808,9 +809,9 @@ def complex_dot_pattern(kind_num=3, whole_repeat=2,
         例えば、kind_num=3, whole_repeat=2 ならば、
         1dot, 2dot, 4dot のパターンを水平・垂直に2組作る。
     fg_color : array_like
-        foreground color value (min=0.0, max=1.0, linear, not encoded).
+        foreground color value.
     bg_color : array_like
-        background color value (min=0.0, max=1.0, linear, not encoded).
+        background color value.
 
     Returns
     -------
@@ -834,8 +835,10 @@ def complex_dot_pattern(kind_num=3, whole_repeat=2,
     h_unit_img = np.vstack((line_upper_img, line_lower_img))
 
     img = np.vstack([h_unit_img for x in range(kind_num * whole_repeat)])
-    preview_image(img)
-    cv2.imwrite("hoge.tiff", np.uint8(img * 0xFF)[..., ::-1])
+    # preview_image(img)
+    # cv2.imwrite("hoge.tiff", np.uint8(img * 0xFF)[..., ::-1])
+
+    return img
 
 
 if __name__ == '__main__':
@@ -849,5 +852,6 @@ if __name__ == '__main__':
     # x = np.linspace(0, 1.0, samples)
     # quadratic_bezier_curve(x, p0, p1, p2, samples)
     # dot_pattern(dot_size=32, repeat=4, color=(1.0, 1.0, 1.0))
-    complex_dot_pattern(kind_num=3, whole_repeat=1, fg_color=(1.0, 1.0, 1.0),
-                        bg_color=(0.15, 0.15, 0.15))
+    complex_dot_pattern(kind_num=3, whole_repeat=1,
+                        fg_color=np.array([1.0, 1.0, 1.0]),
+                        bg_color=np.array([0.15, 0.15, 0.15]))

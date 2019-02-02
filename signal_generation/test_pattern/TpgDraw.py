@@ -62,6 +62,9 @@ class TpgDraw:
         # self.color_checker_st_pos_h_coef = 0.03
         self.color_checker_st_pos_h_coef = 0.59
 
+        self.dot_img_st_pos_v_coef = 0.03
+        self.dot_img_st_pos_h_coef = 0.90
+
         self.info_text_st_pos_h_coef = 0.3
         self.info_text_st_pos_v_coef = 0.043
         self.info_text_size_coef = 0.3
@@ -486,6 +489,30 @@ class TpgDraw:
             self.merge_each_spec_text(pos, font_size, text_img_size, text)
             st_pos_v += text_height
 
+    def draw_dot_mesh(self):
+        """
+        dot mesh パターンを描画。
+        """
+        kind_num = 2 if self.img_height == 1080 else 3
+        fg_color_list = [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        fg_color_list = np.uint16(np.array(fg_color_list) * self.img_max)
+        bg_color = np.uint16(np.array([self.get_bg_code_value()
+                                       for x in range(3)]))
+
+        args = {'kind_num': kind_num, 'whole_repeat': 1,
+                'bg_color': bg_color}
+        dot_img_list = []
+        for idx in range(4):
+            args['fg_color'] = fg_color_list[idx]
+            dot_img_list.append(tpg.complex_dot_pattern(**args))
+
+        dot_img = np.hstack(dot_img_list)
+        st_pos_h = int(self.dot_img_st_pos_h_coef * self.img_width)
+        st_pos_v = int(self.dot_img_st_pos_v_coef * self.img_height)
+        dot_img_pos = (st_pos_h, st_pos_v)
+        tpg.merge(self.img, dot_img, pos=dot_img_pos)
+
     def draw_tpg_type1(self):
         """
         Color Checker付きの基本的なパターンを描画。
@@ -499,6 +526,7 @@ class TpgDraw:
         self.draw_8bit_10bit_checker('10bit', self.checker_10bit_st_pos_v_coef)
         self.draw_wrgbmyc_color_bar()
         self.draw_color_checker()
+        self.draw_dot_mesh()
         self.draw_info_text()
 
         if self.preview:

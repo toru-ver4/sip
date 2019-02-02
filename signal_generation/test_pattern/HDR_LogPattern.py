@@ -60,7 +60,7 @@ DCI_P3_CS = DciP3ColorSpace()
             #   {'tf': tf.LOGC, 'cs': BT709_CS, 'wp': 'D65'},
             #   {'tf': tf.LOG3G10, 'cs': BT709_CS, 'wp': 'D65'}]
 
-PARAM_LIST = [{'tf': tf.ST2084, 'cs': DCI_P3_CS, 'wp': 'D65'}]
+PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
@@ -137,7 +137,7 @@ def main_func():
                                   color_space=color_space,
                                   white_point=white_point,
                                   revision=REVISION)
-            tpg_ctrl.draw_image_type1(preview=False)
+            tpg_ctrl.draw_image_type1(preview=True)
             fname_str = "./img/{}_{}_{}_{}_rev{:02d}_type1.dpx"
             fname = fname_str.format(transfer_function,
                                      color_space.name,
