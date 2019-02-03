@@ -812,6 +812,8 @@ def complex_dot_pattern(kind_num=3, whole_repeat=2,
         foreground color value.
     bg_color : array_like
         background color value.
+    reduce : bool
+        HDRテストパターンの3840x2160専用。縦横を半分にする。
 
     Returns
     -------
@@ -889,7 +891,7 @@ def make_csf_color_image(width=640, height=640,
         h_pos_temp += h_pos_list[idx]
         v_pos_temp += v_pos_list[idx]
 
-    preview_image(img / 1023)
+    # preview_image(img / 1023)
 
     return img
 

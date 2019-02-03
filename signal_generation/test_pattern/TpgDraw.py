@@ -62,6 +62,11 @@ class TpgDraw:
         # self.color_checker_st_pos_h_coef = 0.03
         self.color_checker_st_pos_h_coef = 0.59
 
+        self.csf_img_size_coef = 0.017
+        self.csf_img_st_pos_v_coef = 0.03
+        self.csf_img_low_st_pos_h_coef = 0.859
+        self.csf_img_high_st_pos_h_coef = 0.88
+
         self.dot_img_st_pos_v_coef = 0.03
         self.dot_img_st_pos_h_coef = 0.90
 
@@ -493,6 +498,9 @@ class TpgDraw:
         """
         dot mesh パターンを描画。
         """
+        # UHD画像の場合はトリミングを行う
+        triming = True if self.img_height != 1080 else False
+
         kind_num = 2 if self.img_height == 1080 else 3
         fg_color_list = [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0],
                          [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
@@ -505,13 +513,39 @@ class TpgDraw:
         dot_img_list = []
         for idx in range(4):
             args['fg_color'] = fg_color_list[idx]
-            dot_img_list.append(tpg.complex_dot_pattern(**args))
-
+            temp_img = tpg.complex_dot_pattern(**args)
+            if triming:
+                length = (temp_img.shape[0] // 3) * 2
+                temp_img = temp_img[:length, :length, :]
+            dot_img_list.append(temp_img)
         dot_img = np.hstack(dot_img_list)
         st_pos_h = int(self.dot_img_st_pos_h_coef * self.img_width)
         st_pos_v = int(self.dot_img_st_pos_v_coef * self.img_height)
         dot_img_pos = (st_pos_h, st_pos_v)
         tpg.merge(self.img, dot_img, pos=dot_img_pos)
+
+    def draw_csf_pattern(self):
+        """
+        Limited Range 確認用のパターンを追加。
+        """
+        lv_0 = np.array([0, 0, 0], dtype=np.uint16)
+        lv_64 = np.array([64, 64, 64], dtype=np.uint16)
+        lv_940 = np.array([940, 940, 940], dtype=np.uint16)
+        lv_1023 = np.array([1023, 1023, 1023], dtype=np.uint16)
+        width = int(self.csf_img_size_coef * self.img_width)
+        num = 2
+        low_img = tpg.make_csf_color_image(width, width, lv_0, lv_64, num)
+        high_img = tpg.make_csf_color_image(width, width, lv_940, lv_1023, num)
+
+        st_pos_h = int(self.csf_img_low_st_pos_h_coef * self.img_width)
+        st_pos_v = int(self.csf_img_st_pos_v_coef * self.img_height)
+        csf_img_pos = (st_pos_h, st_pos_v)
+        tpg.merge(self.img, low_img, csf_img_pos)
+
+        st_pos_h = int(self.csf_img_high_st_pos_h_coef * self.img_width)
+        csf_img_pos = (st_pos_h, st_pos_v)
+        tpg.merge(self.img, high_img, csf_img_pos)
+        # tpg.preview_image(csf_img_pos)
 
     def draw_tpg_type1(self):
         """
@@ -527,6 +561,7 @@ class TpgDraw:
         self.draw_wrgbmyc_color_bar()
         self.draw_color_checker()
         self.draw_dot_mesh()
+        self.draw_csf_pattern()
         self.draw_info_text()
 
         if self.preview:

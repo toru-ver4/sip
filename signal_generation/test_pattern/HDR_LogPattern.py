@@ -125,7 +125,7 @@ class TpgControl:
 
 
 def main_func():
-    resolution_list = ['1920x1080']
+    resolution_list = ['1920x1080', '3840x2160']
 
     for param in PARAM_LIST:
         transfer_function = param['tf']
@@ -146,12 +146,12 @@ def main_func():
                                      REVISION)
             tpg_ctrl.save_image(fname, transfer_function)
 
-            tpg_ctrl.draw_image_type2(preview=False)
-            fname_str = "./img/{}_{}_rev{:02d}_type2.dpx"
-            fname = fname_str.format(transfer_function,
-                                     resolution,
-                                     REVISION)
-            tpg_ctrl.save_image(fname, transfer_function)
+            # tpg_ctrl.draw_image_type2(preview=False)
+            # fname_str = "./img/{}_{}_rev{:02d}_type2.dpx"
+            # fname = fname_str.format(transfer_function,
+            #                          resolution,
+            #                          REVISION)
+            # tpg_ctrl.save_image(fname, transfer_function)
 
 
 if __name__ == '__main__':
