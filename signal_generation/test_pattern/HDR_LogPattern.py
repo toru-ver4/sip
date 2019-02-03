@@ -14,7 +14,7 @@ import transfer_functions as tf
 import colour
 # import gamma_func as gm
 
-REVISION = 0
+REVISION = 1
 BIT_DEPTH = 10
 
 

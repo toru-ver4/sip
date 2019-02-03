@@ -241,7 +241,8 @@ class TpgDraw:
         ramp_st_pos_v = int(self.img_height * self.ramp_st_pos_v_coef)
         ramp_pos = (ramp_st_pos_h, ramp_st_pos_v)
         text_height, font_size = self.get_each_spec_text_height_and_size()
-        text = "▼ 10bit gray ramp from 0 to 1023 level."
+        text_sub = " 10bit gray ramp (0, 1, 2, ..., 1021, 1022, 1023 level)."
+        text = "▼" + text_sub
         text_pos = self.get_text_st_pos_for_over_info(ramp_pos, text_height)
 
         # ramp パターン作成
@@ -295,7 +296,10 @@ class TpgDraw:
         ramp_st_pos_v = int(self.img_height * pos_v_coef)
         ramp_pos = (ramp_st_pos_h, ramp_st_pos_v)
         text_height, font_size = self.get_each_spec_text_height_and_size()
-        text = "▼ " + bit_depth + " gray ramp from 256 to 768 level."
+        text_8 = "8bit gray ramp (256, 260, 264, ..., 756, 760, 764 level)."
+        text_10 = "10bit gray ramp (256, 257, 258, ..., 765, 766, 767 level)."
+        text_sub = text_8 if bit_depth == '8bit' else text_10
+        text = "▼ " + text_sub
         text_pos = self.get_text_st_pos_for_over_info(ramp_pos, text_height)
 
         # ramp パターン作成
@@ -346,7 +350,8 @@ class TpgDraw:
         text_pos_v = st_pos[1] + color_bar.shape[0]
         text_pos = (st_pos[0], text_pos_v)
         text_height, font_size = self.get_each_spec_text_height_and_size()
-        text = "▲ WRGBMYC Color Gradation (16 Step)"
+        level_text = " (0, 16, 32, ..., 992, 1008, 1023 Level)"
+        text = "▲ WRGBMYC Color Gradation" + level_text
         self.merge_each_spec_text(text_pos, font_size,
                                   (width, text_height), text)
 
