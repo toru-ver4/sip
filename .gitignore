@@ -108,3 +108,4 @@ signal_generation/test_pattern/img/*.tiff
 signal_generation/test_pattern/img/*.dpx
 signal_generation/test_pattern/img/*.exr
 **/*.otf
+signal_generation/Limited_Range_Checker/**/*.dpx
