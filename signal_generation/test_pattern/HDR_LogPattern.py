@@ -60,7 +60,7 @@ DCI_P3_CS = DciP3ColorSpace()
             #   {'tf': tf.LOGC, 'cs': BT709_CS, 'wp': 'D65'},
             #   {'tf': tf.LOG3G10, 'cs': BT709_CS, 'wp': 'D65'}]
 
-PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
+PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
