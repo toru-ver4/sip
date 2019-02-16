@@ -265,12 +265,14 @@ def n_log_encoding(x, in_reflection=False):
 
     Examples
     --------
-    >>> n_log_encoding(0.5)
-    18 付近の値
-    >>> oetf(0.7)
-    100
-    >>> oetf(1.0)
-    10000 付近の値
+    >>> n_log_encoding(0.0)
+    0.12437263
+    >>> n_log_encoding(0.2)  # 0.18 / 0.9 = 0.2
+    0.36366777
+    >>> n_log_encoding(1.0)
+    0.58963433
+    >>> n_log_encoding(16.4231816006)
+    1.0
     """
     if not in_reflection:
         x = x * 0.9
@@ -301,12 +303,14 @@ def n_log_decoding(x, out_reflection=False):
 
     Examples
     --------
-    >>> n_log_decoding(0.5)
-    18 付近の値
-    >>> oetf(0.7)
-    100
-    >>> oetf(1.0)
-    10000 付近の値
+    >>> n_log_decoding(0.12437263)
+    0.0
+    >>> n_log_decoding(0.36366777)
+    0.2
+    >>> n_log_decoding(0.58963433)
+    1.0
+    >>> n_log_decoding(1.0)
+    16.4231816006
     """
     x = x * 1023
     threshold = 452
