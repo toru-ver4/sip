@@ -111,3 +111,4 @@ signal_generation/test_pattern/img/*.exr
 signal_generation/Limited_Range_Checker/**/*.dpx
 signal_generation/**/*.mov
 misc/gamma_research/**/*.tiff
+**/*.mov
