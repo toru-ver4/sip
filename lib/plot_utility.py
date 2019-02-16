@@ -104,13 +104,13 @@ def _set_common_parameters(fontsize, **kwargs):
         plt.rcParams['axes.prop_cycle'] = kwargs['prop_cycle']
 
 
-def plot_1_graph(fontsize=12, **kwargs):
+def plot_1_graph(fontsize=20, **kwargs):
     _set_common_parameters(fontsize=fontsize, **kwargs)
 
     if 'figsize' in kwargs and kwargs['figsize']:
         figsize = kwargs['figsize']
     else:
-        figsize = (12, 8)
+        figsize = (10, 8)
 
     if 'dpi' in kwargs and kwargs['dpi']:
         fig = plt.figure(figsize=figsize, dpi=kwargs['dpi'])
@@ -127,12 +127,18 @@ def plot_1_graph(fontsize=12, **kwargs):
 
     if 'graph_title' in kwargs and kwargs['graph_title']:
         ax1.set_title(kwargs['graph_title'])
+    else:
+        ax1.set_title("Title")
 
     if 'xlabel' in kwargs and kwargs['xlabel']:
         ax1.set_xlabel(kwargs['xlabel'])
+    else:
+        ax1.set_xlabel("X Axis Label")
 
     if 'ylabel' in kwargs and kwargs['ylabel']:
         ax1.set_ylabel(kwargs['ylabel'])
+    else:
+        ax1.set_ylabel("Y Axis Label")
 
     if 'xtick' in kwargs and kwargs['xtick']:
         ax1.set_xticks(kwargs['xtick'])
@@ -159,13 +165,13 @@ def plot_1_graph(fontsize=12, **kwargs):
     return ax1
 
 
-def plot_1_graph_ret_figure(fontsize=12, **kwargs):
+def plot_1_graph_ret_figure(fontsize=20, **kwargs):
     _set_common_parameters(fontsize=fontsize, **kwargs)
 
     if 'figsize' in kwargs and kwargs['figsize']:
         figsize = kwargs['figsize']
     else:
-        figsize = (12, 8)
+        figsize = (10, 8)
 
     fig = plt.figure(figsize=figsize)
     ax1 = fig.add_subplot(111)
@@ -178,12 +184,18 @@ def plot_1_graph_ret_figure(fontsize=12, **kwargs):
 
     if 'graph_title' in kwargs and kwargs['graph_title']:
         ax1.set_title(kwargs['graph_title'])
+    else:
+        ax1.set_title("Title")
 
     if 'xlabel' in kwargs and kwargs['xlabel']:
         ax1.set_xlabel(kwargs['xlabel'])
+    else:
+        ax1.set_xlabel("X Axis Label")
 
     if 'ylabel' in kwargs and kwargs['ylabel']:
         ax1.set_ylabel(kwargs['ylabel'])
+    else:
+        ax1.set_ylabel("Y Axis Label")
 
     if 'xtick' in kwargs and kwargs['xtick']:
         ax1.set_xticks(kwargs['xtick'])
