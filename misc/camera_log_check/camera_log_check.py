@@ -29,58 +29,45 @@ def get_log_scale_x(sample_num=1024, stops=20, exp_rate=2.0):
     return x
 
 
-def plot_n_log_basic():
-    reflection = False
+def plot_log_basic(name=tf.FLOG, reflection=False):
+    if name == tf.FLOG:
+        encode_func = tf.f_log_encoding
+        decode_func = tf.f_log_decoding
+    elif name == tf.NLOG:
+        encode_func = tf.n_log_encoding
+        decode_func = tf.n_log_decoding
+    elif name == tf.DLOG:
+        encode_func = tf.d_log_encoding
+        decode_func = tf.d_log_decoding
+    else:
+        raise ValueError("not supported log name")
+
     x = np.linspace(0, 1, 1024)
-    y = tf.n_log_decoding(x, out_reflection=reflection)
+    y = decode_func(x, out_reflection=reflection)
 
     ax1 = pu.plot_1_graph(linewidth=3)
-    ax1.plot(x, y, '-o', label="N-Log EOTF")
+    ax1.plot(x, y, label=name + " EOTF")
     plt.legend(loc='upper left')
     plt.show()
 
-    x_max = tf.n_log_decoding(1.0, out_reflection=reflection)
+    x_max = decode_func(1.0, out_reflection=reflection)
     x = np.linspace(0, 1, 1024) * x_max
-    y = tf.n_log_encoding(x, in_reflection=reflection)
+    y = encode_func(x, in_reflection=reflection)
 
     ax1 = pu.plot_1_graph(linewidth=3)
-    ax1.plot(x, y, label="N-Log OETF")
+    ax1.plot(x, y, label=name + " OETF")
     plt.legend(loc='upper left')
     plt.show()
 
-    y2 = tf.n_log_decoding(y, out_reflection=reflection)
+    y2 = decode_func(y, out_reflection=reflection)
 
     ax1 = pu.plot_1_graph(linewidth=3)
     ax1.plot(x, y2, label="Linear")
     plt.legend(loc='upper left')
     plt.show()
 
-
-def plot_f_log_basic():
-    reflection = False
-    x = np.linspace(0, 1, 1024)
-    y = tf.f_log_decoding(x, out_reflection=reflection)
-
-    ax1 = pu.plot_1_graph(linewidth=3)
-    ax1.plot(x, y, label="F-Log EOTF")
-    plt.legend(loc='upper left')
-    plt.show()
-
-    x_max = tf.f_log_decoding(1.0, out_reflection=reflection)
-    x = np.linspace(0, 1, 1024) * x_max
-    y = tf.f_log_encoding(x, in_reflection=reflection)
-
-    ax1 = pu.plot_1_graph(linewidth=3)
-    ax1.plot(x, y, label="F-Log OETF")
-    plt.legend(loc='upper left')
-    plt.show()
-
-    y2 = tf.f_log_decoding(y, out_reflection=reflection)
-
-    ax1 = pu.plot_1_graph(linewidth=3)
-    ax1.plot(x, y2, label="Linear")
-    plt.legend(loc='upper left')
-    plt.show()
+    print(np.max(np.abs(y2 - x)))
+    print(y2)
 
 
 def plot_n_log_stops():
@@ -137,6 +124,33 @@ def plot_f_log_stops():
     plt.show()
 
 
+def plot_d_log_stops():
+    x_base = get_log_scale_x(sample_num=1024, stops=20, exp_rate=3.0)
+    x_max = tf.d_log_decoding(1.0)
+    x = x_base * x_max
+    gray18_linear_light = 0.20
+
+    y = tf.d_log_encoding(x) * 1023
+
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(10, 8),
+                          graph_title="D-Log Characteristics",
+                          graph_title_size=None,
+                          xlabel="Exposure (f-stops).",
+                          ylabel="10bit code value",
+                          axis_label_size=None,
+                          legend_size=17,
+                          xlim=[-8, 8],
+                          ylim=[0, 1024],
+                          xtick=[x for x in range(-8, 9)],
+                          ytick=[x * 128 for x in range(9)],
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3)
+    ax1.plot(np.log2(x/gray18_linear_light), y, 'k-', label="D-Log OETF")
+    plt.legend(loc='upper left')
+    plt.show()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_n_log_basic()
@@ -144,6 +158,8 @@ if __name__ == '__main__':
     # enc_param = np.array([0.0, 0.2, 1.0, 16.4231816006])
     # print(tf.n_log_encoding(enc_param))
     # plot_f_log_basic()
-    # check = np.array([95/1023, 470/1023, 705/1023])
-    # print(tf.f_log_decoding(1.0))
-    plot_f_log_stops()
+    # check = np.array([0.0, 0.2, 1.0, 8.09036097832])
+    # print(tf.f_log_encoding(check))
+    # plot_f_log_stops()
+    # plot_log_basic(tf.DLOG, reflection=False)
+    plot_d_log_stops()
