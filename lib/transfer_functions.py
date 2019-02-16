@@ -10,7 +10,7 @@ OETF/EOTF の管理。Colour Science for Python っぽく
 また、ビデオレベルと輝度レベルの相互変換もお手軽にできるようにする。
 
 ## 設計思想
-In-Out は原則 [0:1] のレンジで行う。
+In-Out は原則 [0:1] のレンジで行う。←？
 別途、Global変数として最大輝度をパラメータとして持ち、
 輝度⇔信号レベルの相互変換はその変数を使って行う。
 """
@@ -33,6 +33,9 @@ SLOG3_REF = "SONY S-Log3 (Reflection Base)"
 REDLOG = "RED REDLog"
 LOG3G10 = "RED Log3G10"
 LOG3G12 = "RED Log3G12"
+NLOG = "N-Log"
+DLOG = "D-Log"
+FLOG = "F-Log"
 
 slog_max = colour.models.log_decoding_SLog3((1023 / 1023),
                                             out_reflection=False)
@@ -45,20 +48,24 @@ vlog_ref_max = colour.models.log_decoding_VLog(1.0, out_reflection=True)
 red_max = colour.models.log_decoding_REDLog(1.0)
 log3g10_max = colour.models.log_decoding_Log3G10(1.0)
 log3g12_max = colour.models.log_decoding_Log3G12(1.0)
+# nlog_max = n_log_decoding(1.0, out_reflection=False)
+nlog_max = 16.4231816006
 
 MAX_VALUE = {GAMMA24: 1.0, ST2084: 10000, HLG: 1000,
              VLOG: vlog_max, VLOG_REF: vlog_ref_max,
              LOGC: logc_max,
              SLOG3: slog_max, SLOG3_REF: slog_ref_max,
              REDLOG: red_max,
-             LOG3G10: log3g10_max, LOG3G12: log3g12_max}
+             LOG3G10: log3g10_max, LOG3G12: log3g12_max,
+             NLOG: nlog_max}
 
 PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
                   VLOG: vlog_max * 100, VLOG_REF: vlog_ref_max * 100,
                   LOGC: logc_max * 100,
                   SLOG3: slog_max * 100, SLOG3_REF: slog_ref_max * 100,
                   REDLOG: red_max * 100,
-                  LOG3G10: log3g10_max * 100, LOG3G12: log3g12_max * 100}
+                  LOG3G10: log3g10_max * 100, LOG3G12: log3g12_max * 100,
+                  NLOG: nlog_max * 100}
 
 
 def oetf(x, name=GAMMA24):
@@ -114,6 +121,8 @@ def oetf(x, name=GAMMA24):
         y = colour.models.log_encoding_Log3G10(x * MAX_VALUE[name])
     elif name == LOG3G12:
         y = colour.models.log_encoding_Log3G12(x * MAX_VALUE[name])
+    elif name == NLOG:
+        y = n_log_encoding(x, in_reflection=False)
     else:
         raise ValueError("invalid transfer fucntion name")
 
@@ -201,6 +210,8 @@ def eotf(x, name=GAMMA24):
         y = colour.models.log_decoding_Log3G10(x) / MAX_VALUE[name]
     elif name == LOG3G12:
         y = colour.models.log_decoding_Log3G12(x) / MAX_VALUE[name]
+    elif name == NLOG:
+        y = n_log_decoding(x, out_reflection=False) / MAX_VALUE[name]
     else:
         raise ValueError("invalid transfer fucntion name")
 
@@ -234,6 +245,79 @@ def eotf_to_luminance(x, name=GAMMA24):
     100 付近の値
     """
     return eotf(x, name) * PEAK_LUMINANCE[name]
+
+
+def n_log_encoding(x, in_reflection=False):
+    """
+    Conversion from linear light to N-Log Value(not CodeValue).
+
+    Parameters
+    ----------
+    x : numeric or array_like
+        linear light value. The reference white is 1.0.
+    out_reflection : boolean
+        Whether the input light level is reflection.
+
+    Returns
+    -------
+    numeric or ndarray
+        encoded N-Log Value.
+
+    Examples
+    --------
+    >>> n_log_encoding(0.5)
+    18 付近の値
+    >>> oetf(0.7)
+    100
+    >>> oetf(1.0)
+    10000 付近の値
+    """
+    if not in_reflection:
+        x = x * 0.9
+
+    threshold = 0.328
+    y = np.where(x < threshold,
+                 650 * ((x + 0.0075) ** (1/3)),
+                 150 * np.log(x) + 619)
+
+    return y / 1023
+
+
+def n_log_decoding(x, out_reflection=False):
+    """
+    Conversion from N-Log Value(not CodeValue) to linear light.
+
+    Parameters
+    ----------
+    x : numeric or array_like
+        N-log value. Valid domain range is [0.0:1.0].
+    out_reflection : boolean
+        Whether the output light level is reflection.
+
+    Returns
+    -------
+    numeric or ndarray
+        linear light value. ref white is 1.0
+
+    Examples
+    --------
+    >>> n_log_decoding(0.5)
+    18 付近の値
+    >>> oetf(0.7)
+    100
+    >>> oetf(1.0)
+    10000 付近の値
+    """
+    x = x * 1023
+    threshold = 452
+    y = np.where(x < threshold,
+                 ((x / 650) ** 3.0) - 0.0075,
+                 np.exp((x - 619) / 150))
+
+    if not out_reflection:
+        y = y / 0.9
+
+    return y
 
 
 if __name__ == '__main__':
