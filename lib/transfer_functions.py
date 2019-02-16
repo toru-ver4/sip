@@ -50,6 +50,8 @@ log3g10_max = colour.models.log_decoding_Log3G10(1.0)
 log3g12_max = colour.models.log_decoding_Log3G12(1.0)
 # nlog_max = n_log_decoding(1.0, out_reflection=False)
 nlog_max = 16.4231816006
+# flog_max = f_log_decoding(1.0, out_reflection=False)
+flog_max = 8.09036097832
 
 MAX_VALUE = {GAMMA24: 1.0, ST2084: 10000, HLG: 1000,
              VLOG: vlog_max, VLOG_REF: vlog_ref_max,
@@ -57,7 +59,7 @@ MAX_VALUE = {GAMMA24: 1.0, ST2084: 10000, HLG: 1000,
              SLOG3: slog_max, SLOG3_REF: slog_ref_max,
              REDLOG: red_max,
              LOG3G10: log3g10_max, LOG3G12: log3g12_max,
-             NLOG: nlog_max}
+             NLOG: nlog_max, FLOG: flog_max}
 
 PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
                   VLOG: vlog_max * 100, VLOG_REF: vlog_ref_max * 100,
@@ -65,7 +67,7 @@ PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
                   SLOG3: slog_max * 100, SLOG3_REF: slog_ref_max * 100,
                   REDLOG: red_max * 100,
                   LOG3G10: log3g10_max * 100, LOG3G12: log3g12_max * 100,
-                  NLOG: nlog_max * 100}
+                  NLOG: nlog_max * 100, FLOG: flog_max * 100}
 
 
 def oetf(x, name=GAMMA24):
@@ -317,6 +319,96 @@ def n_log_decoding(x, out_reflection=False):
     y = np.where(x < threshold,
                  ((x / 650) ** 3.0) - 0.0075,
                  np.exp((x - 619) / 150))
+
+    if not out_reflection:
+        y = y / 0.9
+
+    return y
+
+
+def f_log_encoding(x, in_reflection=False):
+    """
+    Conversion from linear light to N-Log Value(not CodeValue).
+
+    Parameters
+    ----------
+    x : numeric or array_like
+        linear light value. The reference white is 1.0.
+    out_reflection : boolean
+        Whether the input light level is reflection.
+
+    Returns
+    -------
+    numeric or ndarray
+        encoded N-Log Value.
+
+    Examples
+    --------
+    >>> n_log_encoding(0.0)
+    0.12437263
+    >>> n_log_encoding(0.2)  # 0.18 / 0.9 = 0.2
+    0.36366777
+    >>> n_log_encoding(1.0)
+    0.58963433
+    >>> n_log_encoding(16.4231816006)
+    1.0
+    """
+    a = 0.555556
+    b = 0.009468
+    c = 0.344676
+    d = 0.790453
+    e = 8.735631
+    f = 0.092864
+    cut1 = 0.00089
+
+    if not in_reflection:
+        x = x * 0.9
+
+    y = np.where(x < cut1,
+                 e * x + f,
+                 c * np.log10(a * x + b) + d)
+
+    return y
+
+
+def f_log_decoding(x, out_reflection=False):
+    """
+    Conversion from F-Log Value(not CodeValue) to linear light.
+
+    Parameters
+    ----------
+    x : numeric or array_like
+        F-log value. Valid domain range is [0.0:1.0].
+    out_reflection : boolean
+        Whether the output light level is reflection.
+
+    Returns
+    -------
+    numeric or ndarray
+        linear light value. ref white is 1.0
+
+    Examples
+    --------
+    >>> f_log_decoding(0.12437263)
+    0.0
+    >>> f_log_decoding(0.36366777)
+    0.2
+    >>> f_log_decoding(0.58963433)
+    1.0
+    >>> f_log_decoding(1.0)
+    16.4231816006
+    """
+    a = 0.555556
+    b = 0.009468
+    c = 0.344676
+    d = 0.790453
+    e = 8.735631
+    f = 0.092864
+    cut2 = 0.100537775223865
+
+    y = np.where(x < cut2,
+                 (x - f) / e,
+                 (10 ** ((x - d) / c)) / a - (b / a))
 
     if not out_reflection:
         y = y / 0.9
