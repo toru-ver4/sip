@@ -15,6 +15,7 @@ ffmpeg -r 60 -i img/file_%08d.dpx -r 60 -vf scale=in_range=tv:out_range=tv -c:v 
 ## 時代は ProRes
 
 ```
-ffmpeg -r 60 -i img/file_%08d.dpx -r 60 -vf scale=in_range=tv:out_range=tv -c:v prores_ks -profile 3 -pix_fmt yuv422p10le normal_like_full.mov
-ffmpeg -r 60 -i img/file_%08d.dpx -r 60 -vf scale=in_range=full:out_range=tv -c:v prores_ks -profile 3 -pix_fmt yuv422p10le normal.mov
+ffmpeg -r 60 -i img/file_%08d.dpx -r 60 -vf scale=out_color_matrix=bt709 -c:v prores_ks -profile:v 3 -pix_fmt yuv422p10le normal.mov
 ```
+
+x
