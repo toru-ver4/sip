@@ -168,9 +168,9 @@ def plot_log_stops():
                           ylabel="10bit code value",
                           axis_label_size=None,
                           legend_size=19,
-                          xlim=[-9, 9],
+                          xlim=[-8, 8],
                           ylim=[0, 1024],
-                          xtick=[x for x in range(-9, 10)],
+                          xtick=[x for x in range(-8, 9)],
                           ytick=[x * 128 for x in range(9)],
                           xtick_size=None, ytick_size=None,
                           linewidth=3)
