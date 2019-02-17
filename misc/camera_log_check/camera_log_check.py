@@ -12,19 +12,16 @@ import matplotlib.pyplot as plt
 import plot_utility as pu
 
 
-def get_log_scale_x(sample_num=1024, stops=20, exp_rate=2.0):
+def get_log_scale_x(sample_num=1024, x_max=1.0, stops=20):
     """
     Camera Log の OETF を横軸Stops でプロットするための
     linear light の入力データ列を作る。
-
-    x = np.linspace(1/(2**stops), 1.0, 1024)
-
-    だと低階調側がスカスカになるので、power(x, exp_rate) してる。
-    が、そうすると stops が狂うので最初の x_min で帳尻合わせをしてる。
     """
-    x_min = (1/(2**stops)) ** (1/exp_rate)
-    x_base = np.linspace(x_min, 1.0, 1024)
-    x = x_base ** exp_rate
+    x_min = x_max/(2**stops)
+    exp_min = np.log2(x_min)
+    exp_max = np.log2(x_max)
+    exp = np.linspace(exp_min, exp_max, sample_num)
+    x = 2 ** exp
 
     return x
 
@@ -71,9 +68,9 @@ def plot_log_basic(name=tf.FLOG, reflection=False):
 
 
 def plot_n_log_stops():
-    x_base = get_log_scale_x(sample_num=1024, stops=20, exp_rate=3.0)
     x_max = tf.n_log_decoding(1.0)
-    x = x_base * x_max
+    x = get_log_scale_x(sample_num=64, x_max=x_max, stops=20)
+
     gray18_linear_light = 0.20
 
     y = tf.n_log_encoding(x) * 1023
@@ -98,9 +95,9 @@ def plot_n_log_stops():
 
 
 def plot_f_log_stops():
-    x_base = get_log_scale_x(sample_num=1024, stops=20, exp_rate=3.0)
-    x_max = tf.f_log_decoding(1.0)
-    x = x_base * x_max
+    x_max = tf.n_log_decoding(1.0)
+    x = get_log_scale_x(sample_num=1024, x_max=x_max, stops=20)
+
     gray18_linear_light = 0.20
 
     y = tf.f_log_encoding(x) * 1023
@@ -125,9 +122,8 @@ def plot_f_log_stops():
 
 
 def plot_d_log_stops():
-    x_base = get_log_scale_x(sample_num=1024, stops=20, exp_rate=3.0)
     x_max = tf.d_log_decoding(1.0)
-    x = x_base * x_max
+    x = get_log_scale_x(sample_num=64, x_max=x_max, stops=20)
     gray18_linear_light = 0.20
 
     y = tf.d_log_encoding(x) * 1023
@@ -146,8 +142,48 @@ def plot_d_log_stops():
                           ytick=[x * 128 for x in range(9)],
                           xtick_size=None, ytick_size=None,
                           linewidth=3)
-    ax1.plot(np.log2(x/gray18_linear_light), y, 'k-', label="D-Log OETF")
+    ax1.plot(np.log2(x/gray18_linear_light), y, 'k-o', label="D-Log OETF")
     plt.legend(loc='upper left')
+    plt.show()
+
+
+def centerd_spins(ax):
+    ax.spines['left'].set_position('center')
+    ax.spines['right'].set_color('none')
+    ax.spines['bottom'].set_position('center')
+    ax.spines['top'].set_color('none')
+    ax.spines['left'].set_smart_bounds(True)
+    ax.spines['bottom'].set_smart_bounds(True)
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+
+
+def plot_log_stops():
+    oetf_list = [tf.LOGC, tf.SLOG3, tf.DLOG, tf.FLOG, tf.NLOG]
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(16, 10),
+                          graph_title="Characteristics of the camera log",
+                          graph_title_size=None,
+                          xlabel="Exposure [stops].",
+                          ylabel="10bit code value",
+                          axis_label_size=None,
+                          legend_size=19,
+                          xlim=[-9, 9],
+                          ylim=[0, 1024],
+                          xtick=[x for x in range(-9, 10)],
+                          ytick=[x * 128 for x in range(9)],
+                          xtick_size=None, ytick_size=None,
+                          linewidth=3)
+    # centerd_spins(ax1)
+    for oetf_name in oetf_list:
+        x_max = tf.MAX_VALUE[oetf_name]
+        x = get_log_scale_x(sample_num=64, x_max=x_max, stops=20)
+        x2 = x / 0.20 if oetf_name != tf.LOGC else x / 0.18
+        y = tf.oetf(x / x_max, oetf_name) * 1023
+        ax1.plot(np.log2(x2), y, '-o', label=oetf_name)
+
+    plt.legend(loc='upper left')
+    plt.savefig('camera_logs.png', bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 
@@ -162,4 +198,5 @@ if __name__ == '__main__':
     # print(tf.f_log_encoding(check))
     # plot_f_log_stops()
     # plot_log_basic(tf.DLOG, reflection=False)
-    plot_d_log_stops()
+    # plot_d_log_stops()
+    plot_log_stops()

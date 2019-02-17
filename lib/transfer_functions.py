@@ -10,7 +10,9 @@ OETF/EOTF の管理。Colour Science for Python っぽく
 また、ビデオレベルと輝度レベルの相互変換もお手軽にできるようにする。
 
 ## 設計思想
-In-Out は原則 [0:1] のレンジで行う。←？
+In-Out は原則 [0:1] のレンジで行う。
+名前のOETFは[0:46.6]など1.0を余裕で超えてくるのだが、
+ローカルで作っているテストパターンとの相性を考慮して [0:1] に正規化する。
 別途、Global変数として最大輝度をパラメータとして持ち、
 輝度⇔信号レベルの相互変換はその変数を使って行う。
 """
@@ -33,9 +35,9 @@ SLOG3_REF = "SONY S-Log3 (Reflection Base)"
 REDLOG = "RED REDLog"
 LOG3G10 = "RED Log3G10"
 LOG3G12 = "RED Log3G12"
-NLOG = "N-Log"
-DLOG = "D-Log"
-FLOG = "F-Log"
+NLOG = "Nikon N-Log"
+DLOG = "DJI D-Log"
+FLOG = "FUJIFILM F-Log"
 
 slog_max = colour.models.log_decoding_SLog3((1023 / 1023),
                                             out_reflection=False)
@@ -127,11 +129,11 @@ def oetf(x, name=GAMMA24):
     elif name == LOG3G12:
         y = colour.models.log_encoding_Log3G12(x * MAX_VALUE[name])
     elif name == NLOG:
-        y = n_log_encoding(x, in_reflection=False)
+        y = n_log_encoding(x * MAX_VALUE[name], in_reflection=False)
     elif name == FLOG:
-        y = f_log_encoding(x, in_reflection=False)
+        y = f_log_encoding(x * MAX_VALUE[name], in_reflection=False)
     elif name == DLOG:
-        y = d_log_encoding(x, in_reflection=False)
+        y = d_log_encoding(x * MAX_VALUE[name], in_reflection=False)
     else:
         raise ValueError("invalid transfer fucntion name")
 
