@@ -15,8 +15,9 @@ import numpy as np
 from cycler import cycler
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.ticker import AutoMinorLocator
 import colorsys
-
+import matplotlib.font_manager as fm
 
 cycle_num = 6
 v_offset = 0.2
@@ -46,6 +47,20 @@ for s_val in s:
 
 
 def _set_common_parameters(fontsize, **kwargs):
+    # japanese font
+    # ---------------------------------------
+    fonts = fm.findSystemFonts()
+    for font in fonts:
+        font_name = fm.FontProperties(fname=font).get_name()
+        if font_name == 'Noto Sans CJK JP':
+            plt.rcParams['font.family'] = font_name
+            print("{:s} is found".format(font_name))
+            break
+        # if font_name == 'Noto Sans Mono CJK JP':
+        #     plt.rcParams['font.family'] = font_name
+        #     print("{:s} is found".format(font_name))
+        #     break
+
     # font size
     # ---------------------------------------
     if fontsize:
@@ -89,15 +104,19 @@ def _set_common_parameters(fontsize, **kwargs):
         plt.rcParams['axes.prop_cycle'] = kwargs['prop_cycle']
 
 
-def plot_1_graph(fontsize=12, **kwargs):
+def plot_1_graph(fontsize=20, **kwargs):
     _set_common_parameters(fontsize=fontsize, **kwargs)
 
     if 'figsize' in kwargs and kwargs['figsize']:
         figsize = kwargs['figsize']
     else:
-        figsize = (12, 8)
+        figsize = (10, 8)
 
-    fig = plt.figure(figsize=figsize)
+    if 'dpi' in kwargs and kwargs['dpi']:
+        fig = plt.figure(figsize=figsize, dpi=kwargs['dpi'])
+    else:
+        fig = plt.figure(figsize=figsize)
+
     ax1 = fig.add_subplot(111)
 
     if 'xlim' in kwargs and kwargs['xlim']:
@@ -108,18 +127,36 @@ def plot_1_graph(fontsize=12, **kwargs):
 
     if 'graph_title' in kwargs and kwargs['graph_title']:
         ax1.set_title(kwargs['graph_title'])
+    else:
+        ax1.set_title("Title")
 
     if 'xlabel' in kwargs and kwargs['xlabel']:
         ax1.set_xlabel(kwargs['xlabel'])
+    else:
+        ax1.set_xlabel("X Axis Label")
 
     if 'ylabel' in kwargs and kwargs['ylabel']:
         ax1.set_ylabel(kwargs['ylabel'])
+    else:
+        ax1.set_ylabel("Y Axis Label")
 
     if 'xtick' in kwargs and kwargs['xtick']:
         ax1.set_xticks(kwargs['xtick'])
 
     if 'ytick' in kwargs and kwargs['ytick']:
         ax1.set_yticks(kwargs['ytick'])
+
+    if 'minor_xtick_num' in kwargs and kwargs['minor_xtick_num']:
+        minor_locator = AutoMinorLocator(kwargs['minor_xtick_num'])
+        ax1.xaxis.set_minor_locator(minor_locator)
+        ax1.xaxis.grid(which='minor', color="#808080")
+        ax1.tick_params(axis='x', which='minor', length=0.0)
+
+    if 'minor_ytick_num' in kwargs and kwargs['minor_ytick_num']:
+        minor_locator = AutoMinorLocator(kwargs['minor_ytick_num'])
+        ax1.yaxis.set_minor_locator(minor_locator)
+        ax1.yaxis.grid(which='minor', color="#808080")
+        ax1.tick_params(axis='y', which='minor', length=0.0)
 
     # Adjust the position
     # ------------------------------------
@@ -128,13 +165,13 @@ def plot_1_graph(fontsize=12, **kwargs):
     return ax1
 
 
-def plot_1_graph_ret_figure(fontsize=12, **kwargs):
+def plot_1_graph_ret_figure(fontsize=20, **kwargs):
     _set_common_parameters(fontsize=fontsize, **kwargs)
 
     if 'figsize' in kwargs and kwargs['figsize']:
         figsize = kwargs['figsize']
     else:
-        figsize = (12, 8)
+        figsize = (10, 8)
 
     fig = plt.figure(figsize=figsize)
     ax1 = fig.add_subplot(111)
@@ -147,12 +184,18 @@ def plot_1_graph_ret_figure(fontsize=12, **kwargs):
 
     if 'graph_title' in kwargs and kwargs['graph_title']:
         ax1.set_title(kwargs['graph_title'])
+    else:
+        ax1.set_title("Title")
 
     if 'xlabel' in kwargs and kwargs['xlabel']:
         ax1.set_xlabel(kwargs['xlabel'])
+    else:
+        ax1.set_xlabel("X Axis Label")
 
     if 'ylabel' in kwargs and kwargs['ylabel']:
         ax1.set_ylabel(kwargs['ylabel'])
+    else:
+        ax1.set_ylabel("Y Axis Label")
 
     if 'xtick' in kwargs and kwargs['xtick']:
         ax1.set_xticks(kwargs['xtick'])
@@ -219,6 +262,8 @@ if __name__ == '__main__':
                        ytick=None,
                        xtick_size=None, ytick_size=None,
                        linewidth=3,
+                       minor_xtick_num=None,
+                       minor_ytick_num=None,
                        prop_cycle=cycler(color=g_cycle))
     for y, label in zip(y_list, label_list):
         ax1.plot(x, y, label=label)
