@@ -45,7 +45,6 @@ slog_ref_max = colour.models.log_decoding_SLog3((1023 / 1023),
                                                 out_reflection=True)
 logc_max = colour.models.log_decoding_ALEXALogC(1.0)
 vlog_max = colour.models.log_decoding_VLog(1.0, out_reflection=False)
-vlog_max = colour.models.log_decoding_VLog(1.0, out_reflection=False)
 vlog_ref_max = colour.models.log_decoding_VLog(1.0, out_reflection=True)
 red_max = colour.models.log_decoding_REDLog(1.0)
 log3g10_max = colour.models.log_decoding_Log3G10(1.0)
