@@ -133,7 +133,7 @@ def oetf(x, name=GAMMA24):
     elif name == FLOG:
         y = f_log_encoding(x * MAX_VALUE[name], in_reflection=False)
     elif name == DLOG:
-        y = d_log_encoding(x * MAX_VALUE[name], in_reflection=False)
+        y = d_log_encoding(x * MAX_VALUE[name], in_reflection=True)
     else:
         raise ValueError("invalid transfer fucntion name")
 
@@ -226,7 +226,7 @@ def eotf(x, name=GAMMA24):
     elif name == FLOG:
         y = f_log_decoding(x, out_reflection=False) / MAX_VALUE[name]
     elif name == DLOG:
-        y = d_log_decoding(x, out_reflection=False) / MAX_VALUE[name]
+        y = d_log_decoding(x, out_reflection=True) / MAX_VALUE[name]
     else:
         raise ValueError("invalid transfer fucntion name")
 
