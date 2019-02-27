@@ -38,6 +38,8 @@ LOG3G12 = "RED Log3G12"
 NLOG = "Nikon N-Log"
 DLOG = "DJI D-Log"
 FLOG = "FUJIFILM F-Log"
+SRGB = "sRGB"
+# ACES_CG = 'ACEScg'
 
 slog_max = colour.models.log_decoding_SLog3((1023 / 1023),
                                             out_reflection=False)
@@ -56,7 +58,7 @@ flog_max = 7.281324880488497
 # dlog_max = d_log_decoding(1.0, out_reflection=True)
 dlog_max = 41.99939267086707
 
-MAX_VALUE = {GAMMA24: 1.0, ST2084: 10000, HLG: 1000,
+MAX_VALUE = {GAMMA24: 1.0, SRGB: 1.0, ST2084: 10000, HLG: 1000,
              VLOG_IRE: vlog_ire_max, VLOG: vlog_ref_max,
              LOGC: logc_max,
              SLOG3: slog_max, SLOG3_REF: slog_ref_max,
@@ -64,7 +66,7 @@ MAX_VALUE = {GAMMA24: 1.0, ST2084: 10000, HLG: 1000,
              LOG3G10: log3g10_max, LOG3G12: log3g12_max,
              NLOG: nlog_max, FLOG: flog_max, DLOG: dlog_max}
 
-PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
+PEAK_LUMINANCE = {GAMMA24: 100, SRGB: 100, ST2084: 10000, HLG: 1000,
                   VLOG_IRE: vlog_ire_max * 100, VLOG: vlog_ref_max * 100,
                   LOGC: logc_max * 100,
                   SLOG3: slog_max * 100, SLOG3_REF: slog_ref_max * 100,
@@ -102,6 +104,8 @@ def oetf(x, name=GAMMA24):
 
     if name == GAMMA24:
         y = (x * MAX_VALUE[name]) ** (1/2.4)
+    elif name == SRGB:
+        y = colour.models.oetf_sRGB(x * MAX_VALUE[name])
     elif name == HLG:
         y = colour.models.eotf_reverse_BT2100_HLG(x * MAX_VALUE[name])
     elif name == ST2084:
@@ -195,6 +199,8 @@ def eotf(x, name=GAMMA24):
     """
     if name == GAMMA24:
         y = x ** 2.4
+    elif name == SRGB:
+        y = colour.models.oetf_reverse_sRGB(x)
     elif name == ST2084:
         # fix me!
         y = colour.models.eotf_ST2084(x) / MAX_VALUE[name]

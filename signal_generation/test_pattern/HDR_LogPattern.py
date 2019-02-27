@@ -36,6 +36,7 @@ V_LOG_CS = colour.models.V_GAMUT_COLOURSPACE
 ALEXA_WIDE_GAMUT_CS = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
 RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
 DCI_P3_CS = DciP3ColorSpace()
+SRGB_CS = colour.models.sRGB_COLOURSPACE
 
 # PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
 #               {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
@@ -62,7 +63,7 @@ DCI_P3_CS = DciP3ColorSpace()
 #               {'tf': tf.NLOG, 'cs': BT709_CS, 'wp': 'D65'},
 #               {'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
 
-PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
+PARAM_LIST = [{'tf': tf.SRGB, 'cs': SRGB_CS, 'wp': 'D65'}]
 
 
 class TpgControl:

@@ -40,6 +40,7 @@ V_GAMUT = 'V-Gamut'
 CINEMA_GAMUT = 'Cinema Gamut'
 RED_WIDE_GAMUT_RGB = 'REDWideGamutRGB'
 DCI_P3 = 'DCI-P3'
+SRTB = 'sRGB'
 
 
 def xy_to_xyz_internal(xy):
@@ -164,3 +165,5 @@ if __name__ == '__main__':
     # print(rgb2rgb_mtx(BT709, DCI_P3))
     # ocio_config_mtx_str(ACES_AP0, DCI_P3)
     # ocio_config_mtx_str(DCI_P3, ACES_AP0)
+    print(get_white_point(SRTB))
+    print(get_xyz_to_rgb_matrix(SRTB))
