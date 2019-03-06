@@ -9,6 +9,7 @@ import os
 import numpy as np
 from colour import RGB_to_YCbCr, YCbCr_to_RGB
 from colour.utilities import CaseInsensitiveMapping
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 YCBCR_WEIGHTS = CaseInsensitiveMapping({
     'ITU-R BT.601': np.array([0.2990, 0.1140]),
@@ -34,8 +35,9 @@ def make_src_rgb_with_blue_index(blue_idx=0, bit_depth=8):
     one_color_increment = np.arange(one_color_num)
     r, g = np.meshgrid(one_color_increment, one_color_increment, indexing='ij')
     b = np.ones((one_color_num, one_color_num), dtype=np.uint16) * blue_idx
+    rgb = np.dstack((r.flatten(), g.flatten(), b.flatten()))
 
-    return np.dstack((r, g, b))
+    return rgb.reshape((1, rgb.shape[0] * rgb.shape[1], rgb.shape[2]))
 
 
 def make_3d_grid(axis_data=np.arange(3)):
@@ -55,8 +57,9 @@ def make_3d_grid(axis_data=np.arange(3)):
       [8, 8, 0], [8, 8, 4], [8, 8, 8]]]
     """
     r, g, b = np.meshgrid(axis_data, axis_data, axis_data, indexing='ij')
+    rgb = np.dstack((r.flatten(), g.flatten(), b.flatten()))
 
-    return np.dstack((r.flatten(), g.flatten(), b.flatten()))
+    return rgb.reshape((1, rgb.shape[0] * rgb.shape[1], rgb.shape[2]))
 
 
 def convert_to_ycbcr(rgb, gamut='ITU-R BT.709', bit_depth=8,
@@ -163,6 +166,7 @@ def calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
         dst_rgb = convert_to_rgb(ycbcr, gamut=gamut, bit_depth=bit_depth,
                                  limited_range=limited_range)
         ok_count[blue_idx] = count_equal_pairs(src_rgb, dst_rgb)
+        print(blue_idx, ok_count[blue_idx])
 
     ok_sum = np.sum(ok_count)
     ok_rate = ok_sum / (2 ** (3 * bit_depth))
@@ -170,16 +174,61 @@ def calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
     return ok_rate
 
 
+def calc_invertible_rate_thread(gamut, limited_range, bit_depth,
+                                blue_idx):
+    """
+    Threadで処理するやつ。とある blue_idx に対して、R, G を全通り調べる。
+    """
+    src_rgb = make_src_rgb_with_blue_index(blue_idx, bit_depth)
+    ycbcr = convert_to_ycbcr(src_rgb, gamut=gamut, bit_depth=bit_depth,
+                             limited_range=limited_range)
+    dst_rgb = convert_to_rgb(ycbcr, gamut=gamut, bit_depth=bit_depth,
+                             limited_range=limited_range)
+    ok_count = count_equal_pairs(src_rgb, dst_rgb)
+    print(blue_idx, ok_count)
+    return blue_idx, ok_count
+
+
+def calc_invertible_rate_high_speed(gamut='ITU-R BT.709', bit_depth=8,
+                                    limited_range=False):
+    """
+    RGB --> YCbCr --> RGB が可逆変換となっている組の比率を計算する。
+    10bitの計算があまりにも遅かったので多少の高速化を実施する。
+    """
+    each_ch_sample_num = 2 ** bit_depth
+    ok_count = np.zeros(each_ch_sample_num, dtype=np.uint16)
+    executor = ProcessPoolExecutor(max_workers=20)
+    futures = [executor.submit(calc_invertible_rate_thread(gamut,
+                                                           limited_range,
+                                                           bit_depth,
+                                                           blue_idx))
+               for blue_idx in range(each_ch_sample_num)]
+    for future in as_completed(futures):
+        print(future.result())
+
+    executor.shutdown()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # print(make_src_rgb_with_blue_index(blue_idx=0, bit_depth=6))
+    # print(make_src_rgb_with_blue_index(blue_idx=2, bit_depth=2))
     # print(make_3d_grid(np.arange(3)))
     # test_func()
-    calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
-                         limited_range=False)
-    calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
-                         limited_range=True)
-    calc_invertible_rate(gamut='ITU-R BT.2020', bit_depth=8,
-                         limited_range=False)
-    calc_invertible_rate(gamut='ITU-R BT.2020', bit_depth=8,
-                         limited_range=True)
+    # calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
+    #                      limited_range=False)
+    # calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
+    #                      limited_range=True)
+    # calc_invertible_rate(gamut='ITU-R BT.2020', bit_depth=8,
+    #                      limited_range=False)
+    # calc_invertible_rate(gamut='ITU-R BT.2020', bit_depth=8,
+    #                      limited_range=True)
+    # calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=10,
+    #                      limited_range=False)
+    # calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=10,
+    #                      limited_range=True)
+    # calc_invertible_rate(gamut='ITU-R BT.2020', bit_depth=10,
+    #                      limited_range=False)
+    # calc_invertible_rate(gamut='ITU-R BT.2020', bit_depth=10,
+    #                      limited_range=True)
+    calc_invertible_rate_high_speed(gamut='ITU-R BT.709', bit_depth=10,
+                                    limited_range=False)
