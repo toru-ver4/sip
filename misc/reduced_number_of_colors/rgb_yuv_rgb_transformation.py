@@ -10,6 +10,8 @@ import numpy as np
 from colour import RGB_to_YCbCr, YCbCr_to_RGB
 from colour.utilities import CaseInsensitiveMapping
 from multiprocessing import Pool, cpu_count
+import matplotlib.pyplot as plt
+import plot_utility as pu
 
 
 YCBCR_WEIGHTS = CaseInsensitiveMapping({
@@ -156,7 +158,8 @@ def test_func():
 def calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
                          limited_range=False):
     """
-    RGB --> YCbCr --> RGB が可逆変換となっている組の比率を計算する
+    RGB --> YCbCr --> RGB が可逆変換となっている組の比率を計算する。
+    スレッドを使わない版。リレファレンスコードとして利用。
     """
     each_ch_sample_num = 2 ** bit_depth
     ok_count = np.zeros(each_ch_sample_num, dtype=np.int32)
@@ -170,9 +173,9 @@ def calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
         # print(blue_idx, ok_count[blue_idx])
 
     ok_sum = np.sum(ok_count)
-    ok_rate = ok_sum / (2 ** (3 * bit_depth))
-    print(ok_rate)
-    return ok_rate
+    invertible_rate = ok_sum / (2 ** (3 * bit_depth))
+    print(invertible_rate)
+    return invertible_rate
 
 
 def calc_invertible_rate_thread(gamut, limited_range, bit_depth,
@@ -209,15 +212,73 @@ def calc_invertible_rate_high_speed(gamut='ITU-R BT.709', bit_depth=8,
     callback = np.array(callback, dtype=np.int32)
     ok_count = callback[..., 1]
     ok_sum = np.sum(ok_count)
-    ok_rate = ok_sum / (2 ** (3 * bit_depth))
+    invertible_rate = ok_sum / (2 ** (3 * bit_depth))
 
     out_str = "| {gamut} | {bit_depth}bit | {signal_range} | {ok_rate} |"
-    signal_range = "limited" if limited_range else "full"
+    signal_range = "Narrow" if limited_range else "Full"
     print(out_str.format(gamut=gamut, bit_depth=bit_depth,
-                         signal_range=signal_range, ok_rate=ok_rate))
+                         signal_range=signal_range, ok_rate=invertible_rate))
 
 
-def various_combinations():
+def make_diff_rgb(gamut, bit_depth, limited_range):
+    """
+    RGB --> YCbCr --> RGB 変換を行った後、src - dst をして返す。
+    """
+    axis_data = np.arange(2 ** bit_depth)
+    src_rgb = make_3d_grid(axis_data)
+    ycbcr = convert_to_ycbcr(src_rgb, gamut=gamut, bit_depth=bit_depth,
+                             limited_range=limited_range)
+    dst_rgb = convert_to_rgb(ycbcr, gamut=gamut, bit_depth=bit_depth,
+                             limited_range=limited_range)
+    diff_rgb = src_rgb - dst_rgb
+
+    return diff_rgb
+
+
+def calc_diff_rgb_and_abssum(diff_rgb):
+    """
+    R, G, B 単体(signed)およびRGB合計(unsigned)の誤差を計算して返す。
+    """
+    diff_r = diff_rgb[..., 0]
+    diff_g = diff_rgb[..., 1]
+    diff_b = diff_rgb[..., 2]
+    diff_abs_rgb_sum = np.sum(np.absolute(diff_rgb), axis=-1)
+    return diff_r, diff_g, diff_b, diff_abs_rgb_sum
+
+
+def make_histogram_data(data, range):
+    """
+
+    """
+    bin_min = plot_range[0] - 0.5
+    bin_max = plot_range[1] + 0.5
+    bins = int(bin_max - bin_min)
+    print(bins)
+    y = np.histogram(x, range=(bin_min, bin_max), bins=bins)
+    """
+    足てゃここを実装
+    """
+    return y
+
+
+def plot_histgram(data, title="r"):
+    """
+    ababababa
+    """
+    plot_range = [-5, 5]
+    xtick = [x for x in range(plot_range[0], plot_range[1] + 1)]
+    ax1 = pu.plot_1_graph(xtick=xtick)
+    ax1.bar(np.arange(plot_range[0], plot_range[1] + 1), y[0])
+    plt.show()
+
+
+def make_four_diff_histgram(gamut, bit_depth, limited_range):
+    diff_rgb = make_diff_rgb(gamut, bit_depth, limited_range)
+    diff_r, diff_g, diff_b, diff_rgb = calc_diff_rgb_and_abssum(diff_rgb)
+    plot_histgram(diff_r.flatten(), title="Red")
+
+
+def calc_invertible_rate_with_various_combinations():
     """
     YCbCr変換による色数の減少を幾つかのパラメータで調査。
     """
@@ -229,17 +290,22 @@ def various_combinations():
                                     limited_range=False)
     calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=8,
                                     limited_range=True)
-    calc_invertible_rate_high_speed(gamut="ITU-R BT.709", bit_depth=10,
-                                    limited_range=False)
-    calc_invertible_rate_high_speed(gamut="ITU-R BT.709", bit_depth=10,
-                                    limited_range=True)
-    calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=10,
-                                    limited_range=False)
-    calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=10,
-                                    limited_range=True)
+    # calc_invertible_rate_high_speed(gamut="ITU-R BT.709", bit_depth=10,
+    #                                 limited_range=False)
+    # calc_invertible_rate_high_speed(gamut="ITU-R BT.709", bit_depth=10,
+    #                                 limited_range=True)
+    # calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=10,
+    #                                 limited_range=False)
+    # calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=10,
+    #                                 limited_range=True)
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # test_func()
-    various_combinations()
+    # calc_invertible_rate_with_various_combinations()
+    # make_four_diff_histgram(gamut="ITU-R BT.709", bit_depth=8,
+    #                         limited_range=True)
+    max_value = 10
+    x = np.array([0, 0, 1, 1, 1, 5, 5, 5, 5])
+    plot_histgram(x)
