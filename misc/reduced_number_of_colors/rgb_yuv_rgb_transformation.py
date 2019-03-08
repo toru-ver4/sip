@@ -250,24 +250,28 @@ def make_histogram_data(data, range):
     """
 
     """
-    bin_min = plot_range[0] - 0.5
-    bin_max = plot_range[1] + 0.5
+    bin_min = range[0] - 0.5
+    bin_max = range[1] + 0.5
     bins = int(bin_max - bin_min)
-    print(bins)
-    y = np.histogram(x, range=(bin_min, bin_max), bins=bins)
-    """
-    足てゃここを実装
-    """
+    y = np.histogram(data, range=(bin_min, bin_max), bins=bins)
+
+    # range外にデータが存在していた場合は警告を出す
+    if (np.min(data) < bin_min) or (np.max(data) > bin_max):
+        print("=" * 80)
+        print("Warning: Data also exists outside of the histogram.")
+        print("=" * 80)
+
     return y
 
 
-def plot_histgram(data, title="r"):
+def plot_single_histgram(data, title="r"):
     """
     ababababa
     """
     plot_range = [-5, 5]
+    y = make_histogram_data(data, plot_range)
     xtick = [x for x in range(plot_range[0], plot_range[1] + 1)]
-    ax1 = pu.plot_1_graph(xtick=xtick)
+    ax1 = pu.plot_1_graph(grid=False, xtick=xtick)
     ax1.bar(np.arange(plot_range[0], plot_range[1] + 1), y[0])
     plt.show()
 
@@ -275,7 +279,10 @@ def plot_histgram(data, title="r"):
 def make_four_diff_histgram(gamut, bit_depth, limited_range):
     diff_rgb = make_diff_rgb(gamut, bit_depth, limited_range)
     diff_r, diff_g, diff_b, diff_rgb = calc_diff_rgb_and_abssum(diff_rgb)
-    plot_histgram(diff_r.flatten(), title="Red")
+    plot_single_histgram(diff_r.flatten(), title="Red")
+    plot_single_histgram(diff_g.flatten(), title="Green")
+    plot_single_histgram(diff_b.flatten(), title="Blue")
+    plot_single_histgram(diff_rgb.flatten(), title="SUM")
 
 
 def calc_invertible_rate_with_various_combinations():
@@ -304,8 +311,9 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # test_func()
     # calc_invertible_rate_with_various_combinations()
-    # make_four_diff_histgram(gamut="ITU-R BT.709", bit_depth=8,
-    #                         limited_range=True)
-    max_value = 10
-    x = np.array([0, 0, 1, 1, 1, 5, 5, 5, 5])
-    plot_histgram(x)
+    make_four_diff_histgram(gamut="ITU-R BT.709", bit_depth=8,
+                            limited_range=True)
+    # max_value = 10
+    # x = np.array([0, 0, 1, 1, 1, 5, 5, 5, 5, 1])
+    # print(x)
+    # plot_single_histgram(x)
