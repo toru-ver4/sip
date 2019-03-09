@@ -296,6 +296,8 @@ def plot_single_histgram(data, title=None):
             width=width)
     ax1.set_yscale("log", nonposy="clip")
     plt.legend(loc='upper right', fontsize=12)
+    fname = "figures/" + title + "sum.png"
+    plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 
@@ -329,6 +331,8 @@ def plot_rgb_histgram(r_data, g_data, b_data, title=None):
     ax1.set_ylim(ymin=10 ** 4)
     ax1.set_yscale("log", nonposy="clip")
     plt.legend(loc='upper left')
+    fname = "figures/" + title + "three.png"
+    plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 
