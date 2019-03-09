@@ -236,6 +236,9 @@ def make_diff_rgb(gamut, bit_depth, limited_range):
     RGB --> YCbCr --> RGB 変換を行った後、src - dst をして返す。
     """
     axis_data = np.arange(2 ** bit_depth)
+    print("=" * 80)
+    print("FIX ME!!")
+    print("=" * 80)
     axis_data = np.arange(2 ** (bit_depth - 2))
     src_rgb = make_3d_grid(axis_data)
     ycbcr = convert_to_ycbcr(src_rgb, gamut=gamut, bit_depth=bit_depth,
@@ -336,18 +339,33 @@ def plot_rgb_histgram(r_data, g_data, b_data, title=None):
     plt.show()
 
 
-def make_four_diff_histgram(gamut, bit_depth, limited_range):
+def make_four_diff_data(gamut, bit_depth, limited_range):
     diff_rgb = make_diff_rgb(gamut, bit_depth, limited_range)
     diff_r, diff_g, diff_b, diff_rgb = calc_diff_rgb_and_abssum(diff_rgb)
-    # plot_single_histgram(diff_r.flatten(), title="Red")
-    # plot_single_histgram(diff_g.flatten(), title="Green")
-    # plot_single_histgram(diff_b.flatten(), title="Blue")
-    # plot_single_histgram(diff_rgb.flatten(), title="SUM")
-    title_str = "Gamut={}, Bit Depth={}, Narrow Range={}"
-    title_str = title_str.format(gamut, bit_depth, limited_range)
+    return diff_r, diff_g, diff_b, diff_rgb
+
+
+def make_four_diff_histgram(diff_r, diff_g, diff_b, diff_rgb, title_str):
     plot_rgb_histgram(diff_r.flatten(), diff_g.flatten(), diff_b.flatten(),
                       title_str)
-    plot_single_histgram(diff_rgb, title_str)
+    plot_single_histgram(diff_rgb.flatten(), title_str)
+
+
+def make_graph_for_consideration(gamut, bit_depth, limited_range):
+    """
+    考察用のデータを作る。
+    """
+    title_str = "Gamut={}, Bit Depth={}, Narrow Range={}"
+    title_str = title_str.format(gamut, bit_depth, limited_range)
+    diff_r, diff_g, diff_b, diff_rgb = make_four_diff_data(gamut, bit_depth,
+                                                           limited_range)
+    make_four_diff_histgram(diff_r, diff_g, diff_b, diff_rgb, title_str)
+
+
+def make_chromaticity_diagram_with_bad_data(gamut, bit_depth, limited_range):
+    """
+    誤差の大きかったデータをxy色度図にプロットしちゃうよっ！
+    """
 
 
 def calc_invertible_rate_with_various_combinations():
@@ -376,8 +394,8 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # test_func()
     # calc_invertible_rate_with_various_combinations()
-    make_four_diff_histgram(gamut="ITU-R BT.709", bit_depth=8,
-                            limited_range=True)
+    make_graph_for_consideration(gamut="ITU-R BT.709", bit_depth=8,
+                                 limited_range=True)
     # max_value = 10
     # x = np.array([0, 0, 1, 1, 1, 5, 5, 5, 5, 1])
     # print(x)
