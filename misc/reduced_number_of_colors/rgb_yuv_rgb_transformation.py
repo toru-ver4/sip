@@ -20,6 +20,17 @@ YCBCR_WEIGHTS = CaseInsensitiveMapping({
     'ITU-R BT.2020': np.array([0.2627, 0.0593])
 })
 
+# カラーユニバーサルデザイン推奨配色セット制作委員会資料より抜粋
+R_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(255, 75, 0)
+G_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(3, 175, 122)
+B_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(0, 90, 255)
+K_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(132, 145, 158)
+
+# R_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(255, 202, 191)
+# G_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(216, 242, 85)
+# B_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(191, 228, 255)
+# K_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(200, 200, 203)
+
 
 def make_src_rgb_with_blue_index(blue_idx=0, bit_depth=8):
     """
@@ -225,6 +236,7 @@ def make_diff_rgb(gamut, bit_depth, limited_range):
     RGB --> YCbCr --> RGB 変換を行った後、src - dst をして返す。
     """
     axis_data = np.arange(2 ** bit_depth)
+    axis_data = np.arange(2 ** (bit_depth - 2))
     src_rgb = make_3d_grid(axis_data)
     ycbcr = convert_to_ycbcr(src_rgb, gamut=gamut, bit_depth=bit_depth,
                              limited_range=limited_range)
@@ -264,25 +276,74 @@ def make_histogram_data(data, range):
     return y
 
 
-def plot_single_histgram(data, title="r"):
+def plot_single_histgram(data, title=None):
     """
-    ababababa
+    単色のヒストグラムを作成する
     """
-    plot_range = [-5, 5]
+    plot_range = [0, 5]
+    width = 0.7
     y = make_histogram_data(data, plot_range)
+    range_k = np.arange(plot_range[0], plot_range[1] + 1)
     xtick = [x for x in range(plot_range[0], plot_range[1] + 1)]
-    ax1 = pu.plot_1_graph(grid=False, xtick=xtick)
-    ax1.bar(np.arange(plot_range[0], plot_range[1] + 1), y[0])
+    ax1 = pu.plot_1_graph(graph_title=title,
+                          graph_title_size=22,
+                          xlabel="Difference",
+                          ylabel="Frequency",
+                          xtick=xtick,
+                          grid=False)
+    label = "The sum of the absolute value differences of each color"
+    ax1.bar(range_k, y[0], color=K_BAR_COLOR, label=label,
+            width=width)
+    ax1.set_yscale("log", nonposy="clip")
+    plt.legend(loc='upper right', fontsize=12)
+    plt.show()
+
+
+def plot_rgb_histgram(r_data, g_data, b_data, title=None):
+    """
+    RGB3色のヒストグラムを作成する
+    """
+    plot_range = [-3, 3]
+    three_color_width = 0.7
+    each_width = three_color_width / 3
+
+    # データ生成
+    r = make_histogram_data(r_data, plot_range)
+    g = make_histogram_data(g_data, plot_range)
+    b = make_histogram_data(b_data, plot_range)
+
+    # plot
+    xtick = [x for x in range(plot_range[0], plot_range[1] + 1)]
+    ax1 = pu.plot_1_graph(graph_title=title,
+                          graph_title_size=22,
+                          xlabel="Difference",
+                          ylabel="Frequency",
+                          xtick=xtick,
+                          grid=False)
+    range_r = np.arange(plot_range[0], plot_range[1] + 1) - each_width
+    range_g = np.arange(plot_range[0], plot_range[1] + 1)
+    range_b = np.arange(plot_range[0], plot_range[1] + 1) + each_width
+    ax1.bar(range_r, r[0], color=R_BAR_COLOR, label="Red", width=each_width)
+    ax1.bar(range_g, g[0], color=G_BAR_COLOR, label="Green", width=each_width)
+    ax1.bar(range_b, b[0], color=B_BAR_COLOR, label="Blue", width=each_width)
+    ax1.set_ylim(ymin=10 ** 4)
+    ax1.set_yscale("log", nonposy="clip")
+    plt.legend(loc='upper left')
     plt.show()
 
 
 def make_four_diff_histgram(gamut, bit_depth, limited_range):
     diff_rgb = make_diff_rgb(gamut, bit_depth, limited_range)
     diff_r, diff_g, diff_b, diff_rgb = calc_diff_rgb_and_abssum(diff_rgb)
-    plot_single_histgram(diff_r.flatten(), title="Red")
-    plot_single_histgram(diff_g.flatten(), title="Green")
-    plot_single_histgram(diff_b.flatten(), title="Blue")
-    plot_single_histgram(diff_rgb.flatten(), title="SUM")
+    # plot_single_histgram(diff_r.flatten(), title="Red")
+    # plot_single_histgram(diff_g.flatten(), title="Green")
+    # plot_single_histgram(diff_b.flatten(), title="Blue")
+    # plot_single_histgram(diff_rgb.flatten(), title="SUM")
+    title_str = "Gamut={}, Bit Depth={}, Narrow Range={}"
+    title_str = title_str.format(gamut, bit_depth, limited_range)
+    plot_rgb_histgram(diff_r.flatten(), diff_g.flatten(), diff_b.flatten(),
+                      title_str)
+    plot_single_histgram(diff_rgb, title_str)
 
 
 def calc_invertible_rate_with_various_combinations():
