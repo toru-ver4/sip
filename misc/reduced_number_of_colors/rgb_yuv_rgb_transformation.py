@@ -329,7 +329,6 @@ def plot_rgb_histgram(r_data, g_data, b_data, title=None):
     ax1.bar(range_r, r[0], color=R_BAR_COLOR, label="Red", width=each_width)
     ax1.bar(range_g, g[0], color=G_BAR_COLOR, label="Green", width=each_width)
     ax1.bar(range_b, b[0], color=B_BAR_COLOR, label="Blue", width=each_width)
-    ax1.set_ylim(ymin=10 ** 4)
     ax1.set_yscale("log", nonposy="clip")
     plt.legend(loc='upper left')
     fname = "figures/" + title + "three.png"
@@ -357,7 +356,7 @@ def make_graph_for_consideration(gamut, bit_depth, limited_range):
     title_str = title_str.format(gamut, bit_depth, limited_range)
     diff_r, diff_g, diff_b, diff_rgb = make_four_diff_data(gamut, bit_depth,
                                                            limited_range)
-    # make_four_diff_histgram(diff_r, diff_g, diff_b, diff_rgb, title_str)
+    make_four_diff_histgram(diff_r, diff_g, diff_b, diff_rgb, title_str)
     make_chromaticity_diagram_with_bad_data(gamut, bit_depth, diff_rgb)
 
 
@@ -383,7 +382,11 @@ def make_chromaticity_diagram_with_bad_data(gamut, bit_depth, diff_data):
     axis_data = np.arange(2 ** bit_depth)
     rgb_normalized = make_3d_grid(axis_data) / ((2 ** bit_depth) - 1)
     bad_rgb = rgb_normalized[:, bad_idx, :]
-    xyY = rgb_to_xyY(bad_rgb, gamut)
+    plot_chromaticity_diagram(gamut, bad_rgb)
+
+
+def plot_chromaticity_diagram(gamut, data):
+    xyY = rgb_to_xyY(data, gamut)
     gamut_xy, _ = tpg.get_primaries(gamut)
     cmf_xy = tpg._get_cmfs_xy()
 
@@ -404,18 +407,18 @@ def make_chromaticity_diagram_with_bad_data(gamut, bit_depth, diff_data):
                           linewidth=4 * rate,
                           minor_xtick_num=2,
                           minor_ytick_num=2)
-    color = bad_rgb.reshape((bad_rgb.shape[0] * bad_rgb.shape[1],
-                            bad_rgb.shape[2]))
+    color = data.reshape((data.shape[0] * data.shape[1],
+                          data.shape[2]))
     ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', lw=3.5*rate, label=None)
     ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
              '-k', lw=2.5*rate, label=None)
     ax1.patch.set_facecolor("#F2F2F2")
     ax1.plot(gamut_xy[..., 0], gamut_xy[..., 1], c=K_BAR_COLOR,
              label="BT.709", lw=3*rate)
-    ax1.scatter(xyY[..., 0], xyY[..., 1], s=50*rate, marker='o',
-                c=color, edgecolors='#404000', linewidth=1*rate, zorder=100)
+    ax1.scatter(xyY[..., 0], xyY[..., 1], s=7*rate, marker='o',
+                c=color, edgecolors=None, linewidth=1*rate, zorder=100)
     ax1.scatter(np.array([0.3127]), np.array([0.3290]), s=200*rate, marker='x',
-                c="#000000", edgecolors='#404000', linewidth=3*rate,
+                c="#000000", edgecolors=None, linewidth=3*rate,
                 zorder=101, label="D65")
     plt.legend(loc='upper right')
     plt.savefig('./figures/xy_chromaticity.png', bbox_inches='tight')
@@ -434,23 +437,19 @@ def calc_invertible_rate_with_various_combinations():
                                     limited_range=False)
     calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=8,
                                     limited_range=True)
-    # calc_invertible_rate_high_speed(gamut="ITU-R BT.709", bit_depth=10,
-    #                                 limited_range=False)
-    # calc_invertible_rate_high_speed(gamut="ITU-R BT.709", bit_depth=10,
-    #                                 limited_range=True)
-    # calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=10,
-    #                                 limited_range=False)
-    # calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=10,
-    #                                 limited_range=True)
+    calc_invertible_rate_high_speed(gamut="ITU-R BT.709", bit_depth=10,
+                                    limited_range=False)
+    calc_invertible_rate_high_speed(gamut="ITU-R BT.709", bit_depth=10,
+                                    limited_range=True)
+    calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=10,
+                                    limited_range=False)
+    calc_invertible_rate_high_speed(gamut="ITU-R BT.2020", bit_depth=10,
+                                    limited_range=True)
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # test_func()
-    # calc_invertible_rate_with_various_combinations()
+    calc_invertible_rate_with_various_combinations()
     make_graph_for_consideration(gamut="ITU-R BT.709", bit_depth=8,
                                  limited_range=False)
-    # max_value = 10
-    # x = np.array([0, 0, 1, 1, 1, 5, 5, 5, 5, 1])
-    # print(x)
-    # plot_single_histgram(x)
