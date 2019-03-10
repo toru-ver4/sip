@@ -7,11 +7,13 @@ RGB --> YCbCr --> RGB 変換により欠落する情報をまとめる
 
 import os
 import numpy as np
-from colour import RGB_to_YCbCr, YCbCr_to_RGB
+from colour import RGB_to_YCbCr, YCbCr_to_RGB, RGB_to_XYZ, XYZ_to_xyY
+from colour import RGB_COLOURSPACES
 from colour.utilities import CaseInsensitiveMapping
 from multiprocessing import Pool, cpu_count
 import matplotlib.pyplot as plt
 import plot_utility as pu
+import test_pattern_generator2 as tpg
 
 
 YCBCR_WEIGHTS = CaseInsensitiveMapping({
@@ -236,10 +238,6 @@ def make_diff_rgb(gamut, bit_depth, limited_range):
     RGB --> YCbCr --> RGB 変換を行った後、src - dst をして返す。
     """
     axis_data = np.arange(2 ** bit_depth)
-    print("=" * 80)
-    print("FIX ME!!")
-    print("=" * 80)
-    axis_data = np.arange(2 ** (bit_depth - 2))
     src_rgb = make_3d_grid(axis_data)
     ycbcr = convert_to_ycbcr(src_rgb, gamut=gamut, bit_depth=bit_depth,
                              limited_range=limited_range)
@@ -359,13 +357,69 @@ def make_graph_for_consideration(gamut, bit_depth, limited_range):
     title_str = title_str.format(gamut, bit_depth, limited_range)
     diff_r, diff_g, diff_b, diff_rgb = make_four_diff_data(gamut, bit_depth,
                                                            limited_range)
-    make_four_diff_histgram(diff_r, diff_g, diff_b, diff_rgb, title_str)
+    # make_four_diff_histgram(diff_r, diff_g, diff_b, diff_rgb, title_str)
+    make_chromaticity_diagram_with_bad_data(gamut, bit_depth, diff_rgb)
 
 
-def make_chromaticity_diagram_with_bad_data(gamut, bit_depth, limited_range):
+def rgb_to_xyY(rgb, gamut):
+    linear_rgb = rgb ** 2.4
+    illuminant_RGB = RGB_COLOURSPACES[gamut].whitepoint
+    illuminant_XYZ = illuminant_RGB
+    chromatic_adaptation_transform = 'Bradford'
+    rgb_to_xyz_mtx = RGB_COLOURSPACES[gamut].RGB_to_XYZ_matrix
+    large_xyz = RGB_to_XYZ(linear_rgb, illuminant_RGB, illuminant_XYZ,
+                           rgb_to_xyz_mtx,
+                           chromatic_adaptation_transform)
+    xyY = XYZ_to_xyY(large_xyz, illuminant_XYZ)
+    return xyY
+
+
+def make_chromaticity_diagram_with_bad_data(gamut, bit_depth, diff_data):
     """
     誤差の大きかったデータをxy色度図にプロットしちゃうよっ！
     """
+    # 3以上の誤差をはじき出した悪いIndexを抽出
+    bad_idx = (diff_data.flatten() > 2)
+    axis_data = np.arange(2 ** bit_depth)
+    rgb_normalized = make_3d_grid(axis_data) / ((2 ** bit_depth) - 1)
+    bad_rgb = rgb_normalized[:, bad_idx, :]
+    xyY = rgb_to_xyY(bad_rgb, gamut)
+    gamut_xy, _ = tpg.get_primaries(gamut)
+    cmf_xy = tpg._get_cmfs_xy()
+
+    rate = 1.0
+    ax1 = pu.plot_1_graph(fontsize=20 * rate,
+                          figsize=(8 * rate, 9 * rate),
+                          graph_title="CIE1931 Chromaticity Diagram",
+                          graph_title_size=None,
+                          xlabel=None, ylabel=None,
+                          axis_label_size=None,
+                          legend_size=18 * rate,
+                          xlim=(0, 0.8),
+                          ylim=(0, 0.9),
+                          xtick=[x * 0.1 for x in range(9)],
+                          ytick=[x * 0.1 for x in range(10)],
+                          xtick_size=17 * rate,
+                          ytick_size=17 * rate,
+                          linewidth=4 * rate,
+                          minor_xtick_num=2,
+                          minor_ytick_num=2)
+    color = bad_rgb.reshape((bad_rgb.shape[0] * bad_rgb.shape[1],
+                            bad_rgb.shape[2]))
+    ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', lw=3.5*rate, label=None)
+    ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
+             '-k', lw=2.5*rate, label=None)
+    ax1.patch.set_facecolor("#F2F2F2")
+    ax1.plot(gamut_xy[..., 0], gamut_xy[..., 1], c=K_BAR_COLOR,
+             label="BT.709", lw=3*rate)
+    ax1.scatter(xyY[..., 0], xyY[..., 1], s=50*rate, marker='o',
+                c=color, edgecolors='#404000', linewidth=1*rate, zorder=100)
+    ax1.scatter(np.array([0.3127]), np.array([0.3290]), s=200*rate, marker='x',
+                c="#000000", edgecolors='#404000', linewidth=3*rate,
+                zorder=101, label="D65")
+    plt.legend(loc='upper right')
+    plt.savefig('./figures/xy_chromaticity.png', bbox_inches='tight')
+    plt.show()
 
 
 def calc_invertible_rate_with_various_combinations():
@@ -395,7 +449,7 @@ if __name__ == '__main__':
     # test_func()
     # calc_invertible_rate_with_various_combinations()
     make_graph_for_consideration(gamut="ITU-R BT.709", bit_depth=8,
-                                 limited_range=True)
+                                 limited_range=False)
     # max_value = 10
     # x = np.array([0, 0, 1, 1, 1, 5, 5, 5, 5, 1])
     # print(x)
