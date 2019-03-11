@@ -152,20 +152,25 @@ def count_equal_pairs(rgb_src, rgb_dst):
 
 
 def test_func():
-    limited_range = False
-    bit_depth = 10
-    test_data = [[0, 0, 0], [512, 512, 512], [1023, 1023, 1023],
-                 [1023, 0, 0], [0, 1023, 0], [0, 0, 1023]]
+    # limited_range = False
+    # bit_depth = 10
+    # test_data = [[0, 0, 0], [512, 512, 512], [1023, 1023, 1023],
+    #              [1023, 0, 0], [0, 1023, 0], [0, 0, 1023]]
     # test_data = [[0, 0, 0], [128, 128, 128], [255, 255, 255],
     #              [255, 0, 0], [0, 255, 0], [0, 0, 255]]
-    test_data = np.array(test_data, dtype=np.int16)
-    ycbcr = convert_to_ycbcr(test_data, bit_depth=bit_depth,
-                             limited_range=limited_range)
-    print(ycbcr)
-    rgb_dst = convert_to_rgb(ycbcr, bit_depth=bit_depth,
-                             limited_range=limited_range)
-    print(rgb_dst)
-    count_equal_pairs(test_data, rgb_dst)
+    # test_data = np.array(test_data, dtype=np.int16)
+    # ycbcr = convert_to_ycbcr(test_data, bit_depth=bit_depth,
+    #                          limited_range=limited_range)
+    # print(ycbcr)
+    # rgb_dst = convert_to_rgb(ycbcr, bit_depth=bit_depth,
+    #                          limited_range=limited_range)
+    # print(rgb_dst)
+    # count_equal_pairs(test_data, rgb_dst)
+    sample = np.array([[-1, -2, -3], [-1, 0, 1], [-1, -2, 3]], dtype=np.int)
+    diffs = calc_diff_rgb_and_abssum(sample)
+    print(sample)
+    print(diffs[0], diffs[1], diffs[2], diffs[3])
+    print(diffs[3] > 2)
 
 
 def calc_invertible_rate(gamut='ITU-R BT.709', bit_depth=8,
