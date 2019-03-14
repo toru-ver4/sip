@@ -9,8 +9,8 @@ RGB --> YCbCr --> RGB 変換で係数間違えを犯した場合の
 import os
 import numpy as np
 import cv2
-from colour import RGB_to_YCbCr, YCbCr_to_RGB, RGB_to_XYZ, XYZ_to_xyY
-from colour import RGB_COLOURSPACES
+from colour import RGB_to_XYZ, XYZ_to_Lab
+from colour import delta_E
 from colour.utilities import CaseInsensitiveMapping
 from multiprocessing import Pool, cpu_count
 import matplotlib.pyplot as plt
@@ -128,18 +128,47 @@ def concatenate_all_images():
     img_write("./img/all.tiff", img)
 
 
-def linear_rgb_to_cielab(rgb):
+def linear_rgb_to_cielab(rgb, gamut):
     """
     LinearなRGB値をRGB --> XYZ --> L*a*b* に変換する。
     rgb は [0:1] に正規化済みの前提ね。
     """
-    print(rgb)
+    illuminant_XYZ = tpg.D65_WHITE
+    illuminant_RGB = tpg.D65_WHITE
+    chromatic_adaptation_transform = 'CAT02'
+    rgb_to_xyz_matrix = tpg.get_rgb_to_xyz_matrix(gamut)
+    large_xyz = RGB_to_XYZ(rgb, illuminant_RGB, illuminant_XYZ,
+                           rgb_to_xyz_matrix,
+                           chromatic_adaptation_transform)
+
+    lab = XYZ_to_Lab(large_xyz, illuminant_XYZ)
+
+    return lab
+
+
+def calc_delta_e(src_rgb, dst_rgb, method='cie2000'):
+    """
+    RGB値からdelta_eを計算。
+    rgb値はガンマ補正がかかった8bit整数型の値とする。
+    """
+    src_linear = (src_rgb / 0xFF) ** 2.4
+    dst_linear = (dst_rgb / 0xFF) ** 2.4
+    print(src_linear)
+    src_lab = linear_rgb_to_cielab(src_linear)
+    dst_lab = linear_rgb_to_cielab(dst_linear)
+    delta = delta_E(src_lab, dst_lab, method)
+
+    return delta
 
 
 def test_func():
     x = np.linspace(0, 1, 1024)
-    rgb = np.dstack((x, x, x))
-    linear_rgb_to_cielab(rgb)
+    x2 = np.zeros(1024)
+    rgb = np.dstack((x, x, x2))
+    lab = linear_rgb_to_cielab(rgb, BT709)
+    delta = delta_E(lab[:, 800:900, :], lab[:, 900:1000, :], 'cie2000')
+    print(lab[:, 800:900, :], lab[:, 900:1000, :])
+    print(delta)
 
 
 if __name__ == '__main__':
