@@ -23,8 +23,8 @@ BT601 = 'ITU-R BT.601'
 BT709 = 'ITU-R BT.709'
 BT2020 = 'ITU-R BT.2020'
 BASE_SRC_16BIT_PATTERN = "./img/src_16bit.tiff"
-# BASE_SRC_8BIT_PATTERN = "./img/src_8bit.tiff"
-BASE_SRC_8BIT_PATTERN = "./img/src_8bit_trim2.tif"
+BASE_SRC_8BIT_PATTERN = "./img/src_8bit.tiff"
+# BASE_SRC_8BIT_PATTERN = "./img/src_8bit_trim2.tif"
 
 YCBCR_WEIGHTS = CaseInsensitiveMapping({
     BT601: np.array([0.2990, 0.1140]),
@@ -99,12 +99,21 @@ def make_wrong_ycbcr_conv_image_all_pattern():
             make_wrong_ycbcr_conv_image(src_coef, dst_coef)
 
 
-def make_wrong_ycbcr_conv_image(src_coef=BT709, dst_coef=BT2020):
-    src_img = img_read(BASE_SRC_8BIT_PATTERN)
+def convert_rgb_to_ycbcr_to_rgb(src_img, src_coef, dst_coef):
+    """
+    RGB --> YCbCr --> RGB 変換。
+    RGB, YCbCr は整数型。なので量子化誤差＋αは確実に発生。
+    """
     ycbcr_img = ryr.convert_to_ycbcr(src_img, src_coef, bit_depth=8,
                                      limited_range=True)
     dst_img = ryr.convert_to_rgb(ycbcr_img, dst_coef, bit_depth=8,
                                  limited_range=True).astype(np.uint8)
+    return dst_img
+
+
+def make_wrong_ycbcr_conv_image(src_coef=BT709, dst_coef=BT2020):
+    src_img = img_read(BASE_SRC_8BIT_PATTERN)
+    dst_img = convert_rgb_to_ycbcr_to_rgb(src_img, src_coef, dst_coef)
     file_name = "./img/{}_{}.tiff".format(src_coef, dst_coef)
     img_write(file_name, dst_img)
 
@@ -153,28 +162,100 @@ def calc_delta_e(src_rgb, dst_rgb, method='cie2000'):
     """
     src_linear = (src_rgb / 0xFF) ** 2.4
     dst_linear = (dst_rgb / 0xFF) ** 2.4
-    print(src_linear)
-    src_lab = linear_rgb_to_cielab(src_linear)
-    dst_lab = linear_rgb_to_cielab(dst_linear)
+    src_lab = linear_rgb_to_cielab(src_linear, BT709)
+    dst_lab = linear_rgb_to_cielab(dst_linear, BT709)
     delta = delta_E(src_lab, dst_lab, method)
 
     return delta
 
 
+def plot_single_histgram(data, title=None, method='cie2000',
+                         plot_range=[0, 20]):
+    """
+    単色のヒストグラムを作成する
+    """
+    width = 0.7
+    y = ryr.make_histogram_data(data, plot_range)
+    range_k = np.arange(plot_range[0], plot_range[1] + 1)
+    xtick = [x for x in range(plot_range[0], plot_range[1] + 1)]
+    ax1 = pu.plot_1_graph(graph_title=title,
+                          graph_title_size=22,
+                          xlabel="Color Difference",
+                          ylabel="Frequency",
+                          xtick=xtick,
+                          grid=False)
+    label = "delta E. method={}".format(method)
+    ax1.bar(range_k, y[0], color=K_BAR_COLOR, label=label,
+            width=width)
+    ax1.set_yscale("log", nonposy="clip")
+    plt.legend(loc='upper right')
+    fname = "figures/" + title + "_" + method + ".png"
+    plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
+    # plt.show()
+
+
+def make_delta_e_histogram_thread_wrapper(args):
+    """
+    make_delta_e_histogram をスレッド化するためのラッパー。
+    """
+    return make_delta_e_histogram(*args)
+
+
+def make_delta_e_histogram(src_coef=BT709, dst_coef=BT2020, method='cie2000',
+                           plot_range=[0, 20]):
+    """
+    YCbCr変換係数ミス時の色差に関するヒストグラムを作成する。
+    """
+    x = np.arange(0, 255, 1)
+    src_rgb = ryr.make_3d_grid(x)
+    dst_rgb = convert_rgb_to_ycbcr_to_rgb(src_rgb, src_coef, dst_coef)
+    delta = calc_delta_e(src_rgb, dst_rgb, method)
+    title = "src_coef={}, dst_coef={}".format(src_coef, dst_coef)
+    plot_single_histgram(delta, title=title, method=method,
+                         plot_range=plot_range)
+
+
+def make_delta_e_histogram_all_pattern(method='cie2000'):
+    rgb_to_ycbcr_coef_list = [BT601, BT709, BT2020]
+    ycbcr_to_rgb_coef_list = [BT601, BT709, BT2020]
+
+    args_list = []
+    for src_coef in rgb_to_ycbcr_coef_list:
+        for dst_coef in ycbcr_to_rgb_coef_list:
+            args_list.append([src_coef, dst_coef, method])
+            make_delta_e_histogram(src_coef, dst_coef, method='cie2000',
+                                   plot_range=[0, 15])
+
+
 def test_func():
-    x = np.linspace(0, 1, 1024)
-    x2 = np.zeros(1024)
-    rgb = np.dstack((x, x, x2))
-    lab = linear_rgb_to_cielab(rgb, BT709)
-    delta = delta_E(lab[:, 800:900, :], lab[:, 900:1000, :], 'cie2000')
-    print(lab[:, 800:900, :], lab[:, 900:1000, :])
-    print(delta)
+    # x = (np.linspace(0, 1, 1024) * 0.5) ** (1/1)
+    # print(x)
+    # x2 = np.zeros(1024)
+    # rgb = np.dstack((x, x, x2))
+    # lab = linear_rgb_to_cielab(rgb, BT709)
+    # print(lab)
+    # delta = delta_E(lab[:, 800:900, :], lab[:, 900:1000, :], 'cie2000')
+    # print(lab[:, 800:900, :], lab[:, 900:1000, :])
+    # print(delta)
+
+    # x = np.arange(0, 255, 4)
+    # x = np.append(x, 255)
+    # y = np.arange(1, 255, 4)c
+    # y = np.append(y, 255)
+    # print(y)
+    # rgb = ryr.make_3d_grid(x)
+    # rgb2 = ryr.make_3d_grid(y)
+    # delta = calc_delta_e(rgb, rgb2)
+    # print(delta)
+
+    make_delta_e_histogram(src_coef=BT709, dst_coef=BT601)
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    test_func()
+    # test_func()
     # calc_yuv_transform_matrix()
     # convert_16bit_tiff_to_8bit_tiff()
     # make_wrong_ycbcr_conv_image_all_pattern()
     # concatenate_all_images()
+    make_delta_e_histogram_all_pattern()
