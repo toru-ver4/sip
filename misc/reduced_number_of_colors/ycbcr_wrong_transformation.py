@@ -227,6 +227,97 @@ def make_delta_e_histogram_all_pattern(method='cie2000'):
                                    plot_range=[0, 15])
 
 
+def make_delta_e_base_chroma_diagram_each_value(src_coef, dst_coef,
+                                                method='cie2000'):
+    """
+    delta E の値が大きかった色をxy色度図上にプロットしてみる。
+    0～最大値まで1刻みでプロットしてみる。
+    """
+    x = np.arange(0, 255, 4)
+    src_rgb = ryr.make_3d_grid(x)
+    dst_rgb = convert_rgb_to_ycbcr_to_rgb(src_rgb, src_coef, dst_coef)
+    delta = calc_delta_e(src_rgb, dst_rgb, method)
+
+    range_end = int(np.ceil(np.max(delta)))
+
+    for delta_e_value in range(range_end):
+        target_idx = calc_target_idx(delta, delta_e_value, delta_e_value+1)
+        normalized_src_rgb = src_rgb / 255
+        plot_rgb = normalized_src_rgb[:, target_idx[0], :]
+        title = "src_coef: {}, dst_coef: {}, deltaE: {}-{}"
+        title = title.format(src_coef, dst_coef, delta_e_value,
+                             delta_e_value + 1)
+        plot_chromaticity_diagram(gamut=BT709, data=plot_rgb,
+                                  delta_e=delta_e_value, title=title)
+
+
+def calc_target_idx(data, low_threshold, high_threshold):
+    """
+    ndarrayの特定領域のidxを計算する。
+    """
+    return (data >= low_threshold) & (data < high_threshold)
+
+
+def plot_chromaticity_diagram(gamut, data, delta_e=0, title=None):
+    xyY = ryr.rgb_to_xyY(data, gamut)
+    gamut_xy, _ = tpg.get_primaries(gamut)
+    cmf_xy = tpg._get_cmfs_xy()
+
+    rate = 1.0
+    ax1 = pu.plot_1_graph(fontsize=20 * rate,
+                          figsize=(8 * rate, 9 * rate),
+                          graph_title=title,
+                          graph_title_size=18,
+                          xlabel=None, ylabel=None,
+                          axis_label_size=None,
+                          legend_size=18 * rate,
+                          xlim=(0, 0.8),
+                          ylim=(0, 0.9),
+                          xtick=[x * 0.1 for x in range(9)],
+                          ytick=[x * 0.1 for x in range(10)],
+                          xtick_size=17 * rate,
+                          ytick_size=17 * rate,
+                          linewidth=4 * rate,
+                          minor_xtick_num=2,
+                          minor_ytick_num=2)
+    color = data.reshape((data.shape[0] * data.shape[1],
+                          data.shape[2]))
+    ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', lw=3.5*rate, label=None)
+    ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
+             '-k', lw=2.5*rate, label=None)
+    ax1.patch.set_facecolor("#F2F2F2")
+    ax1.plot(gamut_xy[..., 0], gamut_xy[..., 1], c=K_BAR_COLOR,
+             label="BT.709", lw=3*rate)
+    ax1.scatter(xyY[..., 0], xyY[..., 1], s=2*rate, marker='o',
+                c=color, edgecolors=None, linewidth=1*rate, zorder=100)
+    ax1.scatter(np.array([0.3127]), np.array([0.3290]), s=200*rate, marker='x',
+                c="#000000", edgecolors=None, linewidth=3*rate,
+                zorder=101, label="D65")
+    plt.legend(loc='upper right')
+    title = title.replace(":", "")
+    file_name = './figures/xy_chromaticity_{}.png'.format(title)
+    plt.savefig(file_name, bbox_inches='tight')
+    # plt.show()
+
+
+def concatenate_xy_chtomaticity_iamge(src_coef=BT709, dst_coef=BT601):
+    """
+    """
+    v_buf = []
+    for v_idx in range(3):
+        h_buf = []
+        for h_idx in range(3):
+            idx = v_idx * 3 + h_idx
+            title = "src_coef: {}, dst_coef: {}, deltaE: {}-{}"
+            title = title.format(src_coef, dst_coef, idx, idx + 1)
+            title = title.replace(":", "")
+            file_name = './figures/xy_chromaticity_{}.png'.format(title)
+            h_buf.append(img_read(file_name))
+        v_buf.append(np.hstack(h_buf))
+    img = np.vstack(v_buf)
+    img_write("./img/all_xy.png", img)
+
+
 def test_func():
     # x = (np.linspace(0, 1, 1024) * 0.5) ** (1/1)
     # print(x)
@@ -248,14 +339,18 @@ def test_func():
     # delta = calc_delta_e(rgb, rgb2)
     # print(delta)
 
-    make_delta_e_histogram(src_coef=BT709, dst_coef=BT601)
+    # make_delta_e_histogram(src_coef=BT709, dst_coef=BT601)
+    # x = np.arange(10)
+    # calc_target_idx(x, 0, 2)
+    make_delta_e_base_chroma_diagram_each_value(src_coef=BT709, dst_coef=BT601)
+    concatenate_xy_chtomaticity_iamge()
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # test_func()
+    test_func()
     # calc_yuv_transform_matrix()
     # convert_16bit_tiff_to_8bit_tiff()
     # make_wrong_ycbcr_conv_image_all_pattern()
     # concatenate_all_images()
-    make_delta_e_histogram_all_pattern()
+    # make_delta_e_histogram_all_pattern()
