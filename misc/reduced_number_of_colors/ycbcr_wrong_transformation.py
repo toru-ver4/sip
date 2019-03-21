@@ -119,13 +119,51 @@ def convert_rgb_to_ycbcr_to_rgb(src_img, src_coef, dst_coef):
     return dst_img
 
 
+def make_wrong_image_filename(src_coef=BT709, dst_coef=BT2020):
+    return "./img/{}_{}_01.png".format(src_coef, dst_coef)
+
+
+def make_wrong_image_filename_for_org(src_coef=BT709, dst_coef=BT2020):
+    return "./img/{}_{}_00.png".format(src_coef, dst_coef)
+
+
 def make_wrong_ycbcr_conv_image(src_coef=BT709, dst_coef=BT2020):
     src_img = img_read(BASE_SRC_8BIT_PATTERN)
     dst_img = convert_rgb_to_ycbcr_to_rgb(src_img, src_coef, dst_coef)
     caption = "src={}, dst={}".format(src_coef, dst_coef)
     dst_img = add_caption_to_color_checker(dst_img, caption)
-    file_name = "./img/{}_{}.png".format(src_coef, dst_coef)
+    file_name = make_wrong_image_filename(src_coef, dst_coef)
     img_write(file_name, dst_img)
+
+    # APNG に src_img にも キャプションを付けて吐く
+    text = "ORIGINAL IMAGE"
+    img = add_caption_to_color_checker(img_read(BASE_SRC_8BIT_PATTERN), text)
+    file_name_org = make_wrong_image_filename_for_org(src_coef, dst_coef)
+    img_write(file_name_org, img)
+
+
+def make_color_checker_apng_name(src_coef=BT709, dst_coef=BT2020):
+    return "./img/{}_{}_apng.png".format(src_coef, dst_coef)
+
+
+def make_shell_script_for_color_checker_apng():
+    """
+    ブログに貼り付けるAPNGのColor Checke生成用のスクリプトを作る。
+    """
+    rgb_to_ycbcr_coef_list = [BT601, BT709, BT2020]
+    ycbcr_to_rgb_coef_list = [BT601, BT709, BT2020]
+    script_name = "./script/make_color_checker_apng.sh"
+    command = 'apngasm'
+    with open(script_name, "w") as f:
+        text = r"#!/bin/bash" + "\n"
+        f.write(text)
+        for src_coef in rgb_to_ycbcr_coef_list:
+            for dst_coef in ycbcr_to_rgb_coef_list:
+                src = '"' + make_wrong_image_filename_for_org(src_coef, dst_coef) + '"'
+                dst = '"' + make_color_checker_apng_name(src_coef, dst_coef) + '"'
+                option = "1 1"
+                text = " ".join([command, dst, src, option]) + "\n"
+                f.write(text)
 
 
 def concatenate_all_images():
@@ -477,11 +515,20 @@ def test_func():
     img_write("./img/src_caption.png", img)
 
 
+def make_color_checker_apng_for_blog():
+    """
+    ブログに貼り付ける Color Checker の APNG 動画を作る。
+    """
+    make_wrong_ycbcr_conv_image_all_pattern()
+    make_shell_script_for_color_checker_apng()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    test_func()
+    # test_func()
     # calc_yuv_transform_matrix()
     # convert_16bit_tiff_to_8bit_tiff()
     # make_wrong_ycbcr_conv_image_all_pattern()
     # concatenate_all_images()
     # make_delta_e_histogram_all_pattern()
+    make_color_checker_apng_for_blog()
