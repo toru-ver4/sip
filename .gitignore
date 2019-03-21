@@ -112,3 +112,8 @@ signal_generation/Limited_Range_Checker/**/*.dpx
 signal_generation/**/*.mov
 misc/gamma_research/**/*.tiff
 **/*.mov
+misc/reduced_number_of_colors/img/*.tiff
+misc/reduced_number_of_colors/img/*.png
+misc/reduced_number_of_colors/figures/*.tiff
+misc/reduced_number_of_colors/figures/*.png
+
