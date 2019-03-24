@@ -37,6 +37,7 @@ YCBCR_WEIGHTS = CaseInsensitiveMapping({
 })
 
 BT2020_Y_PARAM = np.array([0.2627, 0.6780, 0.0593])
+BT709_Y_PARAM = np.array([0.2126, 0.7152, 0.0722])
 
 # カラーユニバーサルデザイン推奨配色セット制作委員会資料より抜粋
 R_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(255, 75, 0)
@@ -50,7 +51,7 @@ K_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(132, 145, 158)
 # K_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(200, 200, 203)
 
 
-def calc_yuv_transform_matrix(y_param=BT2020_Y_PARAM):
+def calc_yuv_transform_matrix(y_param=BT709_Y_PARAM):
     """
     RGB to YUV 変換のMatrixを算出する。
     """
@@ -453,7 +454,8 @@ def merge_text(img, txt_img, pos):
     return img
 
 
-def add_caption_to_color_checker(img, text="ITU-R BT.601, ITU-R BT.2020"):
+def add_caption_to_color_checker(img, text="ITU-R BT.601, ITU-R BT.2020",
+                                 font_size=25):
     """
     各パーツの説明テキストを合成。
     pos は テキストの (st_pos_h, st_pos_v) 。
@@ -461,7 +463,6 @@ def add_caption_to_color_checker(img, text="ITU-R BT.601, ITU-R BT.2020"):
     """
     pos = (230, 10)
     text_img_size = (501, 39)
-    font_size = 25
     # テキストイメージ作成
     text_width = text_img_size[0]
     text_height = text_img_size[1]
@@ -478,6 +479,44 @@ def add_caption_to_color_checker(img, text="ITU-R BT.601, ITU-R BT.2020"):
     # tpg.preview_image(img)
 
     return img
+
+
+def make_color_checker_apng_for_blog():
+    """
+    ブログに貼り付ける Color Checker の APNG 動画を作る。
+    """
+    # make_wrong_ycbcr_conv_image_all_pattern()
+    # make_shell_script_for_color_checker_apng()
+    make_color_checker_ng_repeatedly(src_coef=BT709, dst_coef=BT2020)
+
+
+def make_file_name_repeat_case(src_coef=BT709, dst_coef=BT2020, repeat_idx=0):
+    return "./img/repeat_{}_{}_{:02d}.png".format(src_coef, dst_coef,
+                                                  repeat_idx + 1)
+
+
+def make_color_checker_ng_repeatedly(src_coef=BT709, dst_coef=BT2020):
+    """
+    color checker に対して係数誤りの YCbCr変換を繰り返し行う。
+    """
+
+    # APNG用の保存
+    text = "ORIGINAL IMAGE"
+    src_img = add_caption_to_color_checker(img_read(BASE_SRC_8BIT_PATTERN),
+                                           text)
+    file_name = make_file_name_repeat_case(src_coef, dst_coef, -1)
+    img_write(file_name, src_img)
+
+    repeat_num = 5
+    src_img = img_read(BASE_SRC_8BIT_PATTERN)
+    for repeat_idx in range(repeat_num):
+        dst_img = convert_rgb_to_ycbcr_to_rgb(src_img, src_coef, dst_coef)
+        src_img = dst_img.copy()  # 次回ループ用
+        caption = "src={}, dst={}, repeat={}".format(src_coef, dst_coef,
+                                                     repeat_idx + 1)
+        dst_img = add_caption_to_color_checker(dst_img, caption, font_size=22)
+        file_name = make_file_name_repeat_case(src_coef, dst_coef, repeat_idx)
+        img_write(file_name, dst_img)
 
 
 def test_func():
@@ -515,20 +554,12 @@ def test_func():
     img_write("./img/src_caption.png", img)
 
 
-def make_color_checker_apng_for_blog():
-    """
-    ブログに貼り付ける Color Checker の APNG 動画を作る。
-    """
-    make_wrong_ycbcr_conv_image_all_pattern()
-    make_shell_script_for_color_checker_apng()
-
-
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # test_func()
-    # calc_yuv_transform_matrix()
+    calc_yuv_transform_matrix()
     # convert_16bit_tiff_to_8bit_tiff()
     # make_wrong_ycbcr_conv_image_all_pattern()
     # concatenate_all_images()
     # make_delta_e_histogram_all_pattern()
-    make_color_checker_apng_for_blog()
+    # make_color_checker_apng_for_blog()
