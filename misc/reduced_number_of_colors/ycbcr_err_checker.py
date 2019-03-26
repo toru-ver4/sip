@@ -56,11 +56,34 @@ def make_wrong_ycbcr_conv_image_all_pattern():
             make_wrong_ycbcr_conv_image(src_coef, dst_coef)
 
 
+def get_clip_test_img_name(src_coef=BT709, dst_coef=BT2020):
+    return "./img/clip_{}_{}.png".format(src_coef, dst_coef)
+
+
 def make_wrong_ycbcr_conv_image(src_coef=BT709, dst_coef=BT2020):
     src_img = ywt.img_read(BASE_SRC_8BIT_PATTERN)
     dst_img = ywt.convert_rgb_to_ycbcr_to_rgb(src_img, src_coef, dst_coef)
-    file_name = "./img/clip_{}_{}.png".format(src_coef, dst_coef)
+    file_name = get_clip_test_img_name(src_coef, dst_coef)
     ywt.img_write(file_name, dst_img)
+
+
+def concatenate_all_images(get_fname_func=get_clip_test_img_name):
+    """
+    各係数の画像を1枚にまとめてみる。
+    """
+    h_list = [BT601, BT709, BT2020]
+    v_list = [BT601, BT709, BT2020]
+    v_buf = []
+    for v_val in v_list:
+        h_buf = []
+        for h_val in h_list:
+            fname = get_fname_func(h_val, v_val)
+            print(fname)
+            h_buf.append(ywt.img_read(fname))
+        v_buf.append(np.hstack(h_buf))
+    img = np.vstack(v_buf)
+
+    ywt.img_write("./img/all.png", img)
 
 
 def make_wrong_pattern_img():
@@ -80,50 +103,53 @@ def clip_over_512_level():
     ywt.img_write("./img/src_8bit_128_clip.tiff", img)
 
 
-def analyze_cyan_level(cv=192):
+def analyze_video_level(rgb=[0, 192, 192]):
     """
-    cyan = (0, 192, 192) の 色の変動を確認
+    任意のビデオレベルの変動を確認
     """
-    cyan = [0, cv, cv]
-    cyan = np.array(cyan, dtype=np.uint8).reshape((1, 1, 3))
+    rgb = np.array(rgb, dtype=np.uint8).reshape((1, 1, 3))
 
     rgb_to_ycbcr_coef_list = [BT601, BT709, BT2020]
     ycbcr_to_rgb_coef_list = [BT601, BT709, BT2020]
 
+    result_buf = []
+
     for src_coef in rgb_to_ycbcr_coef_list:
         for dst_coef in ycbcr_to_rgb_coef_list:
-            dst_img = ywt.convert_rgb_to_ycbcr_to_rgb(cyan, src_coef, dst_coef)
+            dst_img = ywt.convert_rgb_to_ycbcr_to_rgb(rgb, src_coef, dst_coef)
+            result_buf.append(dst_img)
             print(dst_img)
+
+    return np.hstack(result_buf)
 
 
 def make_mono_clip_pattern(color_mask=[1, 1, 1]):
     cv_max = 255
     color_mask = np.array(color_mask, dtype=np.uint8)
     step = 8
-    total = 33
+    block_num = 4
+    total = 6
     width_base = 480
-    height = ((width_base * 2) // total)
+    height = (width_base // (total * (block_num)))
     width = height
 
-    max_img = np.ones([height, width, 3], dtype=np.uint8) * cv_max
+    max_img = np.ones([height, width, 3], dtype=np.uint8) * cv_max * color_mask
 
     img_h_buf = []
 
-    for idx in range(total - 1):
-        img_v_buf = []
-        code_value = 192 + step * idx
+    for idx in range(total):
+        code_value = 224 + step * idx
         if code_value > cv_max:
             code_value = cv_max
-        temp_img = np.ones_like(max_img) * code_value * color_mask
-        img_v_buf.append(temp_img)
-        img_v_buf.append(max_img)
-        img_h_buf.append(np.vstack(img_v_buf))
+        cur_img = np.ones_like(max_img) * code_value * color_mask
 
-    img_v_buf = []
-    temp_img = max_img.copy() * color_mask
-    img_v_buf.append(temp_img)
-    img_v_buf.append(max_img)
-    img_h_buf.append(np.vstack(img_v_buf))
+        block_img = np.hstack([cur_img, max_img])
+        line_img = np.hstack([block_img for x in range(block_num // 2)])
+        line_img_inv = line_img.copy()[:, ::-1, :]
+        temp_img = np.vstack([line_img if x % 2 == 0 else line_img_inv
+                              for x in range(block_num)])
+
+        img_h_buf.append(temp_img)
 
     img = np.hstack(img_h_buf)
 
@@ -135,19 +161,50 @@ def make_mono_clip_pattern(color_mask=[1, 1, 1]):
 def make_test_test_pattern():
     img_buf = []
     img_buf.append(make_mono_clip_pattern([1, 1, 1]))
+    img_buf.append(make_mono_clip_pattern([1, 0, 1]))
     img_buf.append(make_mono_clip_pattern([0, 1, 1]))
     img = np.vstack(img_buf)
 
+    out_img = np.zeros((img.shape[0] + 10, img.shape[1] + 10, img.shape[2]))
+    out_img[0:img.shape[0], 0:img.shape[1], :] = img
+
     # tpg.preview_image(img)
-    ywt.img_write("./img/pattern.png", img)
+    ywt.img_write("./img/pattern.png", out_img)
+
+
+def plot_rg_before_after_in_ycbcr_conversion(rgb1=[192, 192, 0],
+                                             rgb2=[0, 192, 192]):
+    rgb1_2 = analyze_video_level(rgb1)
+    rgb2_2 = analyze_video_level(rgb2)
+
+    g1 = rgb1_2[0, :, 0]
+    g2 = rgb2_2[0, :, 1]
+
+    print(g1)
+    print(g2)
+
+    label_1 = "ref of the rgb={}".format(rgb1)
+    label_2 = "green of the rgb={}".format(rgb2)
+    ref_x = np.arange(len(g1))
+    ref_y = np.ones_like(ref_x) * (rgb1[0] + rgb2[1]) / 2
+
+    ax1 = pu.plot_1_graph()
+    ax1.plot(ref_x, g1, '-o', label=label_1)
+    ax1.plot(ref_x, g2, '-o', label=label_2)
+    ax1.plot(ref_x, ref_y, label="ref_value")
+    plt.legend(loc="upper left")
+    plt.show()
 
 
 def test_func():
     # clip_over_512_level()
-    # analyze_cyan_level(cv=128)
+    # analyze_video_level(rgb=[192, 192, 0])
     # make_mono_clip_pattern()
     make_test_test_pattern()
     make_wrong_pattern_img()
+    concatenate_all_images()
+    # plot_rg_before_after_in_ycbcr_conversion(rgb1=[192, 0, 0],
+    #                                          rgb2=[0, 192, 192])
 
 
 if __name__ == '__main__':
