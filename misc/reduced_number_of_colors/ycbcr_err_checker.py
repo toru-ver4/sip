@@ -3,6 +3,18 @@
 
 """
 YCbCrの係数誤りを確認するテストパターンの作成
+
+①Magenda の Blue の値の確定
+
+RGB_1 = [230, 0, Blue]
+RGB_2 = [255, 0, Blue]
+Blueは0～255。
+
+の2種類を準備。R2Y, Y2R 後の値を RGB_1', RGB_2' として
+
+⊿E2000(RGB_1', RGB_2') を求める。これを各YCbCr係数の組み合わせに行った。
+その中で、
+
 """
 
 import os
@@ -21,6 +33,9 @@ import plot_utility as pu
 import test_pattern_generator2 as tpg
 import rgb_yuv_rgb_transformation as ryr
 import ycbcr_wrong_transformation as ywt
+
+MAGENTA_BLUE_8BIT = 78
+CYAN_BLUE_8BIT = 255
 
 
 BT601 = 'ITU-R BT.601'
@@ -77,7 +92,7 @@ def concatenate_all_images(get_fname_func=get_clip_test_img_name):
     for v_val in v_list:
         h_buf = []
         for h_val in h_list:
-            fname = get_fname_func(h_val, v_val)
+            fname = get_fname_func(v_val, h_val)
             print(fname)
             h_buf.append(ywt.img_read(fname))
         v_buf.append(np.hstack(h_buf))
@@ -125,23 +140,25 @@ def analyze_video_level(rgb=[0, 192, 192]):
 
 def make_mono_clip_pattern(color_mask=[1, 1, 1]):
     cv_max = 255
-    color_mask = np.array(color_mask, dtype=np.uint8)
+    color_mask = np.array(color_mask)
     step = 8
-    block_num = 4
+    block_num = 8
     total = 6
-    width_base = 480
+    width_base = 1920
     height = (width_base // (total * (block_num)))
     width = height
 
     max_img = np.ones([height, width, 3], dtype=np.uint8) * cv_max * color_mask
+    max_img = np.uint8(np.round(max_img))
 
     img_h_buf = []
 
     for idx in range(total):
-        code_value = 224 + step * idx
+        code_value = (255 - step * 5) + step * idx
         if code_value > cv_max:
             code_value = cv_max
         cur_img = np.ones_like(max_img) * code_value * color_mask
+        cur_img = np.uint8(np.round(cur_img))
 
         block_img = np.hstack([cur_img, max_img])
         line_img = np.hstack([block_img for x in range(block_num // 2)])
@@ -153,7 +170,7 @@ def make_mono_clip_pattern(color_mask=[1, 1, 1]):
 
     img = np.hstack(img_h_buf)
 
-    tpg.preview_image(img)
+    # tpg.preview_image(img)
 
     return img
 
@@ -161,12 +178,13 @@ def make_mono_clip_pattern(color_mask=[1, 1, 1]):
 def make_test_test_pattern():
     img_buf = []
     img_buf.append(make_mono_clip_pattern([1, 1, 1]))
-    img_buf.append(make_mono_clip_pattern([1, 0, 1]))
+    img_buf.append(make_mono_clip_pattern([1, 0, 78/255]))
     img_buf.append(make_mono_clip_pattern([0, 1, 1]))
     img = np.vstack(img_buf)
 
-    out_img = np.zeros((img.shape[0] + 10, img.shape[1] + 10, img.shape[2]))
-    out_img[0:img.shape[0], 0:img.shape[1], :] = img
+    # out_img = img.copy()
+    out_img = np.zeros((img.shape[0] + 120, img.shape[1], img.shape[2]))
+    out_img[60:img.shape[0]+60, :, :] = img
 
     # tpg.preview_image(img)
     ywt.img_write("./img/pattern.png", out_img)
@@ -196,6 +214,88 @@ def plot_rg_before_after_in_ycbcr_conversion(rgb1=[192, 192, 0],
     plt.show()
 
 
+def get_boundary_de2000_magenda(src_coef=BT709, dst_coef=BT2020):
+    """
+    境界のmagendaに対して DE2000 を算出する。
+    DE2000の計算するのは以下
+      * R2Y --> Y2R 後の 255 のデータ
+      * R2Y --> Y2R 後の 230 のデータ
+    """
+    blue = np.uint8(np.arange(256))
+    red_max = np.ones_like(blue) * 255
+    red_big = np.ones_like(blue) * 230
+    green = np.uint8(np.zeros_like(blue))
+    max_img_src = np.dstack((red_max, green, blue))
+    big_img_src = np.dstack((red_big, green, blue))
+    max_img_dst = ywt.convert_rgb_to_ycbcr_to_rgb(max_img_src,
+                                                  src_coef, dst_coef)
+    big_img_dst = ywt.convert_rgb_to_ycbcr_to_rgb(big_img_src,
+                                                  src_coef, dst_coef)
+    delta = ywt.calc_delta_e(max_img_dst, big_img_dst)
+
+    return delta[0]
+
+
+def get_boundary_de2000_cyan(src_coef=BT709, dst_coef=BT2020):
+    """
+    境界のcyanに対して DE2000 を算出する。
+    DE2000の計算するのは以下
+      * R2Y --> Y2R 後の 255 のデータ
+      * R2Y --> Y2R 後の 230 のデータ
+    """
+    blue = np.uint8(np.arange(256))
+    green_max = np.ones_like(blue) * 255
+    green_big = np.ones_like(blue) * 230
+    red = np.uint8(np.zeros_like(blue))
+    max_img_src = np.dstack((red, green_max, blue))
+    big_img_src = np.dstack((red, green_big, blue))
+    max_img_dst = ywt.convert_rgb_to_ycbcr_to_rgb(max_img_src,
+                                                  src_coef, dst_coef)
+    big_img_dst = ywt.convert_rgb_to_ycbcr_to_rgb(big_img_src,
+                                                  src_coef, dst_coef)
+    delta = ywt.calc_delta_e(max_img_dst, big_img_dst)
+
+    return delta[0]
+
+
+def eval_func_for_magenda():
+    """
+    最適な色を決めるための評価関数。
+    YCbCrの係数誤り3パターンのうち、DE2000が最小となる値を算出する。
+    """
+    coef_pair_list = [[BT601, BT709], [BT601, BT2020], [BT2020, BT709]]
+    delta_buf = []
+    for coef_pair in coef_pair_list:
+        src_coef = coef_pair[0]
+        dst_coef = coef_pair[1]
+        delta = get_boundary_de2000_magenda(src_coef, dst_coef)
+        delta_buf.append(delta)
+
+    delta = np.dstack(delta_buf)
+    delta_max = np.max(delta, axis=-1)
+    print(delta_max)
+    print(np.argmax(delta_max))
+
+
+def eval_func_for_cyan():
+    """
+    最適な色を決めるための評価関数。
+    YCbCrの係数誤り3パターンのうち、DE2000が最小となる値を算出する。
+    """
+    coef_pair_list = [[BT709, BT601], [BT709, BT2020], [BT2020, BT601]]
+    delta_buf = []
+    for coef_pair in coef_pair_list:
+        src_coef = coef_pair[0]
+        dst_coef = coef_pair[1]
+        delta = get_boundary_de2000_cyan(src_coef, dst_coef)
+        delta_buf.append(delta)
+
+    delta = np.dstack(delta_buf)
+    delta_max = np.max(delta, axis=-1)
+    print(delta_max)
+    print(np.argmax(delta_max))
+
+
 def test_func():
     # clip_over_512_level()
     # analyze_video_level(rgb=[192, 192, 0])
@@ -205,6 +305,8 @@ def test_func():
     concatenate_all_images()
     # plot_rg_before_after_in_ycbcr_conversion(rgb1=[192, 0, 0],
     #                                          rgb2=[0, 192, 192])
+    # eval_func_for_magenda()
+    # eval_func_for_cyan()
 
 
 if __name__ == '__main__':

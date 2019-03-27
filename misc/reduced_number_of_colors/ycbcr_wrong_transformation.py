@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
+from scipy import linalg
 
 # original libraries
 import plot_utility as pu
@@ -38,6 +39,7 @@ YCBCR_WEIGHTS = CaseInsensitiveMapping({
 
 BT2020_Y_PARAM = np.array([0.2627, 0.6780, 0.0593])
 BT709_Y_PARAM = np.array([0.2126, 0.7152, 0.0722])
+BT601_Y_PARAM = np.array([0.2990, 0.587, 0.1140])
 
 # カラーユニバーサルデザイン推奨配色セット制作委員会資料より抜粋
 R_BAR_COLOR = "#{:02x}{:02x}{:02x}".format(255, 75, 0)
@@ -554,12 +556,32 @@ def test_func():
     img_write("./img/src_caption.png", img)
 
 
+def calc_all_y2r_r2y_matrix():
+    src_mtx_buf = []
+    dst_mtx_buf = []
+
+    coef_list = [BT601_Y_PARAM, BT709_Y_PARAM, BT2020_Y_PARAM]
+    for coef in coef_list:
+        src_mtx = calc_yuv_transform_matrix(coef)
+        src_mtx_buf.append(src_mtx)
+        dst_mtx = linalg.inv(src_mtx)
+        dst_mtx_buf.append(dst_mtx)
+
+    for src_mtx in src_mtx_buf:
+        for dst_mtx in dst_mtx_buf:
+            print(src_mtx.dot(dst_mtx))
+
+    # print(src_mtx_buf)
+    # print(dst_mtx_buf)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # test_func()
-    calc_yuv_transform_matrix()
+    # calc_yuv_transform_matrix(y_param=BT601_Y_PARAM)
     # convert_16bit_tiff_to_8bit_tiff()
     # make_wrong_ycbcr_conv_image_all_pattern()
     # concatenate_all_images()
     # make_delta_e_histogram_all_pattern()
     # make_color_checker_apng_for_blog()
+    calc_all_y2r_r2y_matrix()
