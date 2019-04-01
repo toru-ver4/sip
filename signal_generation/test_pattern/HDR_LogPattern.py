@@ -63,7 +63,7 @@ SRGB_CS = colour.models.sRGB_COLOURSPACE
 #               {'tf': tf.NLOG, 'cs': BT709_CS, 'wp': 'D65'},
 #               {'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
 
-PARAM_LIST = [{'tf': tf.SRGB, 'cs': SRGB_CS, 'wp': 'D65'}]
+PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
@@ -128,8 +128,8 @@ class TpgControl:
 
 
 def main_func():
-    # resolution_list = ['1920x1080', '3840x2160']
-    resolution_list = ['1920x1080']
+    resolution_list = ['1920x1080', '3840x2160']
+    # resolution_list = ['1920x1080']
 
     for param in PARAM_LIST:
         transfer_function = param['tf']

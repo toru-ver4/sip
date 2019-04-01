@@ -18,6 +18,7 @@ Blueは0～255。
 """
 
 import os
+import shutil
 import numpy as np
 import cv2
 from colour import RGB_to_XYZ, XYZ_to_Lab
@@ -138,7 +139,7 @@ def analyze_video_level(rgb=[0, 192, 192]):
     return np.hstack(result_buf)
 
 
-def make_mono_clip_pattern(color_mask=[1, 1, 1]):
+def make_mono_clip_pattern(color_mask=[1, 1, 1], magenta=False):
     cv_max = 255
     color_mask = np.array(color_mask)
     step = 8
@@ -158,6 +159,8 @@ def make_mono_clip_pattern(color_mask=[1, 1, 1]):
         if code_value > cv_max:
             code_value = cv_max
         cur_img = np.ones_like(max_img) * code_value * color_mask
+        if magenta:
+            cur_img[..., 2] = max_img[..., 2].copy()
         cur_img = np.uint8(np.round(cur_img))
 
         block_img = np.hstack([cur_img, max_img])
@@ -178,7 +181,7 @@ def make_mono_clip_pattern(color_mask=[1, 1, 1]):
 def make_test_test_pattern():
     img_buf = []
     img_buf.append(make_mono_clip_pattern([1, 1, 1]))
-    img_buf.append(make_mono_clip_pattern([1, 0, 78/255]))
+    img_buf.append(make_mono_clip_pattern([1, 0, 78/255], magenta=True))
     img_buf.append(make_mono_clip_pattern([0, 1, 1]))
     img = np.vstack(img_buf)
 
@@ -300,13 +303,24 @@ def test_func():
     # clip_over_512_level()
     # analyze_video_level(rgb=[192, 192, 0])
     # make_mono_clip_pattern()
-    make_test_test_pattern()
-    make_wrong_pattern_img()
-    concatenate_all_images()
+    # make_test_test_pattern()
+    # make_wrong_pattern_img()
+    # concatenate_all_images()
     # plot_rg_before_after_in_ycbcr_conversion(rgb1=[192, 0, 0],
     #                                          rgb2=[0, 192, 192])
     # eval_func_for_magenda()
     # eval_func_for_cyan()
+    make_seq_file()
+
+
+def make_seq_file():
+    src = "./img/seq/pattern_org.png"
+    fps = 60
+    sec = 5
+    frame = fps * sec
+    for idx in range(frame):
+        out_name = "./img/seq/src_img_{:04d}.png".format(idx)
+        shutil.copy(src, out_name)
 
 
 if __name__ == '__main__':
