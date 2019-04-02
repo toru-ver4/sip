@@ -988,7 +988,9 @@ def make_ycbcr_checker(height=480, v_tile_num=4):
     # print(paste_height)
     # out_img[0:paste_height, :, :] = paste_white[0:paste_height, :, :]
 
-    preview_image(out_img/1023.0)
+    # preview_image(out_img/1023.0)
+
+    return out_img
 
 
 if __name__ == '__main__':
