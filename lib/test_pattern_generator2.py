@@ -894,29 +894,16 @@ def make_csf_color_image(width=640, height=640,
     return img
 
 
-def get_ycbcr_checker_param(color='magenta'):
-    if color == 'magenta':
-        max_value = np.array([1023, 0, 312], dtype=np.uint16)
-        diff = np.array([33, 0, 0], dtype=np.uint16)
-    elif color == 'cyan':
-        max_value = np.array([0, 1023, 1023], dtype=np.uint16)
-        diff = np.array([0, 33, 33], dtype=np.uint16)
-    elif color == 'white':
-        max_value = np.array([1023, 1023, 1023], dtype=np.uint16)
-        diff = np.array([33, 33, 33], dtype=np.uint16)
-    else:
-        raise ValueError("invalid color parameter.")
-
-    return max_value, diff
-
-
-def make_ycbcr_checker_base(height=480, v_tile_num=4, color='magenta'):
-
-    # base のブロックを作る
-    max_value, diff = get_ycbcr_checker_param(color)
-    marker_value = np.array(YCBCR_CHECK_MARKER, dtype=np.uint16)
-    width_array = equal_devision(height, v_tile_num)
+def make_tile_pattern(width=480, height=960, h_tile_num=4,
+                      v_tile_num=4, low_level=(940, 940, 940),
+                      high_level=(1023, 1023, 1023)):
+    """
+    タイル状の縞々パターンを作る
+    """
+    width_array = equal_devision(width, h_tile_num)
     height_array = equal_devision(height, v_tile_num)
+    high_level = np.array(high_level, dtype=np.uint16)
+    low_level = np.array(low_level, dtype=np.uint16)
 
     v_buf = []
 
@@ -925,25 +912,13 @@ def make_ycbcr_checker_base(height=480, v_tile_num=4, color='magenta'):
         for h_idx, width in enumerate(width_array):
             tile_judge = (h_idx + v_idx) % 2 == 0
             h_temp = np.zeros((height, width, 3), dtype=np.uint16)
-            h_temp[:, :] = max_value if tile_judge else marker_value
+            h_temp[:, :] = high_level if tile_judge else low_level
             h_buf.append(h_temp)
 
         v_buf.append(np.hstack(h_buf))
-    base_img = np.vstack(v_buf)
-
-    max_img = base_img.copy()
-    marker_idx = get_marker_idx(max_img, marker_value)
-    max_img[marker_idx] = max_value
-
-    cur_img = base_img.copy()
-    marker_idx = get_marker_idx(cur_img, marker_value)
-    cur_img[marker_idx] = max_value - diff
-
-    # out_img = np.hstack([cur_img, max_img])
-    out_img = cur_img
-
-    # preview_image(out_img / 1023.0)
-    return out_img
+    img = np.vstack(v_buf)
+    # preview_image(img/1024.0)
+    return img
 
 
 def get_marker_idx(img, marker_value):
@@ -977,16 +952,18 @@ def make_ycbcr_checker(height=480, v_tile_num=4):
         ycbcr checker image
     """
 
-    magenta_img = make_ycbcr_checker_base(height, v_tile_num, 'magenta')
-    cyan_img = make_ycbcr_checker_base(height, v_tile_num, 'cyan')
+    cyan_img = make_tile_pattern(width=height, height=height,
+                                 h_tile_num=v_tile_num,
+                                 v_tile_num=v_tile_num,
+                                 low_level=[0, 990, 990],
+                                 high_level=[0, 1023, 1023])
+    magenta_img = make_tile_pattern(width=height, height=height,
+                                    h_tile_num=v_tile_num,
+                                    v_tile_num=v_tile_num,
+                                    low_level=[990, 0, 312],
+                                    high_level=[1023, 0, 312])
 
     out_img = np.hstack([cyan_img, magenta_img])
-
-    # white_img = make_ycbcr_checker_base(height, v_tile_num, 'white')
-    # paste_white = np.hstack([white_img, white_img])
-    # paste_height = sum(equal_devision(height, v_tile_num)[:v_tile_num//2])
-    # print(paste_height)
-    # out_img[0:paste_height, :, :] = paste_white[0:paste_height, :, :]
 
     # preview_image(out_img/1023.0)
 
@@ -1012,3 +989,6 @@ if __name__ == '__main__':
     #                      lv2=np.array([1023, 1023, 0], dtype=np.uint16),
     #                      stripe_num=6)
     make_ycbcr_checker(height=30, v_tile_num=2)
+    make_tile_pattern(width=960, height=480, h_tile_num=7,
+                      v_tile_num=4, low_level=(940, 940, 940),
+                      high_level=(1023, 1023, 1023))

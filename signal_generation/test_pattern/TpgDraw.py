@@ -546,6 +546,13 @@ class TpgDraw:
         low_img = tpg.make_csf_color_image(width, width, lv_0, lv_64, num)
         high_img = tpg.make_csf_color_image(width, width, lv_940, lv_1023, num)
 
+        high_img = tpg.make_tile_pattern(width=width, height=width,
+                                         h_tile_num=4, v_tile_num=4,
+                                         low_level=lv_940, high_level=lv_1023)
+        low_img = tpg.make_tile_pattern(width=width, height=width,
+                                        h_tile_num=4, v_tile_num=4,
+                                        low_level=lv_0, high_level=lv_64)
+
         st_pos_h = int(self.csf_img_low_st_pos_h_coef * self.img_width)
         st_pos_v = int(self.csf_img_st_pos_v_coef * self.img_height)
         csf_img_pos = (st_pos_h, st_pos_v)
