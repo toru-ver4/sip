@@ -42,11 +42,14 @@ RED_WIDE_GAMUT_RGB = 'REDWideGamutRGB'
 DCI_P3 = 'DCI-P3'
 SRGB = "sRGB"
 
+ROLE_ACES2065 = [ACES_AP0, LINEAR]
 ROLE_ACESCG = [ACES_AP1, LINEAR]
 ROLE_SRGB = [SRGB, SRGB]
 ROLE_BT709 = [BT709, GAMMA24]
 ROLE_P3_ST2084 = [DCI_P3, ST2084]
 ROLE_BT2020_ST2084 = [BT2020, ST2084]
+
+REFERENCE_ROLE = ROLE_ACES2065
 
 
 class OcioConfigControl:
@@ -59,14 +62,8 @@ class OcioConfigControl:
     def get_role_name(self, gamut_eotf_pair):
         return "{}_{}".format(gamut_eotf_pair[0], gamut_eotf_pair[1])
 
-    def make_config(self):
-        self.config = OCIO.Config()
-        self.config.setSearchPath('luts')
-        self.set_role()
-        self.flush_config()
-
     def set_role(self):
-        self.config.setRole(OCIO.Constants.ROLE_REFERENCE, self.get_role_name(ROLE_ACESCG))
+        self.config.setRole(OCIO.Constants.ROLE_REFERENCE, self.get_role_name(REFERENCE_ROLE))
         # self.config.setRole(OCIO.Constants.ROLE_COLOR_TIMING, "Cineon")
         # self.config.setRole(OCIO.Constants.ROLE_COMPOSITING_LOG, "Cineon")
         # self.config.setRole(OCIO.Constants.ROLE_DATA, "ACEScg")
@@ -76,9 +73,25 @@ class OcioConfigControl:
         # self.config.setRole(OCIO.Constants.ROLE_TEXTURE_PAINT, "sRGB")
 
     def set_color_space(self):
-        cs = OCIO.ColorSpace(name=self.get_role_name(ROLE_ACESCG))
-        cs.setDescription()
+        # self.set_simple_color_space('bt.709')  # 通常は同じメソッドで引数で内容切り替え
+        # self.set_simple_color_space('bt.2020')
+        # self.set_simple_color_space('st2084')
+        # self.set_hoge_color_space()  # 面倒なのは専用メソッド用意
+        cs = OCIO.ColorSpace(name=self.get_role_name(REFERENCE_ROLE))
+        cs.setDescription("")
+        cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
+        cs.setAllocation(OCIO.Constants.ALLOCATION_LG2)
+        cs.setAllocationVars([-8, 5, 0.00390625])
         self.config.addColorSpace(cs)
+
+    def set_display(self):
+        display = 'default'
+        self.config.addDisplay(display, 'None', 'raw')
+        self.config.addDisplay(display, 'sRGB', 'sRGB')
+        self.config.addDisplay(display, 'rec709', 'rec709')
+        self.config.setActiveDisplays('default')
+        self.config.setActiveViews('sRGB')
+
 
     def flush_config(self):
         try:
@@ -91,9 +104,17 @@ class OcioConfigControl:
         f.close()
         print("wrote", self.config_name)
 
+    def make_config(self):
+        self.config = OCIO.Config()
+        self.config.setSearchPath('luts')
+        self.set_role()
+        self.set_color_space()
+        self.set_display()
+        self.flush_config()
+
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     print(dir(OCIO.ColorSpace))
-    # ocio_config = OcioConfigControl()
-    # ocio_config.make_config()
+    ocio_config = OcioConfigControl()
+    ocio_config.make_config()
