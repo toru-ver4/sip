@@ -22,17 +22,17 @@ COLOR_SPACE_DIRECTION = {
     'from_reference': OCIO.Constants.COLORSPACE_DIR_FROM_REFERENCE}
 
 
-LUT_FILE_SRGB = "./luts/sRGB_to_Linear.spi1d"
-LUT_FILE_GAMMA24 = "./luts/Gamma_2.4_to_Linear.spi1d"
-LUT_FILE_ST2084 = "./luts/SMPTE_ST2084_to_Linear.spi1d"
-LUT_FILE_LOG_C = "./luts/ARRI_LOG_C_to_Linear.spi1d"
-LUT_FILE_VLOG = "./luts/Panasonic_VLog_to_Linear.spi1d"
-LUT_FILE_SLOG3 = "./luts/SONY_S-Log3_(IRE_Base)_to_Linear.spi1d"
-LUT_FILE_LOG3G10 = "./luts/RED_Log3G10_to_Linear.spi1d"
-LUT_FILE_LOG3G12 = "./luts/RED_Log3G12_to_Linear.spi1d"
-LUT_FILE_NLOG = "./luts/Nikon_N-Log_to_Linear.spi1d"
-LUT_FILE_DLOG = "./luts/DJI_D-Log_to_Linear.spi1d"
-LUT_FILE_FLOG = "./luts/FUJIFILM_F-Log_to_Linear.spi1d"
+LUT_FILE_SRGB = "sRGB_to_Linear.spi1d"
+LUT_FILE_GAMMA24 = "Gamma_2.4_to_Linear.spi1d"
+LUT_FILE_ST2084 = "SMPTE_ST2084_to_Linear.spi1d"
+LUT_FILE_LOG_C = "ARRI_LOG_C_to_Linear.spi1d"
+LUT_FILE_VLOG = "Panasonic_VLog_to_Linear.spi1d"
+LUT_FILE_SLOG3 = "SONY_S-Log3_(IRE_Base)_to_Linear.spi1d"
+LUT_FILE_LOG3G10 = "RED_Log3G10_to_Linear.spi1d"
+LUT_FILE_LOG3G12 = "RED_Log3G12_to_Linear.spi1d"
+LUT_FILE_NLOG = "Nikon_N-Log_to_Linear.spi1d"
+LUT_FILE_DLOG = "DJI_D-Log_to_Linear.spi1d"
+LUT_FILE_FLOG = "FUJIFILM_F-Log_to_Linear.spi1d"
 
 AP0_TO_BT709_MTX = [2.5219347298199275, -1.13702389648161, -0.38491083358651407, 0.0, -0.27547942789225904, 1.3698289786449884, -0.09434955068309422, 0.0, -0.015982869997415383, -0.14778923413163852, 1.1637721041802542, 0.0, 0.0, 0.0, 0.0, 1.0]
 BT709_TO_AP0_MTX = [0.43957568421668025, 0.3839125893365086, 0.17651172648967858, 0.0, 0.08960038290392143, 0.8147141542066522, 0.09568546289518032, 0.0, 0.017415482729199242, 0.10873435223667391, 0.8738501650336234, 0.0, 0.0, 0.0, 0.0, 1.0]
@@ -73,7 +73,7 @@ REDWideGamutRGB_TO_ACES2065_1_MTX = [0.7848686125011931, 0.085760033547838, 0.12
 
 def make_ref_color_space():
     cs = OCIO.ColorSpace(name=get_colorspace_name(REFERENCE_ROLE))
-    cs.setDescription("")
+    cs.setDescription("reference")
     cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
     cs.setAllocation(OCIO.Constants.ALLOCATION_LG2)
     cs.setAllocationVars([-8, 5, 0.00390625])
@@ -83,7 +83,7 @@ def make_ref_color_space():
 
 def make_raw_color_space():
     cs = OCIO.ColorSpace(name='raw')
-    cs.setDescription("")
+    cs.setDescription("raw")
     cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
     cs.setAllocation(OCIO.Constants.ALLOCATION_UNIFORM)
     cs.setAllocationVars([0, 1])
@@ -93,7 +93,7 @@ def make_raw_color_space():
 
 def make_bt1886_color_space():
     cs = OCIO.ColorSpace(name=get_colorspace_name(BT1886_CS))
-    cs.setDescription("")
+    cs.setDescription("bt1886")
     cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
     cs.setAllocation(OCIO.Constants.ALLOCATION_UNIFORM)
     cs.setAllocationVars([0, 1])
@@ -121,7 +121,7 @@ def make_bt1886_color_space():
 
 def make_p3_st2084_color_space():
     cs = OCIO.ColorSpace(name=get_colorspace_name(P3_ST2084_CS))
-    cs.setDescription("")
+    cs.setDescription("DCI-P3_ST2084")
     cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
     cs.setAllocation(OCIO.Constants.ALLOCATION_UNIFORM)
     cs.setAllocationVars([0, 1])

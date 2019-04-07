@@ -5,7 +5,14 @@ strictparsing: true
 luma: [0.2126, 0.7152, 0.0722]
 
 roles:
+  color_picking: gamut_ACES2065-1 - eotf_Linear
+  color_timing: gamut_ACES2065-1 - eotf_Linear
+  compositing_log: gamut_ACES2065-1 - eotf_Linear
+  data: gamut_ACES2065-1 - eotf_Linear
+  default: gamut_ACES2065-1 - eotf_Linear
+  matte_paint: gamut_ACES2065-1 - eotf_Linear
   reference: gamut_ACES2065-1 - eotf_Linear
+  texture_paint: gamut_ACES2065-1 - eotf_Linear
 
 displays:
   default:
@@ -13,7 +20,7 @@ displays:
     - !<View> {name: gamut_BT.709 - eotf_Gamma 2.4, colorspace: gamut_BT.709 - eotf_Gamma 2.4}
 
 active_displays: [default]
-active_views: [sRGB]
+active_views: [gamut_BT.709 - eotf_Gamma 2.4]
 
 colorspaces:
   - !<ColorSpace>
@@ -21,6 +28,8 @@ colorspaces:
     family: ""
     equalitygroup: ""
     bitdepth: 32f
+    description: |
+      reference
     isdata: false
     allocation: lg2
     allocationvars: [-8, 5, 0.00390625]
@@ -30,6 +39,8 @@ colorspaces:
     family: ""
     equalitygroup: ""
     bitdepth: 32f
+    description: |
+      raw
     isdata: false
     allocation: uniform
     allocationvars: [0, 1]
@@ -39,31 +50,35 @@ colorspaces:
     family: ""
     equalitygroup: ""
     bitdepth: 32f
+    description: |
+      bt1886
     isdata: false
     allocation: uniform
     allocationvars: [0, 1]
     to_reference: !<GroupTransform>
       children:
-        - !<FileTransform> {src: ./luts/Gamma_2.4_to_Linear.spi1d, interpolation: linear}
+        - !<FileTransform> {src: Gamma_2.4_to_Linear.spi1d, interpolation: linear}
         - !<MatrixTransform> {matrix: [0.439576, 0.383913, 0.176512, 0, 0.0896004, 0.814714, 0.0956855, 0, 0.0174155, 0.108734, 0.87385, 0, 0, 0, 0, 1]}
     from_reference: !<GroupTransform>
       children:
         - !<MatrixTransform> {matrix: [2.52193, -1.13702, -0.384911, 0, -0.275479, 1.36983, -0.0943495, 0, -0.0159829, -0.147789, 1.16377, 0, 0, 0, 0, 1]}
-        - !<FileTransform> {src: ./luts/Gamma_2.4_to_Linear.spi1d, interpolation: linear, direction: inverse}
+        - !<FileTransform> {src: Gamma_2.4_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
     name: gamut_DCI-P3 - eotf_SMPTE ST2084
     family: ""
     equalitygroup: ""
     bitdepth: 32f
+    description: |
+      DCI-P3_ST2084
     isdata: false
     allocation: uniform
     allocationvars: [0, 1]
     to_reference: !<GroupTransform>
       children:
-        - !<FileTransform> {src: ./luts/SMPTE_ST2084_to_Linear.spi1d, interpolation: linear}
+        - !<FileTransform> {src: SMPTE_ST2084_to_Linear.spi1d, interpolation: linear}
         - !<MatrixTransform> {matrix: [0.518841, 0.2873, 0.193858, 0, 0.0736117, 0.821299, 0.105089, 0, -0.000400392, 0.0406738, 0.959727, 0, 0, 0, 0, 1]}
     from_reference: !<GroupTransform>
       children:
         - !<MatrixTransform> {matrix: [2.02529, -0.691962, -0.333325, 0, -0.182622, 1.28662, -0.103994, 0, 0.00858455, -0.0548163, 1.04623, 0, 0, 0, 0, 1]}
-        - !<FileTransform> {src: ./luts/SMPTE_ST2084_to_Linear.spi1d, interpolation: linear, direction: inverse}
+        - !<FileTransform> {src: SMPTE_ST2084_to_Linear.spi1d, interpolation: linear, direction: inverse}
