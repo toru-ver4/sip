@@ -159,11 +159,38 @@ def rgb2rgb_mtx(src_name, dst_name):
     return mtx
 
 
+def mtx44_from_mtx33(mtx):
+    out_mtx = [[mtx[0][0], mtx[0][1], mtx[0][2], 0],
+               [mtx[1][0], mtx[1][1], mtx[1][2], 0],
+               [mtx[2][0], mtx[2][1], mtx[2][2], 0],
+               [0, 0, 0, 1]]
+
+    return np.array(out_mtx)
+
+
+def ocio_matrix_transform_mtx(src_name, dst_name):
+    """
+    OpenColorIO の MatrixTransform に食わせる Matrix を吐く。
+    """
+    mtx33 = rgb2rgb_mtx(src_name, dst_name)
+    mtx44 = mtx44_from_mtx33(mtx33)
+
+    return mtx44.flatten().tolist()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # print(rgb2rgb_mtx(DCI_P3, ACES_AP0))
     # print(rgb2rgb_mtx(BT709, DCI_P3))
     # ocio_config_mtx_str(ACES_AP0, DCI_P3)
     # ocio_config_mtx_str(DCI_P3, ACES_AP0)
-    print(get_white_point(SRTB))
-    print(get_xyz_to_rgb_matrix(SRTB))
+    # print(get_white_point(SRTB))
+    # print(get_xyz_to_rgb_matrix(SRTB))
+    # bt709_ap0 = rgb2rgb_mtx(BT709, ACES_AP0)
+    # print(bt709_ap0)
+    # ap0_bt709 = rgb2rgb_mtx(ACES_AP0, BT709)
+    # print(ocio_matrix_transform_mtx(ACES_AP0, BT709))
+    # print(ocio_matrix_transform_mtx(BT709, ACES_AP0))
+
+    print(ocio_matrix_transform_mtx(ACES_AP0, DCI_P3))
+    print(ocio_matrix_transform_mtx(DCI_P3, ACES_AP0))

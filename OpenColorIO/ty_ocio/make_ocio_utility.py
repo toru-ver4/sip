@@ -1,0 +1,79 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
+"""
+OpenColorIO の Config 作成で共通して使うものをまとめておく。
+"""
+
+import os
+
+OCIO_CONFIG_NAME = "ty_config.ocio"
+
+# copied from transfer_funcsions.py
+GAMMA24 = 'Gamma 2.4'
+ST2084 = 'SMPTE ST2084'
+HLG = 'BT.2100 HLG'
+LOGC = 'ARRI LOG_C'
+VLOG_IRE = 'Panasonic VLog (IRE Base)'
+VLOG = 'Panasonic VLog'
+SLOG3 = "SONY S-Log3 (IRE Base)"
+SLOG3_REF = "SONY S-Log3"
+REDLOG = "RED REDLog"
+LOG3G10 = "RED Log3G10"
+LOG3G12 = "RED Log3G12"
+NLOG = "Nikon N-Log"
+DLOG = "DJI D-Log"
+FLOG = "FUJIFILM F-Log"
+LINEAR = "Linear"
+SRGB = "sRGB"
+
+# copied from color_space.py
+BT709 = 'ITU-R BT.709'
+BT2020 = 'ITU-R BT.2020'
+ACES_AP0 = 'ACES2065-1'
+ACES_AP1 = 'ACEScg'
+S_GAMUT3 = 'S-Gamut3'
+S_GAMUT3_CINE = 'S-Gamut3.Cine'
+ALEXA_WIDE_GAMUT = 'ALEXA Wide Gamut'
+V_GAMUT = 'V-Gamut'
+CINEMA_GAMUT = 'Cinema Gamut'
+RED_WIDE_GAMUT_RGB = 'REDWideGamutRGB'
+DCI_P3 = 'DCI-P3'
+SRGB = "sRGB"
+
+ACES2065_CS = [ACES_AP0, LINEAR]
+ACESCG_CS = [ACES_AP1, LINEAR]
+SRGB_CS = [SRGB, SRGB]
+BT709_CS = [BT709, GAMMA24]
+BT1886_CS = [BT709, GAMMA24]
+P3_ST2084_CS = [DCI_P3, ST2084]
+BT2020_ST2084_CS = [BT2020, ST2084]
+
+REFERENCE_ROLE = ACES2065_CS
+
+DUMMY_MATRIX = [1.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0]
+
+AP0_TO_BT709_MTX = [2.5219347298199275, -1.13702389648161, -0.38491083358651407, 0.0,
+                    -0.27547942789225904, 1.3698289786449884, -0.09434955068309422, 0.0,
+                    -0.015982869997415383, -0.14778923413163852, 1.1637721041802542, 0.0,
+                    0.0, 0.0, 0.0, 1.0]
+
+BT709_TO_AP0_MTX = [0.43957568421668025, 0.3839125893365086, 0.17651172648967858, 0.0,
+                    0.08960038290392143, 0.8147141542066522, 0.09568546289518032, 0.0,
+                    0.017415482729199242, 0.10873435223667391, 0.8738501650336234, 0.0,
+                    0.0, 0.0, 0.0, 1.0]
+
+AP0_TO_P3_MTX = [2.025287327569135, -0.6919621723088936, -0.3333251554520117, 0.0, -0.1826215060726654, 1.2866160058179315, -0.1039944996861809, 0.0, 0.008584552508200815, -0.05481629005504889, 1.0462317375942687, 0.0, 0.0, 0.0, 0.0, 1.0]
+P3_TO_AP0_MTX = [0.5188414630660481, 0.2873003676579024, 0.1938581693189168, 0.0, 0.07361168404321847, 0.8212994981474907, 0.10508881781504453, 0.0, -0.00040039156270921895, 0.04067382482695071, 0.9597265667352549, 0.0, 0.0, 0.0, 0.0, 1.0]
+
+
+def get_colorspace_name(gamut_eotf_pair):
+    temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0], gamut_eotf_pair[1])
+    return temp.replace('ITU-R ', "")
+
+
+if __name__ == '__main__':
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))

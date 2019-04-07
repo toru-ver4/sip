@@ -58,6 +58,8 @@ flog_max = 7.281324880488497
 # dlog_max = d_log_decoding(1.0, out_reflection=True)
 dlog_max = 41.99939267086707
 
+REF_WHITE_LUMINANCE = 100
+
 MAX_VALUE = {GAMMA24: 1.0, SRGB: 1.0, ST2084: 10000, HLG: 1000,
              VLOG_IRE: vlog_ire_max, VLOG: vlog_ref_max,
              LOGC: logc_max,
@@ -66,14 +68,21 @@ MAX_VALUE = {GAMMA24: 1.0, SRGB: 1.0, ST2084: 10000, HLG: 1000,
              LOG3G10: log3g10_max, LOG3G12: log3g12_max,
              NLOG: nlog_max, FLOG: flog_max, DLOG: dlog_max}
 
-PEAK_LUMINANCE = {GAMMA24: 100, SRGB: 100, ST2084: 10000, HLG: 1000,
-                  VLOG_IRE: vlog_ire_max * 100, VLOG: vlog_ref_max * 100,
-                  LOGC: logc_max * 100,
-                  SLOG3: slog_max * 100, SLOG3_REF: slog_ref_max * 100,
-                  REDLOG: red_max * 100,
-                  LOG3G10: log3g10_max * 100, LOG3G12: log3g12_max * 100,
-                  NLOG: nlog_max * 100, FLOG: flog_max * 100,
-                  DLOG: dlog_max * 100}
+PEAK_LUMINANCE = {GAMMA24: REF_WHITE_LUMINANCE,
+                  SRGB: REF_WHITE_LUMINANCE,
+                  ST2084: 10000,
+                  HLG: 1000,
+                  VLOG_IRE: vlog_ire_max * REF_WHITE_LUMINANCE,
+                  VLOG: vlog_ref_max * REF_WHITE_LUMINANCE,
+                  LOGC: logc_max * REF_WHITE_LUMINANCE,
+                  SLOG3: slog_max * REF_WHITE_LUMINANCE,
+                  SLOG3_REF: slog_ref_max * REF_WHITE_LUMINANCE,
+                  REDLOG: red_max * REF_WHITE_LUMINANCE,
+                  LOG3G10: log3g10_max * REF_WHITE_LUMINANCE,
+                  LOG3G12: log3g12_max * REF_WHITE_LUMINANCE,
+                  NLOG: nlog_max * REF_WHITE_LUMINANCE,
+                  FLOG: flog_max * REF_WHITE_LUMINANCE,
+                  DLOG: dlog_max * REF_WHITE_LUMINANCE}
 
 
 def oetf(x, name=GAMMA24):

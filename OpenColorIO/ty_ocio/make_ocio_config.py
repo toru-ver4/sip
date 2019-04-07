@@ -2,54 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
+内部空間は Display Reffered とする。
+rec.709 とか End-to-End Gamma とか考えるな！BT.1886で行くんだよ！！
 
+作戦としては、最初に Python3 コードに一式のLUTとMatrixを作らせる。
+で、その情報を使って Python2 コードで config を作る流れになるはず。
+
+2つのコードでのやり取りは json になるかな？
 """
 
 import os
 import PyOpenColorIO as OCIO
-
-OCIO_CONFIG_NAME = "ty_config.ocio"
-
-# copied from transfer_funcsions.py
-GAMMA24 = 'Gamma 2.4'
-ST2084 = 'SMPTE ST2084'
-HLG = 'BT.2100 HLG'
-LOGC = 'ARRI LOG_C'
-VLOG_IRE = 'Panasonic VLog (IRE Base)'
-VLOG = 'Panasonic VLog'
-SLOG3 = "SONY S-Log3 (IRE Base)"
-SLOG3_REF = "SONY S-Log3"
-REDLOG = "RED REDLog"
-LOG3G10 = "RED Log3G10"
-LOG3G12 = "RED Log3G12"
-NLOG = "Nikon N-Log"
-DLOG = "DJI D-Log"
-FLOG = "FUJIFILM F-Log"
-LINEAR = "Linear"
-SRGB = "sRGB"
-
-# copied from color_space.py
-BT709 = 'ITU-R BT.709'
-BT2020 = 'ITU-R BT.2020'
-ACES_AP0 = 'ACES2065-1'
-ACES_AP1 = 'ACEScg'
-S_GAMUT3 = 'S-Gamut3'
-S_GAMUT3_CINE = 'S-Gamut3.Cine'
-ALEXA_WIDE_GAMUT = 'ALEXA Wide Gamut'
-V_GAMUT = 'V-Gamut'
-CINEMA_GAMUT = 'Cinema Gamut'
-RED_WIDE_GAMUT_RGB = 'REDWideGamutRGB'
-DCI_P3 = 'DCI-P3'
-SRGB = "sRGB"
-
-ROLE_ACES2065 = [ACES_AP0, LINEAR]
-ROLE_ACESCG = [ACES_AP1, LINEAR]
-ROLE_SRGB = [SRGB, SRGB]
-ROLE_BT709 = [BT709, GAMMA24]
-ROLE_P3_ST2084 = [DCI_P3, ST2084]
-ROLE_BT2020_ST2084 = [BT2020, ST2084]
-
-REFERENCE_ROLE = ROLE_ACES2065
+from make_ocio_utility import get_colorspace_name, get_colorspace_name
+from make_ocio_utility import REFERENCE_ROLE, BT1886_CS
+from make_ocio_utility import OCIO_CONFIG_NAME
+import make_ocio_color_space as mocs
 
 
 class OcioConfigControl:
@@ -59,11 +26,19 @@ class OcioConfigControl:
     def __init__(self):
         self.config_name = OCIO_CONFIG_NAME
 
-    def get_role_name(self, gamut_eotf_pair):
-        return "{}_{}".format(gamut_eotf_pair[0], gamut_eotf_pair[1])
+    def get_colorspace_name(self, gamut_eotf_pair):
+        temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0],
+                                           gamut_eotf_pair[1])
+        return temp.replace('ITU-R ', "")
+
+    def get_colorspace_name(self, gamut_eotf_pair):
+        temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0],
+                                           gamut_eotf_pair[1])
+        return temp.replace('ITU-R ', "")
 
     def set_role(self):
-        self.config.setRole(OCIO.Constants.ROLE_REFERENCE, self.get_role_name(REFERENCE_ROLE))
+        self.config.setRole(OCIO.Constants.ROLE_REFERENCE,
+                            get_colorspace_name(REFERENCE_ROLE))
         # self.config.setRole(OCIO.Constants.ROLE_COLOR_TIMING, "Cineon")
         # self.config.setRole(OCIO.Constants.ROLE_COMPOSITING_LOG, "Cineon")
         # self.config.setRole(OCIO.Constants.ROLE_DATA, "ACEScg")
@@ -73,25 +48,19 @@ class OcioConfigControl:
         # self.config.setRole(OCIO.Constants.ROLE_TEXTURE_PAINT, "sRGB")
 
     def set_color_space(self):
-        # self.set_simple_color_space('bt.709')  # 通常は同じメソッドで引数で内容切り替え
-        # self.set_simple_color_space('bt.2020')
-        # self.set_simple_color_space('st2084')
-        # self.set_hoge_color_space()  # 面倒なのは専用メソッド用意
-        cs = OCIO.ColorSpace(name=self.get_role_name(REFERENCE_ROLE))
-        cs.setDescription("")
-        cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
-        cs.setAllocation(OCIO.Constants.ALLOCATION_LG2)
-        cs.setAllocationVars([-8, 5, 0.00390625])
-        self.config.addColorSpace(cs)
+        self.config.addColorSpace(mocs.make_ref_color_space())
+        self.config.addColorSpace(mocs.make_raw_color_space())
+        self.config.addColorSpace(mocs.make_bt1886_color_space())
+        self.config.addColorSpace(mocs.make_p3_st2084_color_space())
 
     def set_display(self):
         display = 'default'
-        self.config.addDisplay(display, 'None', 'raw')
-        self.config.addDisplay(display, 'sRGB', 'sRGB')
-        self.config.addDisplay(display, 'rec709', 'rec709')
+        self.config.addDisplay(display, 'raw', 'raw')
+        # self.config.addDisplay(display, 'sRGB', 'sRGB')
+        self.config.addDisplay(display, get_colorspace_name(BT1886_CS),
+                               get_colorspace_name(BT1886_CS))
         self.config.setActiveDisplays('default')
         self.config.setActiveViews('sRGB')
-
 
     def flush_config(self):
         try:
@@ -115,6 +84,8 @@ class OcioConfigControl:
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    print(dir(OCIO.ColorSpace))
+    # print(dir(OCIO.FileTransform))
+    # print(dir(OCIO.GroupTransform))
+    # print(dir(OCIO.Constants))
     ocio_config = OcioConfigControl()
     ocio_config.make_config()
