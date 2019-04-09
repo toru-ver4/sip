@@ -5,18 +5,17 @@ strictparsing: true
 luma: [0.2126, 0.7152, 0.0722]
 
 roles:
-  color_picking: gamut_ACES2065-1 - eotf_Linear
-  color_timing: gamut_ACES2065-1 - eotf_Linear
-  compositing_log: gamut_ACES2065-1 - eotf_Linear
-  data: gamut_ACES2065-1 - eotf_Linear
+  color_picking: raw
+  color_timing: raw
+  compositing_log: raw
+  data: raw
   default: gamut_ACES2065-1 - eotf_Linear
-  matte_paint: gamut_ACES2065-1 - eotf_Linear
-  reference: gamut_ACES2065-1 - eotf_Linear
-  texture_paint: gamut_ACES2065-1 - eotf_Linear
+  matte_paint: raw
+  reference: raw
+  texture_paint: raw
 
 displays:
   default:
-    - !<View> {name: raw, colorspace: raw}
     - !<View> {name: gamut_BT.709 - eotf_Gamma 2.4, colorspace: gamut_BT.709 - eotf_Gamma 2.4}
 
 active_displays: [default]

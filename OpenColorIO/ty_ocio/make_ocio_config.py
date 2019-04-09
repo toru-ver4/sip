@@ -37,15 +37,14 @@ class OcioConfigControl:
         return temp.replace('ITU-R ', "")
 
     def set_role(self):
-        self.config.setRole(OCIO.Constants.ROLE_REFERENCE,
-                            get_colorspace_name(REFERENCE_ROLE))
-        self.config.setRole(OCIO.Constants.ROLE_COLOR_TIMING, get_colorspace_name(REFERENCE_ROLE))
-        self.config.setRole(OCIO.Constants.ROLE_COMPOSITING_LOG, get_colorspace_name(REFERENCE_ROLE))
-        self.config.setRole(OCIO.Constants.ROLE_DATA, get_colorspace_name(REFERENCE_ROLE))
+        self.config.setRole(OCIO.Constants.ROLE_REFERENCE, 'raw')
+        self.config.setRole(OCIO.Constants.ROLE_COLOR_TIMING, 'raw')
+        self.config.setRole(OCIO.Constants.ROLE_COMPOSITING_LOG, 'raw')
+        self.config.setRole(OCIO.Constants.ROLE_DATA, 'raw')
         self.config.setRole(OCIO.Constants.ROLE_DEFAULT, get_colorspace_name(REFERENCE_ROLE))
-        self.config.setRole(OCIO.Constants.ROLE_COLOR_PICKING, get_colorspace_name(REFERENCE_ROLE))
-        self.config.setRole(OCIO.Constants.ROLE_MATTE_PAINT, get_colorspace_name(REFERENCE_ROLE))
-        self.config.setRole(OCIO.Constants.ROLE_TEXTURE_PAINT, get_colorspace_name(REFERENCE_ROLE))
+        self.config.setRole(OCIO.Constants.ROLE_COLOR_PICKING, 'raw')
+        self.config.setRole(OCIO.Constants.ROLE_MATTE_PAINT, 'raw')
+        self.config.setRole(OCIO.Constants.ROLE_TEXTURE_PAINT, 'raw')
 
     def set_color_space(self):
         self.config.addColorSpace(mocs.make_ref_color_space())
@@ -55,7 +54,7 @@ class OcioConfigControl:
 
     def set_display(self):
         display = 'default'
-        self.config.addDisplay(display, 'raw', 'raw')
+        # self.config.addDisplay(display, 'raw', 'raw')
         # self.config.addDisplay(display, 'sRGB', 'sRGB')
         self.config.addDisplay(display, get_colorspace_name(BT1886_CS),
                                get_colorspace_name(BT1886_CS))
