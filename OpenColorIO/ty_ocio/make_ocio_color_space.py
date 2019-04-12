@@ -8,7 +8,8 @@ OCIO用のColorSpaceを作る。
 import os
 import PyOpenColorIO as OCIO
 from make_ocio_utility import get_colorspace_name
-from make_ocio_utility import BT1886_CS, REFERENCE_ROLE, P3_ST2084_CS
+from make_ocio_utility import BT1886_CS, REFERENCE_ROLE, P3_ST2084_CS,\
+    ALEXA_LOGC_CS
 
 
 DIRECTION_OPS = {
@@ -105,7 +106,8 @@ def make_bt1886_color_space():
     matrix_to_ref = OCIO.MatrixTransform(matrix=BT709_TO_ACES2065_1_MTX,
                                          direction=DIRECTION_OPS['forward'])
     group_to_ref = OCIO.GroupTransform([file_to_ref, matrix_to_ref])
-    cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
+    # cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
+    cs.setTransform(file_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
 
     # from reference
     file_from_ref = OCIO.FileTransform(LUT_FILE_GAMMA24,
@@ -114,7 +116,8 @@ def make_bt1886_color_space():
     matrix_from_ref = OCIO.MatrixTransform(matrix=ACES2065_1_TO_BT709_MTX,
                                            direction=DIRECTION_OPS['forward'])
     group_from_ref = OCIO.GroupTransform([matrix_from_ref, file_from_ref])
-    cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+    # cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+    # cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
 
     return cs
 
@@ -134,7 +137,8 @@ def make_p3_st2084_color_space():
     matrix_to_ref = OCIO.MatrixTransform(matrix=DCI_P3_TO_ACES2065_1_MTX,
                                          direction=DIRECTION_OPS['forward'])
     group_to_ref = OCIO.GroupTransform([file_to_ref, matrix_to_ref])
-    cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
+    # cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
+    cs.setTransform(file_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
 
     # from reference
     file_from_ref\
@@ -144,7 +148,40 @@ def make_p3_st2084_color_space():
     matrix_from_ref = OCIO.MatrixTransform(matrix=ACES2065_1_TO_DCI_P3_MTX,
                                            direction=DIRECTION_OPS['forward'])
     group_from_ref = OCIO.GroupTransform([matrix_from_ref, file_from_ref])
-    cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+    # cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+    # cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+
+    return cs
+
+
+def make_arri_logc_color_space():
+    cs = OCIO.ColorSpace(name=get_colorspace_name(ALEXA_LOGC_CS))
+    cs.setDescription("ALEXA Wide Gamut and LogC EOTF.")
+    cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
+    cs.setAllocation(OCIO.Constants.ALLOCATION_UNIFORM)
+    cs.setAllocationVars([0, 1])
+
+    # to reference
+    file_to_ref\
+        = OCIO.FileTransform(LUT_FILE_LOG_C,
+                             direction=DIRECTION_OPS['forward'],
+                             interpolation=INTERPOLATION_OPS['linear'])
+    matrix_to_ref = OCIO.MatrixTransform(matrix=ALEXA_Wide_Gamut_TO_ACES2065_1_MTX,
+                                         direction=DIRECTION_OPS['forward'])
+    group_to_ref = OCIO.GroupTransform([file_to_ref, matrix_to_ref])
+    # cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
+    cs.setTransform(file_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
+
+    # from reference
+    file_from_ref\
+        = OCIO.FileTransform(LUT_FILE_LOG_C,
+                             direction=DIRECTION_OPS['inverse'],
+                             interpolation=INTERPOLATION_OPS['linear'])
+    matrix_from_ref = OCIO.MatrixTransform(matrix=ACES2065_1_TO_ALEXA_Wide_Gamut_MTX,
+                                           direction=DIRECTION_OPS['forward'])
+    group_from_ref = OCIO.GroupTransform([matrix_from_ref, file_from_ref])
+    # cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+    # cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
 
     return cs
 
