@@ -46,9 +46,11 @@ ACESCG_CS = [ACES_AP1, LINEAR]
 SRGB_CS = [SRGB, SRGB]
 BT709_CS = [BT709, GAMMA24]
 BT1886_CS = [BT709, GAMMA24]
+BT2020_CS = [BT2020, GAMMA24]
 P3_ST2084_CS = [DCI_P3, ST2084]
 BT2020_ST2084_CS = [BT2020, ST2084]
 ALEXA_LOGC_CS = [ALEXA_WIDE_GAMUT, LOGC]
+BT2020_LOGC_CS = [BT2020, LOGC]
 
 REFERENCE_ROLE = ACES2065_CS
 
@@ -59,6 +61,11 @@ DUMMY_MATRIX = [1.0, 0.0, 0.0, 0.0,
 
 
 def get_colorspace_name(gamut_eotf_pair):
+    temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0], gamut_eotf_pair[1])
+    return temp.replace('ITU-R ', "")
+
+
+def get_display_name(gamut_eotf_pair):
     temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0], gamut_eotf_pair[1])
     return temp.replace('ITU-R ', "")
 

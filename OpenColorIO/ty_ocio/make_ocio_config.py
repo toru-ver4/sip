@@ -13,8 +13,9 @@ rec.709 とか End-to-End Gamma とか考えるな！BT.1886で行くんだよ�
 
 import os
 import PyOpenColorIO as OCIO
-from make_ocio_utility import get_colorspace_name, get_colorspace_name
-from make_ocio_utility import REFERENCE_ROLE, BT1886_CS, ALEXA_LOGC_CS
+from make_ocio_utility import get_colorspace_name, get_display_name
+from make_ocio_utility import REFERENCE_ROLE, BT1886_CS, ALEXA_LOGC_CS,\
+    BT2020_CS, BT2020_ST2084_CS, P3_ST2084_CS, SRGB_CS
 from make_ocio_utility import OCIO_CONFIG_NAME
 import make_ocio_color_space as mocs
 
@@ -26,22 +27,15 @@ class OcioConfigControl:
     def __init__(self):
         self.config_name = OCIO_CONFIG_NAME
 
-    def get_colorspace_name(self, gamut_eotf_pair):
-        temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0],
-                                           gamut_eotf_pair[1])
-        return temp.replace('ITU-R ', "")
-
-    def get_colorspace_name(self, gamut_eotf_pair):
-        temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0],
-                                           gamut_eotf_pair[1])
-        return temp.replace('ITU-R ', "")
-
     def set_role(self):
-        self.config.setRole(OCIO.Constants.ROLE_COLOR_TIMING, get_colorspace_name(ALEXA_LOGC_CS))
-        self.config.setRole(OCIO.Constants.ROLE_COMPOSITING_LOG, get_colorspace_name(ALEXA_LOGC_CS))
+        self.config.setRole(OCIO.Constants.ROLE_COLOR_TIMING,
+                            get_colorspace_name(ALEXA_LOGC_CS))
+        self.config.setRole(OCIO.Constants.ROLE_COMPOSITING_LOG,
+                            get_colorspace_name(ALEXA_LOGC_CS))
         self.config.setRole(OCIO.Constants.ROLE_DATA, 'raw')
         self.config.setRole(OCIO.Constants.ROLE_DEFAULT, 'raw')
-        self.config.setRole(OCIO.Constants.ROLE_COLOR_PICKING, get_colorspace_name(BT1886_CS))
+        self.config.setRole(OCIO.Constants.ROLE_COLOR_PICKING,
+                            get_colorspace_name(BT1886_CS))
         self.config.setRole(OCIO.Constants.ROLE_MATTE_PAINT, 'raw')
         self.config.setRole(OCIO.Constants.ROLE_REFERENCE, 'raw')
         self.config.setRole(OCIO.Constants.ROLE_SCENE_LINEAR, 'raw')
@@ -50,16 +44,24 @@ class OcioConfigControl:
     def set_color_space(self):
         self.config.addColorSpace(mocs.make_ref_color_space())
         self.config.addColorSpace(mocs.make_raw_color_space())
+        self.config.addColorSpace(mocs.make_srgb_color_space())
         self.config.addColorSpace(mocs.make_bt1886_color_space())
+        self.config.addColorSpace(mocs.make_bt2020_color_space())
         self.config.addColorSpace(mocs.make_p3_st2084_color_space())
+        self.config.addColorSpace(mocs.make_bt2020_st2084_color_space())
         self.config.addColorSpace(mocs.make_arri_logc_color_space())
+        self.config.addColorSpace(mocs.make_bt2020_logc_color_space())
 
     def set_display(self):
         display = 'default'
-        # self.config.addDisplay(display, 'raw', 'raw')
+        self.config.addDisplay(display, 'raw', 'raw')
         # self.config.addDisplay(display, 'sRGB', 'sRGB')
-        self.config.addDisplay(display, get_colorspace_name(BT1886_CS),
-                               get_colorspace_name(BT1886_CS))
+        display_cs_list = [SRGB_CS, BT1886_CS, BT2020_CS, BT2020_ST2084_CS,
+                           P3_ST2084_CS]
+        for display_cs in display_cs_list:
+            self.config.addDisplay(display,
+                                   get_display_name(display_cs),
+                                   get_colorspace_name(display_cs))
         self.config.setActiveDisplays(display)
         self.config.setActiveViews(get_colorspace_name(BT1886_CS))
 

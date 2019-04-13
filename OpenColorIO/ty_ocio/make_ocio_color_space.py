@@ -9,7 +9,8 @@ import os
 import PyOpenColorIO as OCIO
 from make_ocio_utility import get_colorspace_name
 from make_ocio_utility import BT1886_CS, REFERENCE_ROLE, P3_ST2084_CS,\
-    ALEXA_LOGC_CS
+    ALEXA_LOGC_CS, BT2020_ST2084_CS, BT2020_CS, BT2020_LOGC_CS, SRGB_CS,\
+    BT2020_LOGC_CS
 
 
 DIRECTION_OPS = {
@@ -92,97 +93,106 @@ def make_raw_color_space():
     return cs
 
 
-def make_bt1886_color_space():
-    cs = OCIO.ColorSpace(name=get_colorspace_name(BT1886_CS))
-    cs.setDescription("bt1886")
+def make_typical_color_space(name=get_colorspace_name(BT1886_CS),
+                             description="bt1886",
+                             allocation=OCIO.Constants.ALLOCATION_UNIFORM,
+                             allocationVars=[0, 1],
+                             eotf_lut_file=LUT_FILE_GAMMA24,
+                             to_ref_mtx=BT709_TO_ACES2065_1_MTX,
+                             from_ref_mtx=ACES2065_1_TO_BT709_MTX):
+    """
+    典型的な Color Space を作成する。
+    """
+
+    cs = OCIO.ColorSpace(name=name)
+    cs.setDescription(description)
     cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
-    cs.setAllocation(OCIO.Constants.ALLOCATION_UNIFORM)
-    cs.setAllocationVars([0, 1])
+    cs.setAllocation(allocation)
+    cs.setAllocationVars(allocationVars)
 
     # to reference
-    file_to_ref = OCIO.FileTransform(LUT_FILE_GAMMA24,
+    file_to_ref = OCIO.FileTransform(eotf_lut_file,
                                      direction=DIRECTION_OPS['forward'],
                                      interpolation=INTERPOLATION_OPS['linear'])
-    matrix_to_ref = OCIO.MatrixTransform(matrix=BT709_TO_ACES2065_1_MTX,
+    matrix_to_ref = OCIO.MatrixTransform(matrix=to_ref_mtx,
                                          direction=DIRECTION_OPS['forward'])
     group_to_ref = OCIO.GroupTransform([file_to_ref, matrix_to_ref])
-    # cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
-    cs.setTransform(file_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
+    cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
 
     # from reference
-    file_from_ref = OCIO.FileTransform(LUT_FILE_GAMMA24,
+    file_from_ref = OCIO.FileTransform(eotf_lut_file,
                                        direction=DIRECTION_OPS['inverse'],
                                        interpolation=INTERPOLATION_OPS['linear'])
-    matrix_from_ref = OCIO.MatrixTransform(matrix=ACES2065_1_TO_BT709_MTX,
+    matrix_from_ref = OCIO.MatrixTransform(matrix=from_ref_mtx,
                                            direction=DIRECTION_OPS['forward'])
     group_from_ref = OCIO.GroupTransform([matrix_from_ref, file_from_ref])
-    # cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
-    # cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+    cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
 
+    return cs
+
+
+def make_srgb_color_space():
+    cs = make_typical_color_space(name=get_colorspace_name(SRGB_CS),
+                                  description="gamut: BT.709, gamma: sRGB",
+                                  eotf_lut_file=LUT_FILE_SRGB,
+                                  to_ref_mtx=BT709_TO_ACES2065_1_MTX,
+                                  from_ref_mtx=ACES2065_1_TO_BT709_MTX)
+    return cs
+
+
+def make_bt1886_color_space():
+    cs = make_typical_color_space(name=get_colorspace_name(BT1886_CS),
+                                  description="gamut: BT.709, gamma: 2.4",
+                                  eotf_lut_file=LUT_FILE_GAMMA24,
+                                  to_ref_mtx=BT709_TO_ACES2065_1_MTX,
+                                  from_ref_mtx=ACES2065_1_TO_BT709_MTX)
+    return cs
+
+
+def make_bt2020_color_space():
+    cs = make_typical_color_space(name=get_colorspace_name(BT2020_CS),
+                                  description="gamut: BT.2020, gamma: 2.4",
+                                  eotf_lut_file=LUT_FILE_GAMMA24,
+                                  to_ref_mtx=BT2020_TO_ACES2065_1_MTX,
+                                  from_ref_mtx=ACES2065_1_TO_BT2020_MTX)
     return cs
 
 
 def make_p3_st2084_color_space():
-    cs = OCIO.ColorSpace(name=get_colorspace_name(P3_ST2084_CS))
-    cs.setDescription("DCI-P3_ST2084")
-    cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
-    cs.setAllocation(OCIO.Constants.ALLOCATION_UNIFORM)
-    cs.setAllocationVars([0, 1])
+    cs = make_typical_color_space(name=get_colorspace_name(P3_ST2084_CS),
+                                  description="gamut: DCI-P3, gamma: ST2084",
+                                  eotf_lut_file=LUT_FILE_ST2084,
+                                  to_ref_mtx=DCI_P3_TO_ACES2065_1_MTX,
+                                  from_ref_mtx=ACES2065_1_TO_DCI_P3_MTX)
+    return cs
 
-    # to reference
-    file_to_ref\
-        = OCIO.FileTransform(LUT_FILE_ST2084,
-                             direction=DIRECTION_OPS['forward'],
-                             interpolation=INTERPOLATION_OPS['linear'])
-    matrix_to_ref = OCIO.MatrixTransform(matrix=DCI_P3_TO_ACES2065_1_MTX,
-                                         direction=DIRECTION_OPS['forward'])
-    group_to_ref = OCIO.GroupTransform([file_to_ref, matrix_to_ref])
-    # cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
-    cs.setTransform(file_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
 
-    # from reference
-    file_from_ref\
-        = OCIO.FileTransform(LUT_FILE_ST2084,
-                             direction=DIRECTION_OPS['inverse'],
-                             interpolation=INTERPOLATION_OPS['linear'])
-    matrix_from_ref = OCIO.MatrixTransform(matrix=ACES2065_1_TO_DCI_P3_MTX,
-                                           direction=DIRECTION_OPS['forward'])
-    group_from_ref = OCIO.GroupTransform([matrix_from_ref, file_from_ref])
-    # cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
-    # cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
-
+def make_bt2020_st2084_color_space():
+    cs = make_typical_color_space(name=get_colorspace_name(BT2020_ST2084_CS),
+                                  description="gamut: BT.2020, gamma: ST2084",
+                                  eotf_lut_file=LUT_FILE_ST2084,
+                                  to_ref_mtx=BT2020_TO_ACES2065_1_MTX,
+                                  from_ref_mtx=ACES2065_1_TO_BT2020_MTX)
     return cs
 
 
 def make_arri_logc_color_space():
-    cs = OCIO.ColorSpace(name=get_colorspace_name(ALEXA_LOGC_CS))
-    cs.setDescription("ALEXA Wide Gamut and LogC EOTF.")
-    cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
-    cs.setAllocation(OCIO.Constants.ALLOCATION_UNIFORM)
-    cs.setAllocationVars([0, 1])
+    cs = make_typical_color_space(
+        name=get_colorspace_name(ALEXA_LOGC_CS),
+        description="gamut: ALEXA Wide Gamut, gamma: LogC",
+        eotf_lut_file=LUT_FILE_LOG_C,
+        to_ref_mtx=ALEXA_Wide_Gamut_TO_ACES2065_1_MTX,
+        from_ref_mtx=ACES2065_1_TO_ALEXA_Wide_Gamut_MTX)
+    return cs
 
-    # to reference
-    file_to_ref\
-        = OCIO.FileTransform(LUT_FILE_LOG_C,
-                             direction=DIRECTION_OPS['forward'],
-                             interpolation=INTERPOLATION_OPS['linear'])
-    matrix_to_ref = OCIO.MatrixTransform(matrix=ALEXA_Wide_Gamut_TO_ACES2065_1_MTX,
-                                         direction=DIRECTION_OPS['forward'])
-    group_to_ref = OCIO.GroupTransform([file_to_ref, matrix_to_ref])
-    # cs.setTransform(group_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
-    cs.setTransform(file_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
 
-    # from reference
-    file_from_ref\
-        = OCIO.FileTransform(LUT_FILE_LOG_C,
-                             direction=DIRECTION_OPS['inverse'],
-                             interpolation=INTERPOLATION_OPS['linear'])
-    matrix_from_ref = OCIO.MatrixTransform(matrix=ACES2065_1_TO_ALEXA_Wide_Gamut_MTX,
-                                           direction=DIRECTION_OPS['forward'])
-    group_from_ref = OCIO.GroupTransform([matrix_from_ref, file_from_ref])
-    # cs.setTransform(group_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
-    # cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
-
+def make_bt2020_logc_color_space():
+    cs = make_typical_color_space(
+        name=get_colorspace_name(BT2020_LOGC_CS),
+        description="gamut: BT.2020, gamma: LogC",
+        eotf_lut_file=LUT_FILE_LOG_C,
+        to_ref_mtx=BT2020_TO_ACES2065_1_MTX,
+        from_ref_mtx=ACES2065_1_TO_BT2020_MTX)
     return cs
 
 
