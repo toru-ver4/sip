@@ -10,7 +10,7 @@ import PyOpenColorIO as OCIO
 from make_ocio_utility import get_colorspace_name
 from make_ocio_utility import BT1886_CS, REFERENCE_ROLE, P3_ST2084_CS,\
     ALEXA_LOGC_CS, BT2020_ST2084_CS, BT2020_CS, BT2020_LOGC_CS, SRGB_CS,\
-    BT2020_LOGC_CS
+    BT2020_LOG3G10_CS
 
 
 DIRECTION_OPS = {
@@ -191,6 +191,16 @@ def make_bt2020_logc_color_space():
         name=get_colorspace_name(BT2020_LOGC_CS),
         description="gamut: BT.2020, gamma: LogC",
         eotf_lut_file=LUT_FILE_LOG_C,
+        to_ref_mtx=BT2020_TO_ACES2065_1_MTX,
+        from_ref_mtx=ACES2065_1_TO_BT2020_MTX)
+    return cs
+
+
+def make_bt2020_log3g10_color_space():
+    cs = make_typical_color_space(
+        name=get_colorspace_name(BT2020_LOG3G10_CS),
+        description="gamut: BT.2020, gamma: Log3g10",
+        eotf_lut_file=LUT_FILE_LOG3G10,
         to_ref_mtx=BT2020_TO_ACES2065_1_MTX,
         from_ref_mtx=ACES2065_1_TO_BT2020_MTX)
     return cs

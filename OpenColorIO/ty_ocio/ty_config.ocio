@@ -182,3 +182,22 @@ colorspaces:
       children:
         - !<MatrixTransform> {matrix: [1.49087, -0.268713, -0.222156, 0, -0.0792372, 1.17937, -0.100131, 0, 0.0027781, -0.0304336, 1.02766, 0, 0, 0, 0, 1]}
         - !<FileTransform> {src: ARRI_LOG_C_to_Linear.spi1d, interpolation: linear, direction: inverse}
+
+  - !<ColorSpace>
+    name: gamut_BT.2020 - eotf_RED Log3G10
+    family: ""
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      gamut: BT.2020, gamma: Log3g10
+    isdata: false
+    allocation: uniform
+    allocationvars: [0, 1]
+    to_reference: !<GroupTransform>
+      children:
+        - !<FileTransform> {src: RED_Log3G10_to_Linear.spi1d, interpolation: linear}
+        - !<MatrixTransform> {matrix: [0.678891, 0.158868, 0.16224, 0, 0.0455708, 0.860713, 0.0937164, 0, -0.00048571, 0.0250602, 0.975426, 0, 0, 0, 0, 1]}
+    from_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [1.49087, -0.268713, -0.222156, 0, -0.0792372, 1.17937, -0.100131, 0, 0.0027781, -0.0304336, 1.02766, 0, 0, 0, 0, 1]}
+        - !<FileTransform> {src: RED_Log3G10_to_Linear.spi1d, interpolation: linear, direction: inverse}

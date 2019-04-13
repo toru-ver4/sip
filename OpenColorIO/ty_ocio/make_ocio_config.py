@@ -51,6 +51,7 @@ class OcioConfigControl:
         self.config.addColorSpace(mocs.make_bt2020_st2084_color_space())
         self.config.addColorSpace(mocs.make_arri_logc_color_space())
         self.config.addColorSpace(mocs.make_bt2020_logc_color_space())
+        self.config.addColorSpace(mocs.make_bt2020_log3g10_color_space())
 
     def set_display(self):
         display = 'default'
