@@ -133,12 +133,14 @@ def plot_1_graph(fontsize=20, **kwargs):
     if 'xlabel' in kwargs and kwargs['xlabel']:
         ax1.set_xlabel(kwargs['xlabel'])
     else:
-        ax1.set_xlabel("X Axis Label")
+        # ax1.set_xlabel("X Axis Label")
+        pass
 
     if 'ylabel' in kwargs and kwargs['ylabel']:
         ax1.set_ylabel(kwargs['ylabel'])
     else:
-        ax1.set_ylabel("Y Axis Label")
+        # ax1.set_ylabel("Y Axis Label")
+        pass
 
     if 'xtick' in kwargs and kwargs['xtick']:
         ax1.set_xticks(kwargs['xtick'])

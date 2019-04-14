@@ -8,13 +8,10 @@
 
 import os
 import cv2
-import common as cmn
 import color_convert as cc
 from scipy import linalg
 import plot_utility as pu
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import math
 from colour.colorimetry import CMFS, ILLUMINANTS
@@ -32,6 +29,7 @@ imp.reload(pu)
 
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
+YCBCR_CHECK_MARKER = [0, 0, 0]
 
 
 def preview_image(img, order='rgb', over_disp=False):
@@ -896,6 +894,82 @@ def make_csf_color_image(width=640, height=640,
     return img
 
 
+def make_tile_pattern(width=480, height=960, h_tile_num=4,
+                      v_tile_num=4, low_level=(940, 940, 940),
+                      high_level=(1023, 1023, 1023)):
+    """
+    タイル状の縞々パターンを作る
+    """
+    width_array = equal_devision(width, h_tile_num)
+    height_array = equal_devision(height, v_tile_num)
+    high_level = np.array(high_level, dtype=np.uint16)
+    low_level = np.array(low_level, dtype=np.uint16)
+
+    v_buf = []
+
+    for v_idx, height in enumerate(height_array):
+        h_buf = []
+        for h_idx, width in enumerate(width_array):
+            tile_judge = (h_idx + v_idx) % 2 == 0
+            h_temp = np.zeros((height, width, 3), dtype=np.uint16)
+            h_temp[:, :] = high_level if tile_judge else low_level
+            h_buf.append(h_temp)
+
+        v_buf.append(np.hstack(h_buf))
+    img = np.vstack(v_buf)
+    # preview_image(img/1024.0)
+    return img
+
+
+def get_marker_idx(img, marker_value):
+    return np.all(img == marker_value, axis=-1)
+
+
+def make_ycbcr_checker(height=480, v_tile_num=4):
+    """
+    YCbCr係数誤りを確認するテストパターンを作る。
+    正直かなり汚い組み方です。雑に作ったパターンを悪魔合体させています。
+
+    Parameters
+    ----------
+    height : numeric.
+        height of the pattern image.
+    v_tile_num : numeric
+        number of the tile in the vertical direction.
+
+    Note
+    ----
+    横長のパターンになる。以下の式が成立する。
+
+    ```
+    h_tile_num = v_tile_num * 2
+    width = height * 2
+    ```
+
+    Returns
+    -------
+    array_like
+        ycbcr checker image
+    """
+
+    cyan_img = make_tile_pattern(width=height, height=height,
+                                 h_tile_num=v_tile_num,
+                                 v_tile_num=v_tile_num,
+                                 low_level=[0, 990, 990],
+                                 high_level=[0, 1023, 1023])
+    magenta_img = make_tile_pattern(width=height, height=height,
+                                    h_tile_num=v_tile_num,
+                                    v_tile_num=v_tile_num,
+                                    low_level=[990, 0, 312],
+                                    high_level=[1023, 0, 312])
+
+    out_img = np.hstack([cyan_img, magenta_img])
+
+    # preview_image(out_img/1023.0)
+
+    return out_img
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # plot_chromaticity_diagram()
@@ -910,7 +984,11 @@ if __name__ == '__main__':
     # complex_dot_pattern(kind_num=3, whole_repeat=1,
     #                     fg_color=np.array([1.0, 1.0, 1.0]),
     #                     bg_color=np.array([0.15, 0.15, 0.15]))
-    make_csf_color_image(width=640, height=640,
-                         lv1=np.array([940, 0, 940], dtype=np.uint16),
-                         lv2=np.array([1023, 1023, 0], dtype=np.uint16),
-                         stripe_num=6)
+    # make_csf_color_image(width=640, height=640,
+    #                      lv1=np.array([940, 0, 940], dtype=np.uint16),
+    #                      lv2=np.array([1023, 1023, 0], dtype=np.uint16),
+    #                      stripe_num=6)
+    make_ycbcr_checker(height=30, v_tile_num=2)
+    make_tile_pattern(width=960, height=480, h_tile_num=7,
+                      v_tile_num=4, low_level=(940, 940, 940),
+                      high_level=(1023, 1023, 1023))

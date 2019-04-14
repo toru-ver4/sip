@@ -64,8 +64,12 @@ class TpgDraw:
 
         self.csf_img_size_coef = 0.017
         self.csf_img_st_pos_v_coef = 0.03
-        self.csf_img_low_st_pos_h_coef = 0.859
-        self.csf_img_high_st_pos_h_coef = 0.88
+        self.csf_img_low_st_pos_h_coef = 0.8
+        self.csf_img_high_st_pos_h_coef = 0.842
+
+        self.ycbcr_img_st_pos_v_coef = 0.03
+        self.ycbcr_img_st_pos_h_coef = 0.862
+        self.ycbcr_img_size_coef = 0.017
 
         self.dot_img_st_pos_v_coef = 0.03
         self.dot_img_st_pos_h_coef = 0.90
@@ -542,6 +546,13 @@ class TpgDraw:
         low_img = tpg.make_csf_color_image(width, width, lv_0, lv_64, num)
         high_img = tpg.make_csf_color_image(width, width, lv_940, lv_1023, num)
 
+        high_img = tpg.make_tile_pattern(width=width, height=width,
+                                         h_tile_num=4, v_tile_num=4,
+                                         low_level=lv_940, high_level=lv_1023)
+        low_img = tpg.make_tile_pattern(width=width, height=width,
+                                        h_tile_num=4, v_tile_num=4,
+                                        low_level=lv_0, high_level=lv_64)
+
         st_pos_h = int(self.csf_img_low_st_pos_h_coef * self.img_width)
         st_pos_v = int(self.csf_img_st_pos_v_coef * self.img_height)
         csf_img_pos = (st_pos_h, st_pos_v)
@@ -551,6 +562,15 @@ class TpgDraw:
         csf_img_pos = (st_pos_h, st_pos_v)
         tpg.merge(self.img, high_img, csf_img_pos)
         # tpg.preview_image(csf_img_pos)
+
+    def draw_ycbcr_err_checker(self):
+        width = int(self.ycbcr_img_size_coef * self.img_width)
+        img = tpg.make_ycbcr_checker(height=width, v_tile_num=4)
+
+        st_pos_h = int(self.ycbcr_img_st_pos_h_coef * self.img_width)
+        st_pos_v = int(self.ycbcr_img_st_pos_v_coef * self.img_height)
+        ycbcr_img_pos = (st_pos_h, st_pos_v)
+        tpg.merge(self.img, img, ycbcr_img_pos)
 
     def draw_tpg_type1(self):
         """
@@ -567,6 +587,7 @@ class TpgDraw:
         self.draw_color_checker()
         self.draw_dot_mesh()
         self.draw_csf_pattern()
+        self.draw_ycbcr_err_checker()
         self.draw_info_text()
 
         if self.preview:

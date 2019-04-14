@@ -28,51 +28,61 @@ GAMMA24 = 'Gamma 2.4'
 ST2084 = 'SMPTE ST2084'
 HLG = 'BT.2100 HLG'
 LOGC = 'ARRI LOG_C'
-VLOG = 'Panasonic VLog (IRE BASE)'
-VLOG_REF = 'Panasonic VLog (Reflection BASE)'
+VLOG_IRE = 'Panasonic VLog (IRE Base)'
+VLOG = 'Panasonic VLog'
 SLOG3 = "SONY S-Log3 (IRE Base)"
-SLOG3_REF = "SONY S-Log3 (Reflection Base)"
+SLOG3_REF = "SONY S-Log3"
 REDLOG = "RED REDLog"
 LOG3G10 = "RED Log3G10"
 LOG3G12 = "RED Log3G12"
 NLOG = "Nikon N-Log"
 DLOG = "DJI D-Log"
 FLOG = "FUJIFILM F-Log"
+SRGB = "sRGB"
+# ACES_CG = 'ACEScg'
 
 slog_max = colour.models.log_decoding_SLog3((1023 / 1023),
                                             out_reflection=False)
 slog_ref_max = colour.models.log_decoding_SLog3((1023 / 1023),
                                                 out_reflection=True)
 logc_max = colour.models.log_decoding_ALEXALogC(1.0)
-vlog_max = colour.models.log_decoding_VLog(1.0, out_reflection=False)
-vlog_max = colour.models.log_decoding_VLog(1.0, out_reflection=False)
+vlog_ire_max = colour.models.log_decoding_VLog(1.0, out_reflection=False)
 vlog_ref_max = colour.models.log_decoding_VLog(1.0, out_reflection=True)
 red_max = colour.models.log_decoding_REDLog(1.0)
 log3g10_max = colour.models.log_decoding_Log3G10(1.0)
 log3g12_max = colour.models.log_decoding_Log3G12(1.0)
-# nlog_max = n_log_decoding(1.0, out_reflection=False)
-nlog_max = 16.4231816006
-# flog_max = f_log_decoding(1.0, out_reflection=False)
-flog_max = 8.09036097832
-# dlog_max = d_log_decoding(1.0, out_reflection=False)
-dlog_max = 46.6659918565
+# nlog_max = n_log_decoding(1.0, out_reflection=True)
+nlog_max = 14.78086344050015
+# flog_max = f_log_decoding(1.0, out_reflection=True)
+flog_max = 7.281324880488497
+# dlog_max = d_log_decoding(1.0, out_reflection=True)
+dlog_max = 41.99939267086707
 
-MAX_VALUE = {GAMMA24: 1.0, ST2084: 10000, HLG: 1000,
-             VLOG: vlog_max, VLOG_REF: vlog_ref_max,
+REF_WHITE_LUMINANCE = 100
+
+MAX_VALUE = {GAMMA24: 1.0, SRGB: 1.0, ST2084: 10000, HLG: 1000,
+             VLOG_IRE: vlog_ire_max, VLOG: vlog_ref_max,
              LOGC: logc_max,
              SLOG3: slog_max, SLOG3_REF: slog_ref_max,
              REDLOG: red_max,
              LOG3G10: log3g10_max, LOG3G12: log3g12_max,
              NLOG: nlog_max, FLOG: flog_max, DLOG: dlog_max}
 
-PEAK_LUMINANCE = {GAMMA24: 100, ST2084: 10000, HLG: 1000,
-                  VLOG: vlog_max * 100, VLOG_REF: vlog_ref_max * 100,
-                  LOGC: logc_max * 100,
-                  SLOG3: slog_max * 100, SLOG3_REF: slog_ref_max * 100,
-                  REDLOG: red_max * 100,
-                  LOG3G10: log3g10_max * 100, LOG3G12: log3g12_max * 100,
-                  NLOG: nlog_max * 100, FLOG: flog_max * 100,
-                  DLOG: dlog_max * 100}
+PEAK_LUMINANCE = {GAMMA24: REF_WHITE_LUMINANCE,
+                  SRGB: REF_WHITE_LUMINANCE,
+                  ST2084: 10000,
+                  HLG: 1000,
+                  VLOG_IRE: vlog_ire_max * REF_WHITE_LUMINANCE,
+                  VLOG: vlog_ref_max * REF_WHITE_LUMINANCE,
+                  LOGC: logc_max * REF_WHITE_LUMINANCE,
+                  SLOG3: slog_max * REF_WHITE_LUMINANCE,
+                  SLOG3_REF: slog_ref_max * REF_WHITE_LUMINANCE,
+                  REDLOG: red_max * REF_WHITE_LUMINANCE,
+                  LOG3G10: log3g10_max * REF_WHITE_LUMINANCE,
+                  LOG3G12: log3g12_max * REF_WHITE_LUMINANCE,
+                  NLOG: nlog_max * REF_WHITE_LUMINANCE,
+                  FLOG: flog_max * REF_WHITE_LUMINANCE,
+                  DLOG: dlog_max * REF_WHITE_LUMINANCE}
 
 
 def oetf(x, name=GAMMA24):
@@ -103,6 +113,8 @@ def oetf(x, name=GAMMA24):
 
     if name == GAMMA24:
         y = (x * MAX_VALUE[name]) ** (1/2.4)
+    elif name == SRGB:
+        y = colour.models.oetf_sRGB(x * MAX_VALUE[name])
     elif name == HLG:
         y = colour.models.eotf_reverse_BT2100_HLG(x * MAX_VALUE[name])
     elif name == ST2084:
@@ -114,10 +126,10 @@ def oetf(x, name=GAMMA24):
     elif name == SLOG3_REF:
         y = colour.models.log_encoding_SLog3(x * MAX_VALUE[name],
                                              in_reflection=True)
-    elif name == VLOG:
+    elif name == VLOG_IRE:
         y = colour.models.log_encoding_VLog(x * MAX_VALUE[name],
                                             in_reflection=False)
-    elif name == VLOG_REF:
+    elif name == VLOG:
         y = colour.models.log_encoding_VLog(x * MAX_VALUE[name],
                                             in_reflection=True)
     elif name == LOGC:
@@ -129,11 +141,11 @@ def oetf(x, name=GAMMA24):
     elif name == LOG3G12:
         y = colour.models.log_encoding_Log3G12(x * MAX_VALUE[name])
     elif name == NLOG:
-        y = n_log_encoding(x * MAX_VALUE[name], in_reflection=False)
+        y = n_log_encoding(x * MAX_VALUE[name], in_reflection=True)
     elif name == FLOG:
-        y = f_log_encoding(x * MAX_VALUE[name], in_reflection=False)
+        y = f_log_encoding(x * MAX_VALUE[name], in_reflection=True)
     elif name == DLOG:
-        y = d_log_encoding(x * MAX_VALUE[name], in_reflection=False)
+        y = d_log_encoding(x * MAX_VALUE[name], in_reflection=True)
     else:
         raise ValueError("invalid transfer fucntion name")
 
@@ -196,6 +208,8 @@ def eotf(x, name=GAMMA24):
     """
     if name == GAMMA24:
         y = x ** 2.4
+    elif name == SRGB:
+        y = colour.models.oetf_reverse_sRGB(x)
     elif name == ST2084:
         # fix me!
         y = colour.models.eotf_ST2084(x) / MAX_VALUE[name]
@@ -207,10 +221,10 @@ def eotf(x, name=GAMMA24):
     elif name == SLOG3_REF:
         y = colour.models.log_decoding_SLog3(x, out_reflection=True)\
             / MAX_VALUE[name]
-    elif name == VLOG:
+    elif name == VLOG_IRE:
         y = colour.models.log_decoding_VLog(x, out_reflection=False)\
             / MAX_VALUE[name]
-    elif name == VLOG_REF:
+    elif name == VLOG:
         y = colour.models.log_decoding_VLog(x, out_reflection=True)\
             / MAX_VALUE[name]
     elif name == LOGC:
@@ -222,11 +236,11 @@ def eotf(x, name=GAMMA24):
     elif name == LOG3G12:
         y = colour.models.log_decoding_Log3G12(x) / MAX_VALUE[name]
     elif name == NLOG:
-        y = n_log_decoding(x, out_reflection=False) / MAX_VALUE[name]
+        y = n_log_decoding(x, out_reflection=True) / MAX_VALUE[name]
     elif name == FLOG:
-        y = f_log_decoding(x, out_reflection=False) / MAX_VALUE[name]
+        y = f_log_decoding(x, out_reflection=True) / MAX_VALUE[name]
     elif name == DLOG:
-        y = d_log_decoding(x, out_reflection=False) / MAX_VALUE[name]
+        y = d_log_decoding(x, out_reflection=True) / MAX_VALUE[name]
     else:
         raise ValueError("invalid transfer fucntion name")
 
@@ -505,18 +519,12 @@ def d_log_decoding(x, out_reflection=False):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    x = np.linspace(0, 1, 1024)
-    g_name = VLOG
-    x_luminance = x * PEAK_LUMINANCE[g_name]
-    # y = oetf_from_luminance(x_luminance, g_name)
-    y = oetf(x, g_name)
-    ax1 = pu.plot_1_graph()
-    # ax1.plot(x_luminance, y)
-    ax1.plot(x, y)
-    plt.show()
-    # x2 = eotf_to_luminance(y, g_name)
-    x2 = eotf(y, g_name)
-    ax1 = pu.plot_1_graph()
-    # ax1.plot(x_luminance, x2)
-    ax1.plot(x, x2)
-    plt.show()
+    print(n_log_encoding(0.18, in_reflection=True) * 1023)
+    print(n_log_encoding(0.20) * 1023)
+
+    print(n_log_encoding(0.18 * (2 ** 4), in_reflection=True) * 1023)
+    print(n_log_encoding(0.20 * (2 ** 4)) * 1023)
+    nlog_max = n_log_decoding(1.0, out_reflection=True)
+    flog_max = f_log_decoding(1.0, out_reflection=True)
+    dlog_max = d_log_decoding(1.0, out_reflection=True)
+    print(nlog_max, flog_max, dlog_max)
