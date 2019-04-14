@@ -38,20 +38,19 @@ RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
 DCI_P3_CS = DciP3ColorSpace()
 SRGB_CS = colour.models.sRGB_COLOURSPACE
 
-# PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
-#               {'tf': tf.HLG, 'cs': BT2020_CS, 'wp': 'D65'},
-#               {'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'},
-#               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
-#               {'tf': tf.VLOG, 'cs': V_LOG_CS, 'wp': 'D65'},
-#               {'tf': tf.LOGC, 'cs': ALEXA_WIDE_GAMUT_CS, 'wp': 'D65'},
-#               {'tf': tf.LOGC, 'cs': BT2020_CS, 'wp': 'D65'},
-#             #   {'tf': tf.REDLOG, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
-#               {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
-#               {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
-#               {'tf': tf.LOG3G10, 'cs': BT2020_CS, 'wp': 'D65'},
-#               {'tf': tf.LOG3G12, 'cs': BT2020_CS, 'wp': 'D65'},
-#               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'}]
+PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
+              {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.HLG, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.ST2084, 'cs': DCI_P3_CS, 'wp': 'D65'},
+              {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
+              {'tf': tf.VLOG, 'cs': V_LOG_CS, 'wp': 'D65'},
+              {'tf': tf.LOGC, 'cs': ALEXA_WIDE_GAMUT_CS, 'wp': 'D65'},
+              {'tf': tf.LOGC, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+              {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+              {'tf': tf.LOG3G10, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.LOG3G12, 'cs': BT2020_CS, 'wp': 'D65'}]
 
 # PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT709_CS, 'wp': 'D65'},
 #               {'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'},
@@ -63,7 +62,7 @@ SRGB_CS = colour.models.sRGB_COLOURSPACE
 #               {'tf': tf.NLOG, 'cs': BT709_CS, 'wp': 'D65'},
 #               {'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
 
-PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
+# PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
@@ -128,8 +127,8 @@ class TpgControl:
 
 
 def main_func():
-    # resolution_list = ['1920x1080', '3840x2160']
-    resolution_list = ['1920x1080']
+    resolution_list = ['1920x1080', '3840x2160']
+    # resolution_list = ['1920x1080']
 
     for param in PARAM_LIST:
         transfer_function = param['tf']
@@ -141,9 +140,16 @@ def main_func():
                                   color_space=color_space,
                                   white_point=white_point,
                                   revision=REVISION)
-            tpg_ctrl.draw_image_type1(preview=True)
+            tpg_ctrl.draw_image_type1(preview=False)
             fname_str = "./img/{}_{}_{}_{}_rev{:02d}_type1.dpx"
             fname = fname_str.format(transfer_function,
+                                     color_space.name,
+                                     white_point,
+                                     resolution,
+                                     REVISION)
+            tpg_ctrl.save_image(fname, transfer_function)
+            fname_exr = "./img/{}_{}_{}_{}_rev{:02d}_type1.exr"
+            fname = fname_exr.format(transfer_function,
                                      color_space.name,
                                      white_point,
                                      resolution,
