@@ -1,0 +1,73 @@
+#:kivy 1.10.0
+# -*- coding: utf-8 -*-
+<Widget>:
+    font_name: 'ipagp.ttf'
+
+<MainFrame>:
+
+    BoxLayout:
+        orientation: 'vertical'
+        width: root.width
+        height: root.height
+
+        BoxLayout:
+            size_hint: 1, 0.2
+            orientation: 'vertical'
+            Label:
+                multiline: False
+                text: "Please select the m3u8 file."
+            ScrollView:
+                size_hint: None, 1
+                size: root.width, self.height
+                do_scroll_y: False
+
+                TextInput:
+                    id: text_input
+                    size_hint_x: None
+                    text: ""
+            Button:
+                text: "Oepn"
+                on_release: root.open_get_file_path_dialog("in")
+
+        BoxLayout:
+            size_hint: 1, 0.3
+            orientation: 'vertical'
+
+            Label:
+                text: "Please input a output filename."
+
+            TextInput:
+                id: text_output
+                text: ""
+
+            Button:
+                text: "Oepn"
+                on_release: root.open_get_file_path_dialog("out")
+
+            Button:
+                text: "Transform Execute"
+
+        BoxLayout:
+            TextInput:
+                text: "Debug Information"
+
+<GetFilePathDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            path: "C:/Users/toruv/Downloads"
+            filters: ["*.m3u8", "*.mp4"]
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Open"
+                on_release: root.set_text(filechooser.path, filechooser.selection)
