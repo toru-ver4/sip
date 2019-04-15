@@ -5,9 +5,9 @@ strictparsing: true
 luma: [0.2126, 0.7152, 0.0722]
 
 roles:
-  color_picking: gamut_BT.709 - eotf_Gamma 2.4
-  color_timing: gamut_ALEXA Wide Gamut - eotf_ARRI LOG_C
-  compositing_log: gamut_ALEXA Wide Gamut - eotf_ARRI LOG_C
+  color_picking: Gamma 2.4 - BT.709
+  color_timing: ARRI LOG_C - ALEXA Wide Gamut
+  compositing_log: ARRI LOG_C - ALEXA Wide Gamut
   data: raw
   default: raw
   matte_paint: raw
@@ -18,27 +18,16 @@ roles:
 displays:
   default:
     - !<View> {name: raw, colorspace: raw}
-    - !<View> {name: gamut_sRGB - eotf_sRGB, colorspace: gamut_sRGB - eotf_sRGB}
-    - !<View> {name: gamut_BT.709 - eotf_Gamma 2.4, colorspace: gamut_BT.709 - eotf_Gamma 2.4}
-    - !<View> {name: gamut_BT.2020 - eotf_Gamma 2.4, colorspace: gamut_BT.2020 - eotf_Gamma 2.4}
-    - !<View> {name: gamut_BT.2020 - eotf_SMPTE ST2084, colorspace: gamut_BT.2020 - eotf_SMPTE ST2084}
-    - !<View> {name: gamut_DCI-P3 - eotf_SMPTE ST2084, colorspace: gamut_DCI-P3 - eotf_SMPTE ST2084}
+    - !<View> {name: sRGB - sRGB, colorspace: sRGB - sRGB}
+    - !<View> {name: Gamma 2.4 - BT.709, colorspace: Gamma 2.4 - BT.709}
+    - !<View> {name: Gamma 2.4 - BT.2020, colorspace: Gamma 2.4 - BT.2020}
+    - !<View> {name: SMPTE ST2084 - BT.2020, colorspace: SMPTE ST2084 - BT.2020}
+    - !<View> {name: SMPTE ST2084 - DCI-P3, colorspace: SMPTE ST2084 - DCI-P3}
 
 active_displays: [default]
-active_views: [gamut_BT.709 - eotf_Gamma 2.4]
+active_views: [Gamma 2.4 - BT.709]
 
 colorspaces:
-  - !<ColorSpace>
-    name: gamut_ACES2065-1 - eotf_Linear
-    family: ""
-    equalitygroup: ""
-    bitdepth: 32f
-    description: |
-      reference
-    isdata: false
-    allocation: lg2
-    allocationvars: [-8, 5, 0.00390625]
-
   - !<ColorSpace>
     name: raw
     family: ""
@@ -51,8 +40,8 @@ colorspaces:
     allocationvars: [0, 1]
 
   - !<ColorSpace>
-    name: gamut_sRGB - eotf_sRGB
-    family: ""
+    name: sRGB - sRGB
+    family: sRGB
     equalitygroup: ""
     bitdepth: 32f
     description: |
@@ -70,8 +59,8 @@ colorspaces:
         - !<FileTransform> {src: sRGB_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
-    name: gamut_BT.709 - eotf_Gamma 2.4
-    family: ""
+    name: Gamma 2.4 - BT.709
+    family: Gamma 2.4
     equalitygroup: ""
     bitdepth: 32f
     description: |
@@ -89,8 +78,8 @@ colorspaces:
         - !<FileTransform> {src: Gamma_2.4_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
-    name: gamut_BT.2020 - eotf_Gamma 2.4
-    family: ""
+    name: Gamma 2.4 - BT.2020
+    family: Gamma 2.4
     equalitygroup: ""
     bitdepth: 32f
     description: |
@@ -108,8 +97,8 @@ colorspaces:
         - !<FileTransform> {src: Gamma_2.4_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
-    name: gamut_DCI-P3 - eotf_SMPTE ST2084
-    family: ""
+    name: SMPTE ST2084 - DCI-P3
+    family: SMPTE ST2084
     equalitygroup: ""
     bitdepth: 32f
     description: |
@@ -127,8 +116,8 @@ colorspaces:
         - !<FileTransform> {src: SMPTE_ST2084_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
-    name: gamut_BT.2020 - eotf_SMPTE ST2084
-    family: ""
+    name: SMPTE ST2084 - BT.2020
+    family: SMPTE ST2084
     equalitygroup: ""
     bitdepth: 32f
     description: |
@@ -146,8 +135,8 @@ colorspaces:
         - !<FileTransform> {src: SMPTE_ST2084_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
-    name: gamut_ALEXA Wide Gamut - eotf_ARRI LOG_C
-    family: ""
+    name: ARRI LOG_C - ALEXA Wide Gamut
+    family: ARRI LOG_C
     equalitygroup: ""
     bitdepth: 32f
     description: |
@@ -165,8 +154,8 @@ colorspaces:
         - !<FileTransform> {src: ARRI_LOG_C_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
-    name: gamut_BT.2020 - eotf_ARRI LOG_C
-    family: ""
+    name: ARRI LOG_C - BT.2020
+    family: ARRI LOG_C
     equalitygroup: ""
     bitdepth: 32f
     description: |
@@ -184,8 +173,8 @@ colorspaces:
         - !<FileTransform> {src: ARRI_LOG_C_to_Linear.spi1d, interpolation: linear, direction: inverse}
 
   - !<ColorSpace>
-    name: gamut_BT.2020 - eotf_RED Log3G10
-    family: ""
+    name: RED Log3G10 - BT.2020
+    family: RED Log3G10
     equalitygroup: ""
     bitdepth: 32f
     description: |

@@ -7,8 +7,8 @@ OCIO用のColorSpaceを作る。
 
 import os
 import PyOpenColorIO as OCIO
-from make_ocio_utility import get_colorspace_name
-from make_ocio_utility import BT1886_CS, REFERENCE_ROLE, P3_ST2084_CS,\
+from make_ocio_utility import get_gamut_name, get_eotf_name, get_colorspace_name
+from make_ocio_utility import BT1886_CS, P3_ST2084_CS,\
     ALEXA_LOGC_CS, BT2020_ST2084_CS, BT2020_CS, BT2020_LOGC_CS, SRGB_CS,\
     BT2020_LOG3G10_CS
 
@@ -73,16 +73,6 @@ ACES2065_1_TO_REDWideGamutRGB_MTX = [1.2659750874973834, -0.13733317128270045, -
 REDWideGamutRGB_TO_ACES2065_1_MTX = [0.7848686125011931, 0.085760033547838, 0.1293703649742697, 0.0, 0.02270961620650155, 1.0905568785915896, -0.11326601437264593, 0.0, -0.07380776746826465, -0.32026886252265924, 1.394076859469402, 0.0, 0.0, 0.0, 0.0, 1.0]
 
 
-def make_ref_color_space():
-    cs = OCIO.ColorSpace(name=get_colorspace_name(REFERENCE_ROLE))
-    cs.setDescription("reference")
-    cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
-    cs.setAllocation(OCIO.Constants.ALLOCATION_LG2)
-    cs.setAllocationVars([-8, 5, 0.00390625])
-
-    return cs
-
-
 def make_raw_color_space():
     cs = OCIO.ColorSpace(name='raw')
     cs.setDescription("raw")
@@ -93,7 +83,7 @@ def make_raw_color_space():
     return cs
 
 
-def make_typical_color_space(name=get_colorspace_name(BT1886_CS),
+def make_typical_color_space(cs_name=BT1886_CS,
                              description="bt1886",
                              allocation=OCIO.Constants.ALLOCATION_UNIFORM,
                              allocationVars=[0, 1],
@@ -104,8 +94,9 @@ def make_typical_color_space(name=get_colorspace_name(BT1886_CS),
     典型的な Color Space を作成する。
     """
 
-    cs = OCIO.ColorSpace(name=name)
+    cs = OCIO.ColorSpace(name=get_colorspace_name(cs_name))
     cs.setDescription(description)
+    cs.setFamily(get_eotf_name(cs_name))
     cs.setBitDepth(OCIO.Constants.BIT_DEPTH_F32)
     cs.setAllocation(allocation)
     cs.setAllocationVars(allocationVars)
@@ -132,7 +123,7 @@ def make_typical_color_space(name=get_colorspace_name(BT1886_CS),
 
 
 def make_srgb_color_space():
-    cs = make_typical_color_space(name=get_colorspace_name(SRGB_CS),
+    cs = make_typical_color_space(cs_name=SRGB_CS,
                                   description="gamut: BT.709, gamma: sRGB",
                                   eotf_lut_file=LUT_FILE_SRGB,
                                   to_ref_mtx=BT709_TO_ACES2065_1_MTX,
@@ -141,7 +132,7 @@ def make_srgb_color_space():
 
 
 def make_bt1886_color_space():
-    cs = make_typical_color_space(name=get_colorspace_name(BT1886_CS),
+    cs = make_typical_color_space(cs_name=BT1886_CS,
                                   description="gamut: BT.709, gamma: 2.4",
                                   eotf_lut_file=LUT_FILE_GAMMA24,
                                   to_ref_mtx=BT709_TO_ACES2065_1_MTX,
@@ -150,7 +141,7 @@ def make_bt1886_color_space():
 
 
 def make_bt2020_color_space():
-    cs = make_typical_color_space(name=get_colorspace_name(BT2020_CS),
+    cs = make_typical_color_space(cs_name=BT2020_CS,
                                   description="gamut: BT.2020, gamma: 2.4",
                                   eotf_lut_file=LUT_FILE_GAMMA24,
                                   to_ref_mtx=BT2020_TO_ACES2065_1_MTX,
@@ -159,7 +150,7 @@ def make_bt2020_color_space():
 
 
 def make_p3_st2084_color_space():
-    cs = make_typical_color_space(name=get_colorspace_name(P3_ST2084_CS),
+    cs = make_typical_color_space(cs_name=P3_ST2084_CS,
                                   description="gamut: DCI-P3, gamma: ST2084",
                                   eotf_lut_file=LUT_FILE_ST2084,
                                   to_ref_mtx=DCI_P3_TO_ACES2065_1_MTX,
@@ -168,7 +159,7 @@ def make_p3_st2084_color_space():
 
 
 def make_bt2020_st2084_color_space():
-    cs = make_typical_color_space(name=get_colorspace_name(BT2020_ST2084_CS),
+    cs = make_typical_color_space(cs_name=BT2020_ST2084_CS,
                                   description="gamut: BT.2020, gamma: ST2084",
                                   eotf_lut_file=LUT_FILE_ST2084,
                                   to_ref_mtx=BT2020_TO_ACES2065_1_MTX,
@@ -178,7 +169,7 @@ def make_bt2020_st2084_color_space():
 
 def make_arri_logc_color_space():
     cs = make_typical_color_space(
-        name=get_colorspace_name(ALEXA_LOGC_CS),
+        cs_name=ALEXA_LOGC_CS,
         description="gamut: ALEXA Wide Gamut, gamma: LogC",
         eotf_lut_file=LUT_FILE_LOG_C,
         to_ref_mtx=ALEXA_Wide_Gamut_TO_ACES2065_1_MTX,
@@ -188,7 +179,7 @@ def make_arri_logc_color_space():
 
 def make_bt2020_logc_color_space():
     cs = make_typical_color_space(
-        name=get_colorspace_name(BT2020_LOGC_CS),
+        cs_name=BT2020_LOGC_CS,
         description="gamut: BT.2020, gamma: LogC",
         eotf_lut_file=LUT_FILE_LOG_C,
         to_ref_mtx=BT2020_TO_ACES2065_1_MTX,
@@ -198,7 +189,7 @@ def make_bt2020_logc_color_space():
 
 def make_bt2020_log3g10_color_space():
     cs = make_typical_color_space(
-        name=get_colorspace_name(BT2020_LOG3G10_CS),
+        cs_name=BT2020_LOG3G10_CS,
         description="gamut: BT.2020, gamma: Log3g10",
         eotf_lut_file=LUT_FILE_LOG3G10,
         to_ref_mtx=BT2020_TO_ACES2065_1_MTX,

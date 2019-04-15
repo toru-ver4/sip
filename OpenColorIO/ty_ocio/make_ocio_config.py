@@ -42,7 +42,6 @@ class OcioConfigControl:
         self.config.setRole(OCIO.Constants.ROLE_TEXTURE_PAINT, 'raw')
 
     def set_color_space(self):
-        self.config.addColorSpace(mocs.make_ref_color_space())
         self.config.addColorSpace(mocs.make_raw_color_space())
         self.config.addColorSpace(mocs.make_srgb_color_space())
         self.config.addColorSpace(mocs.make_bt1886_color_space())

@@ -62,12 +62,22 @@ DUMMY_MATRIX = [1.0, 0.0, 0.0, 0.0,
 
 
 def get_colorspace_name(gamut_eotf_pair):
-    temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0], gamut_eotf_pair[1])
+    temp = "{} - {}".format(gamut_eotf_pair[1], gamut_eotf_pair[0])
     return temp.replace('ITU-R ', "")
 
 
+def get_gamut_name(gamut_eotf_pair):
+    temp = "{}".format(gamut_eotf_pair[0])
+    return temp.replace('ITU-R ', "")
+
+
+def get_eotf_name(gamut_eotf_pair):
+    temp = "{}".format(gamut_eotf_pair[1])
+    return temp
+
+
 def get_display_name(gamut_eotf_pair):
-    temp = "gamut_{} - eotf_{}".format(gamut_eotf_pair[0], gamut_eotf_pair[1])
+    temp = "{} - {}".format(gamut_eotf_pair[1], gamut_eotf_pair[0])
     return temp.replace('ITU-R ', "")
 
 
