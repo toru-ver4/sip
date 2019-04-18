@@ -94,8 +94,52 @@ def plot_gray_scale_exr_m1_2():
     plt.show()
 
 
+def plot_gray_scale_exr_0_1_3dlut_linear():
+    sample_num = 1024
+    x_m10_10 = np.linspace(-10, 10, sample_num)
+
+    img = read_exr_data("./exp_min_0_max_1_out_3dlut_linear.exr")
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(16, 10),
+                          graph_title="3DLUTの範囲:0～1。allocation: uniform",
+                          xlabel="input value",
+                          ylabel="output value",
+                          xlim=[-0.5, 1.5],
+                          linewitdh=3)
+    # ax1.plot(x_0_1, img[0, 0:sample_num, 0].flatten(), label="0～1")
+    # ax1.plot(x_m1_2, img[1, 0:sample_num, 0].flatten(), label="-1～2")
+    ax1.plot(x_m10_10, img[2, 0:sample_num, 0].flatten(), '-o', label="-10～10")
+    plt.legend(loc='upper left')
+    fname = './figures/graph_0_1_3dlut_linear.png'
+    plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+
+def plot_gray_scale_exr_0_1_3dlut_log():
+    sample_num = 1024
+    x_m10_10 = np.linspace(-10, 10, sample_num)
+
+    img = read_exr_data("./exp_min_0_max_1_out_3dlut_log.exr")
+    ax1 = pu.plot_1_graph(fontsize=20,
+                          figsize=(16, 10),
+                          graph_title="3DLUTの範囲:0～1。allocation: lg2",
+                          xlabel="input value",
+                          ylabel="output value",
+                          xlim=[-0.5, 1.5],
+                          linewitdh=3)
+    # ax1.plot(x_0_1, img[0, 0:sample_num, 0].flatten(), label="0～1")
+    # ax1.plot(x_m1_2, img[1, 0:sample_num, 0].flatten(), label="-1～2")
+    ax1.plot(x_m10_10, img[2, 0:sample_num, 0].flatten(), '-o', label="-10～10")
+    plt.legend(loc='upper left')
+    fname = './figures/graph_0_1_3dlut_log2.png'
+    plt.savefig(fname, bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     make_gray_scale_exr()
     # plot_gray_scale_exr_0_1()
-    plot_gray_scale_exr_m1_2()
+    # plot_gray_scale_exr_m1_2()
+    plot_gray_scale_exr_0_1_3dlut_linear()
+    plot_gray_scale_exr_0_1_3dlut_log()

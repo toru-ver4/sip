@@ -217,3 +217,29 @@ colorspaces:
     allocationvars: [0, 1]
     to_reference: !<FileTransform> {src: experiment_min_minus1_max_2.spi1d, interpolation: linear}
     from_reference: !<FileTransform> {src: experiment_min_minus1_max_2.spi1d, interpolation: linear, direction: inverse}
+
+  - !<ColorSpace>
+    name: gm24_min_0_max1_3dlut_linear
+    family: experiment
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      gm24_min_0_max1_3dlut_linear
+    isdata: false
+    allocation: uniform
+    allocationvars: [0, 1]
+    to_reference: !<FileTransform> {src: experiment_min_0_max_1.spi3d, interpolation: linear}
+    from_reference: !<FileTransform> {src: experiment_min_0_max_1.spi3d, interpolation: linear}
+
+  - !<ColorSpace>
+    name: gm24_min_0_max1_3dlut_log
+    family: experiment
+    equalitygroup: ""
+    bitdepth: 32f
+    description: |
+      gm24_min_0_max1_3dlut_log
+    isdata: false
+    allocation: lg2
+    allocationvars: [-8, 0, 0.00390625]
+    to_reference: !<FileTransform> {src: experiment_min_0_max_1.spi3d, interpolation: linear}
+    from_reference: !<FileTransform> {src: experiment_min_0_max_1.spi3d, interpolation: linear}

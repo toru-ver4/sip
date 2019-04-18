@@ -38,6 +38,7 @@ LUT_FILE_FLOG = "FUJIFILM_F-Log_to_Linear.spi1d"
 LUT_FILE_EXP_0_TO_1 = "experiment_min_0_max_1.spi1d"
 LUT_FILE_EXP_M1_TO_2 = "experiment_min_minus1_max_2.spi1d"
 LUT_FILE_EXP_M1_TO_05 = "experiment_min_minus1_max_0.5.spi1d"
+LUT_FILE_EXP_M0_TO_1_3D = "experiment_min_0_max_1.spi3d"
 
 AP0_TO_BT709_MTX = [2.5219347298199275, -1.13702389648161, -0.38491083358651407, 0.0, -0.27547942789225904, 1.3698289786449884, -0.09434955068309422, 0.0, -0.015982869997415383, -0.14778923413163852, 1.1637721041802542, 0.0, 0.0, 0.0, 0.0, 1.0]
 BT709_TO_AP0_MTX = [0.43957568421668025, 0.3839125893365086, 0.17651172648967858, 0.0, 0.08960038290392143, 0.8147141542066522, 0.09568546289518032, 0.0, 0.017415482729199242, 0.10873435223667391, 0.8738501650336234, 0.0, 0.0, 0.0, 0.0, 1.0]
@@ -129,7 +130,8 @@ def make_exp_color_space(cs_name="gm24_min_0_max_1",
                          description="experiment color space",
                          allocation=OCIO.Constants.ALLOCATION_UNIFORM,
                          allocationVars=[0, 1],
-                         eotf_lut_file=LUT_FILE_GAMMA24):
+                         eotf_lut_file=LUT_FILE_GAMMA24,
+                         is_3dlut=False):
 
     cs = OCIO.ColorSpace(name=cs_name)
     cs.setDescription(description)
@@ -145,10 +147,18 @@ def make_exp_color_space(cs_name="gm24_min_0_max_1",
     cs.setTransform(file_to_ref, COLOR_SPACE_DIRECTION['to_reference'])
 
     # from reference
-    file_from_ref = OCIO.FileTransform(eotf_lut_file,
-                                       direction=DIRECTION_OPS['inverse'],
-                                       interpolation=INTERPOLATION_OPS['linear'])
-    cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+    if is_3dlut:
+        file_from_ref = OCIO.FileTransform(
+            eotf_lut_file,
+            direction=DIRECTION_OPS['forward'],
+            interpolation=INTERPOLATION_OPS['linear'])
+        cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
+    else:
+        file_from_ref = OCIO.FileTransform(
+            eotf_lut_file,
+            direction=DIRECTION_OPS['inverse'],
+            interpolation=INTERPOLATION_OPS['linear'])
+        cs.setTransform(file_from_ref, COLOR_SPACE_DIRECTION['from_reference'])
 
     return cs
 
@@ -166,6 +176,25 @@ def make_exp_m1_2_cs():
                               description="gm24_min_m1_max2",
                               allocationVars=[0, 1],
                               eotf_lut_file=LUT_FILE_EXP_M1_TO_2)
+    return cs
+
+
+def make_exp_m0_1_3dlut_linear_cs():
+    cs = make_exp_color_space(cs_name="gm24_min_0_max1_3dlut_linear",
+                              description="gm24_min_0_max1_3dlut_linear",
+                              allocationVars=[0, 1],
+                              eotf_lut_file=LUT_FILE_EXP_M0_TO_1_3D,
+                              is_3dlut=True)
+    return cs
+
+
+def make_exp_m0_1_3dlut_log_cs():
+    cs = make_exp_color_space(cs_name="gm24_min_0_max1_3dlut_log",
+                              description="gm24_min_0_max1_3dlut_log",
+                              allocation=OCIO.Constants.ALLOCATION_LG2,
+                              allocationVars=[-8, 0 , 0.00390625],
+                              eotf_lut_file=LUT_FILE_EXP_M0_TO_1_3D,
+                              is_3dlut=True)
     return cs
 
 
