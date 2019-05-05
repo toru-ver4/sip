@@ -15,8 +15,10 @@ import matplotlib.pyplot as plt
 import plot_utility as pu
 from colour.temperature import CCT_to_xy_CIE_D
 from colour import D_illuminant_relative_spd
-from colour.utilities import numpy_print_options
-from colour.algebra import SpragueInterpolator, LinearInterpolator
+from colour.utilities import tstack
+from colour.algebra import SpragueInterpolator, LinearInterpolator,\
+    CubicSplineInterpolator
+from colour.colorimetry import MultiSpectralPowerDistribution
 
 
 CIE1931 = 'CIE 1931 2 Degree Standard Observer'
@@ -206,12 +208,100 @@ def make_day_light_by_calculation(temperature=6500,
     return ret_value.reshape((len(spd.values), 2)).T
 
 
+def make_multispectral_format_data(wavelengths, values, name="sample"):
+    dic = dict(zip(np.uint16(wavelengths).tolist(), values.tolist()))
+
+    return dic
+
+
+def get_interpolater(interplation="linear"):
+    if interplation == "linear":
+        interpolator = LinearInterpolator
+    elif interplation == "sprague":
+        interpolator = SpragueInterpolator
+    elif interplation == "spline":
+        interpolator = CubicSplineInterpolator
+    else:
+        print("invalid 'interpolation' parameters.")
+        interpolator = LinearInterpolator
+
+    return interpolator
+
+
+def interpolate_5nm_cmfs_data(spd, interplation="linear"):
+    interpolator = get_interpolater(interplation)
+
+    temp = spd.copy()
+    temp.interpolate(SpectralShape(interval=1), interpolator=interpolator)
+
+    return temp
+
+
+def make_5nm_cmfs_spd():
+    """
+    CVRLの5nmのSpectralPowerDistributionを作る。
+    """
+    cmfs_5nm_file = "./src_data/CIE1931_5nm_cvrl.csv"
+    cmfs_5nm = np.loadtxt(cmfs_5nm_file, delimiter=',').T
+    wavelength_5nm = cmfs_5nm[0]
+    values_5nm = tstack((cmfs_5nm[1], cmfs_5nm[2], cmfs_5nm[3]))
+    m_data = make_multispectral_format_data(
+        wavelength_5nm, values_5nm, "CIE1931_5nm_data")
+    cmfs_spd_5nm = MultiSpectralPowerDistribution(m_data)
+
+    return cmfs_spd_5nm
+
+
+def compare_1nm_value_and_target_value(spd, org_cmfs):
+    """
+    各種変換方式と、公式の1nmのCMFSの誤差を比較
+    """
+    # intp_methods = ["linear", "sprague", "spline"]
+    intp_methods = ["sprague", "spline"]
+    spds = [interpolate_5nm_cmfs_data(spd, intp_method)
+            for intp_method in intp_methods]
+    wl = spds[0].wavelengths
+    diffs = [org_cmfs - spds[idx].values for idx in range(len(intp_methods))]
+    error_rates = np.array([diff / org_cmfs for diff in diffs])
+    error_rates[np.isinf(error_rates)] = 0
+    error_rates[np.isnan(error_rates)] = 0
+
+    ax1 = pu.plot_1_graph(
+        fontsize=20,
+        figsize=(10, 8),
+        linewidth=3,
+        graph_title="Comparison of interpolation methods.",
+        xlabel="Wavelength [nm]",
+        ylabel='Error rate of y [%]',
+        xlim=[490, 510],
+        ylim=[-0.1, 0.1])
+
+    for idx in range(len(intp_methods)):
+        y = error_rates[idx, :, 2] * 100
+        ax1.plot(wl, y, '-o', label=intp_methods[idx])
+    plt.legend(loc='lower right')
+    plt.show()
+
+
+def make_1nm_step_cmfs_from_5nm_step():
+    """
+    http://cvrl.ioo.ucl.ac.uk/ の5nmデータから1nmデータ作る
+    """
+    cmfs_1nm_file = "./src_data/CIE1931_1nm_cvrl.csv"
+    cmfs_1nm = np.loadtxt(cmfs_1nm_file, delimiter=',')
+    cmfs_1nm_value = cmfs_1nm[:, 1:]
+
+    cmfs_spd_5nm = make_5nm_cmfs_spd()
+    compare_1nm_value_and_target_value(cmfs_spd_5nm, cmfs_1nm_value)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # check_cmfs()
     # modify_d65_csv()
     # modify_xyz_csv()
-    # compare_cmfs_from_web()
+    compare_cmfs_from_web()
     # compare_d65_spd_from_web()
     # plot_cmfs()
-    plot_d65()
+    # plot_d65()
+    # make_1nm_step_cmfs_from_5nm_step()
