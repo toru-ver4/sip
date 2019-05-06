@@ -9,17 +9,24 @@ import os
 import numpy as np
 from colour.colorimetry import STANDARD_OBSERVERS_CMFS
 from colour.colorimetry.spectrum import SpectralShape
-from colour import D_illuminant_relative_spd
+from colour.colorimetry import ILLUMINANTS
 import re
 import matplotlib.pyplot as plt
 import plot_utility as pu
 from colour.temperature import CCT_to_xy_CIE_D
-from colour import D_illuminant_relative_spd
+from colour import sd_CIE_illuminant_D_series
 from colour.utilities import tstack
 from colour.algebra import SpragueInterpolator, LinearInterpolator,\
     CubicSplineInterpolator
-from colour.colorimetry import MultiSpectralPowerDistribution
+from colour.colorimetry import MultiSpectralDistribution
+from colour.notation import munsell_colour_to_xyY
+from colour.models import sRGB_COLOURSPACE
+from colour import xyY_to_XYZ, XYZ_to_RGB
+from colour.models import oetf_sRGB
 
+CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
+D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
+C_WHITE = ILLUMINANTS[CMFS_NAME]['C']
 
 CIE1931 = 'CIE 1931 2 Degree Standard Observer'
 CIE1964 = 'CIE 1964 10 Degree Standard Observer'
@@ -193,19 +200,21 @@ def plot_d65():
 
 
 def make_day_light_by_calculation(temperature=6500,
-                                  interpolater=None):
+                                  interpolater=None,
+                                  interval=1):
     """
     計算でD光源を作る。
 
     interpolater: SpragueInterpolator or LinearInterpolator
     """
     xy = CCT_to_xy_CIE_D(temperature)
-    spd = D_illuminant_relative_spd(xy)
-    spd = spd.interpolate(SpectralShape(interval=1),
+    spd = sd_CIE_illuminant_D_series(xy)
+    spd = spd.interpolate(SpectralShape(interval=interval),
                           interpolator=interpolater)
-    ret_value = np.dstack([spd.wavelengths, spd.values])
+    # ret_value = np.dstack([spd.wavelengths, spd.values])
 
-    return ret_value.reshape((len(spd.values), 2)).T
+    # return ret_value.reshape((len(spd.values), 2)).T
+    return spd
 
 
 def make_multispectral_format_data(wavelengths, values, name="sample"):
@@ -247,7 +256,7 @@ def make_5nm_cmfs_spd():
     values_5nm = tstack((cmfs_5nm[1], cmfs_5nm[2], cmfs_5nm[3]))
     m_data = make_multispectral_format_data(
         wavelength_5nm, values_5nm, "CIE1931_5nm_data")
-    cmfs_spd_5nm = MultiSpectralPowerDistribution(m_data)
+    cmfs_spd_5nm = MultiSpectralDistribution(m_data)
 
     return cmfs_spd_5nm
 
@@ -295,13 +304,63 @@ def make_1nm_step_cmfs_from_5nm_step():
     compare_1nm_value_and_target_value(cmfs_spd_5nm, cmfs_1nm_value)
 
 
+def calc_d65_white_xy():
+    """
+    とりあえず D65 White の XYZ および xy を求めてみる。
+    """
+    temperature = 6500 * 1.4388 / 1.4380
+    d65_spd = make_day_light_by_calculation(temperature=temperature,
+                                            interpolater=LinearInterpolator,
+                                            interval=5)
+    print(d65_spd)
+
+
+def xyY_to_rgb_with_illuminant_c(xyY):
+    """
+    C光源のXYZ値をD65光源のRGB値に変換する
+    """
+    large_xyz = xyY_to_XYZ(xyY)
+    illuminant_XYZ = C_WHITE
+    illuminant_RGB = D65_WHITE
+    chromatic_adaptation_transform = 'CAT02'
+    xyz_to_rgb_matrix = sRGB_COLOURSPACE.XYZ_to_RGB_matrix
+    rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ,
+                     illuminant_RGB, xyz_to_rgb_matrix,
+                     chromatic_adaptation_transform)
+
+    return rgb
+
+
+def get_reiwa_color():
+    """
+    reiwa color を得たい。
+    梅：3.4RP7.4/6.8
+    菫：7.1P2.9/3
+    桜：2.8RP8.8/2.7
+    """
+    ume = "3.4RP 7.4/6.8"
+    sumire = "7.1P 2.9/3"
+    sakura = "2.8RP 8.8/2.7"
+    reiwa_munsell_colors = [ume, sumire, sakura]
+    reiwa_xyY_colors = [munsell_colour_to_xyY(x)
+                        for x in reiwa_munsell_colors]
+    print(reiwa_xyY_colors)
+    reiwa_rgb_colors = [xyY_to_rgb_with_illuminant_c(xyY)
+                        for xyY in reiwa_xyY_colors]
+    reiwa_rgb_colors = np.array([np.round((oetf_sRGB(rgb)) * 255)
+                                 for rgb in reiwa_rgb_colors])
+    print(reiwa_rgb_colors)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # check_cmfs()
     # modify_d65_csv()
     # modify_xyz_csv()
-    compare_cmfs_from_web()
+    # compare_cmfs_from_web()
     # compare_d65_spd_from_web()
     # plot_cmfs()
     # plot_d65()
     # make_1nm_step_cmfs_from_5nm_step()
+    # calc_d65_white_xy()
+    get_reiwa_color()
