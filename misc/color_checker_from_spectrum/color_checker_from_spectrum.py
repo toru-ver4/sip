@@ -23,9 +23,11 @@ from colour.notation import munsell_colour_to_xyY
 from colour.models import sRGB_COLOURSPACE
 from colour import xyY_to_XYZ, XYZ_to_RGB
 from colour.models import oetf_sRGB
+import test_pattern_generator2 as tpg2
 
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
+D50_WHITE = ILLUMINANTS[CMFS_NAME]['D50']
 C_WHITE = ILLUMINANTS[CMFS_NAME]['C']
 
 CIE1931 = 'CIE 1931 2 Degree Standard Observer'
@@ -344,11 +346,21 @@ def get_reiwa_color():
     reiwa_munsell_colors = [ume, sumire, sakura]
     reiwa_xyY_colors = [munsell_colour_to_xyY(x)
                         for x in reiwa_munsell_colors]
-    print(reiwa_xyY_colors)
     reiwa_rgb_colors = [xyY_to_rgb_with_illuminant_c(xyY)
                         for xyY in reiwa_xyY_colors]
     reiwa_rgb_colors = np.array([np.round((oetf_sRGB(rgb)) * 255)
                                  for rgb in reiwa_rgb_colors])
+    reiwa_rgb_colors = np.uint8(reiwa_rgb_colors)
+
+    # preview
+    img = np.ones((720, 1280, 3), dtype=np.uint8) * 255
+    ume = np.ones((200, 200, 3), dtype=np.uint8) * reiwa_rgb_colors[0]
+    sumire = np.ones((200, 200, 3), dtype=np.uint8) * reiwa_rgb_colors[1]
+    sakura = np.ones((200, 200, 3), dtype=np.uint8) * reiwa_rgb_colors[2]
+    tpg2.merge(img, ume, (100, 100))
+    tpg2.merge(img, sumire, (400, 100))
+    tpg2.merge(img, sakura, (700, 100))
+    tpg2.preview_image(img)
     print(reiwa_rgb_colors)
 
 
