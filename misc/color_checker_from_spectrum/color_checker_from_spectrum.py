@@ -374,5 +374,5 @@ if __name__ == '__main__':
     # plot_cmfs()
     # plot_d65()
     # make_1nm_step_cmfs_from_5nm_step()
-    # calc_d65_white_xy()
-    get_reiwa_color()
+    calc_d65_white_xy()
+    # get_reiwa_color()
