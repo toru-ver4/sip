@@ -1,8 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
-スペクトルからカラーチェッカー値を算出する
+# スペクトルからカラーチェッカー値を算出する
+
+## どうにかしたい点
 """
 
 import os
@@ -132,6 +134,35 @@ def compare_cmfs_from_web():
 
     diff = np.abs(cvrl - cie)
     print(np.max(diff))
+
+
+def load_cie1931_1nm_data():
+    """
+    CIE S 014-1 に記載の2°視野の等色関数を得る
+    """
+    cie_file = "./src_data/CMFs_CIE_S_014-1.csv"
+    cms_1931_2 = np.loadtxt(cie_file, delimiter=',')
+    m_data = make_multispectral_format_data(
+        cms_1931_2[:, 0], cms_1931_2[:, 1:], "CIE1931_1nm_data")
+    cmfs_1nm = MultiSpectralDistribution(m_data)
+    cmfs_1nm.trim(SpectralShape(380, 780, 5))
+    print(cmfs_1nm.wavelengths[::5])
+    # print(cmfs_1nm.values[::5, :])
+
+    return cmfs_1nm
+
+
+def load_d65_spd_1nmdata():
+    """
+    CIE S 014-2 に記載の D65 の SPD をLoadする。
+    """
+    cie_file = "./src_data/d65_CIE_S_014-2.csv"
+    cie = np.loadtxt(cie_file, delimiter=',')
+    m_data = make_multispectral_format_data(
+        cie[:, 0], cie[:, 1:], "CIE_S_014_2_D65_1nm")
+    d65_spd = MultiSpectralDistribution(m_data)
+
+    return d65_spd
 
 
 def compare_d65_spd_from_web():
@@ -306,6 +337,20 @@ def make_1nm_step_cmfs_from_5nm_step():
     compare_1nm_value_and_target_value(cmfs_spd_5nm, cmfs_1nm_value)
 
 
+def fit_significant_figures(x, significant_figures=3):
+    """
+    有効数字を指定桁に設定する。
+    Numpy の関数で良い感じのが無かったので自作。
+    D65とかの有効桁数を6桁にするのに使う。
+    """
+    exp_val = np.floor(np.log10(x))
+    normalized_val = np.array(x) / (10 ** exp_val)
+    round_val = np.round(normalized_val, significant_figures - 1)
+    ret_val = round_val * (10 ** exp_val)
+
+    return ret_val
+
+
 def calc_d65_white_xy():
     """
     とりあえず D65 White の XYZ および xy を求めてみる。
@@ -314,7 +359,38 @@ def calc_d65_white_xy():
     d65_spd = make_day_light_by_calculation(temperature=temperature,
                                             interpolater=LinearInterpolator,
                                             interval=5)
-    print(d65_spd)
+    d65_spd.values = fit_significant_figures(d65_spd.values, 6)
+    # print(d65_spd)
+    cmfs_cie1931 = load_cie1931_1nm_data()
+
+
+    # cms_1931_2 = 
+    # org_val = [999.99, 88.888, 7.7777, 0.66666, 0.055555, 0.0044444]
+    # log_val = np.floor(np.log10(np.array(org_val)))
+    # normalized_val = np.array(org_val) / (10 ** log_val)
+    # round_val = np.round(normalized_val, 3)
+    # modify_val = round_val * (10 ** log_val)
+    # print(org_val)
+    # print(np.floor(log_val))
+    # print(normalized_val)
+    # print(round_val)
+    # print(modify_val)
+    # print(fit_significant_figures(np.array(org_val), 4))
+
+
+def compare_d65_calc_and_ref():
+    """
+    計算で算出したD65 SPD と CIE S 014-2 を比較
+    """
+    temperature = 6500 * 1.4388 / 1.4380
+    d65_spd = make_day_light_by_calculation(temperature=temperature,
+                                            interpolater=LinearInterpolator,
+                                            interval=1)
+    d65_spd.values = fit_significant_figures(d65_spd.values, 6)
+    d65_spd_ref = load_d65_spd_1nmdata()
+    diff = np.abs(d65_spd_ref.values[:, 1] - d65_spd.values)
+    print(np.max(diff))
+    print(diff)
 
 
 def xyY_to_rgb_with_illuminant_c(xyY):
@@ -374,5 +450,6 @@ if __name__ == '__main__':
     # plot_cmfs()
     # plot_d65()
     # make_1nm_step_cmfs_from_5nm_step()
-    calc_d65_white_xy()
+    # calc_d65_white_xy()
+    compare_d65_calc_and_ref()
     # get_reiwa_color()
