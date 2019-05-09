@@ -95,7 +95,7 @@ OpenColorIO/**/*.ctl
 OpenColorIO/transforms/**
 OpenColorIO/manual_customize/test.spi1d
 OpenColorIO/ty_ocio/**/*spi1d
-OpenColorIO/ty_ocio/nuke-default/make.py
+OpenColorIO/ty_ocio/nuke-default/make.py    
 signal_generation/test_pattern/sample_dpx/*.dpx
 signal_generation/test_pattern/*.tiff
 signal_generation/test_pattern/*.dpx

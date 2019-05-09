@@ -23,7 +23,7 @@ from colour.algebra import SpragueInterpolator, LinearInterpolator,\
 from colour.colorimetry import MultiSpectralDistribution
 from colour.notation import munsell_colour_to_xyY
 from colour.models import sRGB_COLOURSPACE
-from colour import xyY_to_XYZ, XYZ_to_RGB
+from colour import xyY_to_XYZ, XYZ_to_RGB, XYZ_to_xy
 from colour.models import oetf_sRGB
 import test_pattern_generator2 as tpg2
 
@@ -146,8 +146,7 @@ def load_cie1931_1nm_data():
         cms_1931_2[:, 0], cms_1931_2[:, 1:], "CIE1931_1nm_data")
     cmfs_1nm = MultiSpectralDistribution(m_data)
     cmfs_1nm.trim(SpectralShape(380, 780, 5))
-    print(cmfs_1nm.wavelengths[::5])
-    # print(cmfs_1nm.values[::5, :])
+    # print(cmfs_1nm.wavelengths[::5])
 
     return cmfs_1nm
 
@@ -241,6 +240,7 @@ def make_day_light_by_calculation(temperature=6500,
     interpolater: SpragueInterpolator or LinearInterpolator
     """
     xy = CCT_to_xy_CIE_D(temperature)
+    xy = [0.31272 * 1.4388 / 1.4380, 0.32903 * 1.4388 / 1.4380]
     spd = sd_CIE_illuminant_D_series(xy)
     spd = spd.interpolate(SpectralShape(interval=interval),
                           interpolator=interpolater)
@@ -351,31 +351,40 @@ def fit_significant_figures(x, significant_figures=3):
     return ret_val
 
 
+def get_normalize_large_y_param():
+    d65_spd = load_d65_spd_1nmdata().trim(SpectralShape(380, 780))
+    cmfs_cie1931 = load_cie1931_1nm_data().trim(SpectralShape(380, 780))
+    d65_spd_5nm = d65_spd.values[::5]
+    cmfs_cie1931_5nm = cmfs_cie1931.values[::5]
+    large_y = np.sum(d65_spd_5nm[:, 1] * cmfs_cie1931_5nm[:, 1])
+    normalize_coef = 100 / large_y
+
+    return normalize_coef
+
+
 def calc_d65_white_xy():
     """
     とりあえず D65 White の XYZ および xy を求めてみる。
     """
-    temperature = 6500 * 1.4388 / 1.4380
-    d65_spd = make_day_light_by_calculation(temperature=temperature,
-                                            interpolater=LinearInterpolator,
-                                            interval=5)
-    d65_spd.values = fit_significant_figures(d65_spd.values, 6)
-    # print(d65_spd)
-    cmfs_cie1931 = load_cie1931_1nm_data()
+    # temperature = 6500 * 1.4388 / 1.4380
+    # d65_spd = make_day_light_by_calculation(temperature=temperature,
+    #                                         interpolater=LinearInterpolator,
+    #                                         interval=5)
+    # d65_spd.values = fit_significant_figures(d65_spd.values, 6)
+    d65_spd = load_d65_spd_1nmdata().trim(SpectralShape(380, 780))
+    cmfs_cie1931 = load_cie1931_1nm_data().trim(SpectralShape(380, 780))
+    d65_spd_5nm = d65_spd.values[::5]
+    cmfs_cie1931_5nm = cmfs_cie1931.values[::5]
+    large_x = np.sum(d65_spd_5nm[:, 1] * cmfs_cie1931_5nm[:, 0])
+    large_y = np.sum(d65_spd_5nm[:, 1] * cmfs_cie1931_5nm[:, 1])
+    large_z = np.sum(d65_spd_5nm[:, 1] * cmfs_cie1931_5nm[:, 2])
+    normalize_coef = 100 / large_y
+    large_xyz = [large_x * normalize_coef,
+                 large_y * normalize_coef,
+                 large_z * normalize_coef]
 
-
-    # cms_1931_2 = 
-    # org_val = [999.99, 88.888, 7.7777, 0.66666, 0.055555, 0.0044444]
-    # log_val = np.floor(np.log10(np.array(org_val)))
-    # normalized_val = np.array(org_val) / (10 ** log_val)
-    # round_val = np.round(normalized_val, 3)
-    # modify_val = round_val * (10 ** log_val)
-    # print(org_val)
-    # print(np.floor(log_val))
-    # print(normalized_val)
-    # print(round_val)
-    # print(modify_val)
-    # print(fit_significant_figures(np.array(org_val), 4))
+    print(large_xyz)
+    print(XYZ_to_xy(large_xyz))
 
 
 def compare_d65_calc_and_ref():
@@ -390,7 +399,7 @@ def compare_d65_calc_and_ref():
     d65_spd_ref = load_d65_spd_1nmdata()
     diff = np.abs(d65_spd_ref.values[:, 1] - d65_spd.values)
     print(np.max(diff))
-    print(diff)
+    # print(diff)
 
 
 def xyY_to_rgb_with_illuminant_c(xyY):
@@ -440,6 +449,112 @@ def get_reiwa_color():
     print(reiwa_rgb_colors)
 
 
+def load_colorchecker_spectrum():
+    """
+    Babel Average 2012 のデータをロード。
+    """
+    csv = "./src_data/babel_spectrum_2012.csv"
+    data = np.loadtxt(csv, delimiter=',', skiprows=0)
+
+    wavelength = data[0, :]
+    values = tstack([data[x, :] for x in range(1, 25)])
+    m_data = make_multispectral_format_data(
+        wavelength, values, "Babel Average Spectrum")
+    color_checker_spd = MultiSpectralDistribution(m_data)
+    color_checker_spd.interpolate(SpectralShape(interval=5),
+                                  interpolator=LinearInterpolator)
+
+    return color_checker_spd
+
+
+def plot_color_checker_image(rgb):
+    """
+    rgb は表示フォーマットに正規化？されたデータ。
+    本関数ではrgb値は一切いじらない。
+    """
+    IMG_HEIGHT = 1080
+    IMG_WIDTH = 1920
+    COLOR_CHECKER_SIZE = 1 / 4.5
+    COLOR_CHECKER_H_NUM = 6
+    COLOR_CHECKER_V_NUM = 4
+    COLOR_CHECKER_PADDING = 0.01
+    # 基本パラメータ算出
+    # --------------------------------------
+    h_num = 6
+    v_num = 4
+    img_height = IMG_HEIGHT
+    img_width = IMG_WIDTH
+    patch_st_h = int(IMG_WIDTH / 2.0
+                     - (IMG_HEIGHT * COLOR_CHECKER_SIZE
+                        * COLOR_CHECKER_H_NUM / 2.0
+                        + (IMG_HEIGHT * COLOR_CHECKER_PADDING
+                           * (COLOR_CHECKER_H_NUM / 2.0 - 0.5)) / 2.0))
+    patch_st_v = int(IMG_HEIGHT / 2.0
+                     - (IMG_HEIGHT * COLOR_CHECKER_SIZE
+                        * COLOR_CHECKER_V_NUM / 2.0
+                        + (IMG_HEIGHT * COLOR_CHECKER_PADDING
+                           * (COLOR_CHECKER_V_NUM / 2.0 - 0.5)) / 2.0))
+    patch_width = int(img_height * COLOR_CHECKER_SIZE)
+    patch_height = patch_width
+    patch_space = int(img_height * COLOR_CHECKER_PADDING)
+
+    # 24ループで1枚の画像に24パッチを描画
+    # -------------------------------------------------
+    img_all_patch = np.zeros((img_height, img_width, 3), dtype=np.uint8)
+    for idx in range(h_num * v_num):
+        v_idx = idx // h_num
+        h_idx = (idx % h_num)
+        patch = np.ones((patch_height, patch_width, 3))
+        patch[:, :] = rgb[idx]
+        st_h = patch_st_h + (patch_width + patch_space) * h_idx
+        st_v = patch_st_v + (patch_height + patch_space) * v_idx
+        img_all_patch[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+    tpg2.preview_image(img_all_patch)
+
+
+def make_color_checker_from_spectrum():
+    # get color checker spectrum
+    cc_spectrum = load_colorchecker_spectrum()
+    cc_shape = cc_spectrum.shape
+
+    # get d65 spd, cie1931 cmfs
+    d65_spd = load_d65_spd_1nmdata().trim(cc_shape)
+    cmfs_cie1931 = load_cie1931_1nm_data().trim(cc_shape)
+    d65_spd_5nm = d65_spd.values[::5, 1]
+    cmfs_cie1931_5nm = cmfs_cie1931.values[::5]
+
+    normalize_coef = get_normalize_large_y_param()
+    large_xyz_buf = []
+
+    # get large xyz data from spectrum
+    for idx in range(24):
+        temp = d65_spd_5nm * cc_spectrum.values[:, idx]
+        large_x = np.sum(temp * cmfs_cie1931_5nm[:, 0] * normalize_coef / 100)
+        large_y = np.sum(temp * cmfs_cie1931_5nm[:, 1] * normalize_coef / 100)
+        large_z = np.sum(temp * cmfs_cie1931_5nm[:, 2] * normalize_coef / 100)
+        large_xyz_buf.append(np.array([large_x, large_y, large_z]))
+    large_xyz_buf = np.array(large_xyz_buf)
+
+    # convert from XYZ to sRGB
+    illuminant_XYZ = D65_WHITE
+    illuminant_RGB = D65_WHITE
+    chromatic_adaptation_transform = 'CAT02'
+    xyz_to_rgb_matrix = sRGB_COLOURSPACE.XYZ_to_RGB_matrix
+    rgb = XYZ_to_RGB(large_xyz_buf, illuminant_XYZ,
+                     illuminant_RGB, xyz_to_rgb_matrix,
+                     chromatic_adaptation_transform)
+
+    rgb[rgb < 0] = 0
+    rgb[rgb > 255] = 255
+
+    rgb = np.uint8(np.round(oetf_sRGB(rgb) * 255))
+    print(rgb)
+
+    # plot
+    plot_color_checker_image(rgb)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # check_cmfs()
@@ -451,5 +566,6 @@ if __name__ == '__main__':
     # plot_d65()
     # make_1nm_step_cmfs_from_5nm_step()
     # calc_d65_white_xy()
-    compare_d65_calc_and_ref()
+    # compare_d65_calc_and_ref()
     # get_reiwa_color()
+    make_color_checker_from_spectrum()
