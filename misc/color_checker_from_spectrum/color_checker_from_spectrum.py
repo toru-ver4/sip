@@ -239,8 +239,7 @@ def make_day_light_by_calculation(temperature=6500,
 
     interpolater: SpragueInterpolator or LinearInterpolator
     """
-    xy = CCT_to_xy_CIE_D(temperature)
-    xy = [0.31272 * 1.4388 / 1.4380, 0.32903 * 1.4388 / 1.4380]
+    xy = CCT_to_xy_CIE_D(temperature * 1.4388 / 1.4380)
     spd = sd_CIE_illuminant_D_series(xy)
     spd = spd.interpolate(SpectralShape(interval=interval),
                           interpolator=interpolater)
@@ -366,7 +365,7 @@ def calc_d65_white_xy():
     """
     とりあえず D65 White の XYZ および xy を求めてみる。
     """
-    # temperature = 6500 * 1.4388 / 1.4380
+    # temperature = 6500
     # d65_spd = make_day_light_by_calculation(temperature=temperature,
     #                                         interpolater=LinearInterpolator,
     #                                         interval=5)
@@ -391,7 +390,7 @@ def compare_d65_calc_and_ref():
     """
     計算で算出したD65 SPD と CIE S 014-2 を比較
     """
-    temperature = 6500 * 1.4388 / 1.4380
+    temperature = 6500
     d65_spd = make_day_light_by_calculation(temperature=temperature,
                                             interpolater=LinearInterpolator,
                                             interval=1)
@@ -399,7 +398,11 @@ def compare_d65_calc_and_ref():
     d65_spd_ref = load_d65_spd_1nmdata()
     diff = np.abs(d65_spd_ref.values[:, 1] - d65_spd.values)
     print(np.max(diff))
-    # print(diff)
+    err_rate = diff/d65_spd_ref.values[:, 1]
+    err_rate[np.isinf(err_rate)] = 0
+    err_rate[np.isnan(err_rate)] = 0
+    plt.plot(err_rate)
+    plt.show()
 
 
 def xyY_to_rgb_with_illuminant_c(xyY):
@@ -524,17 +527,15 @@ def make_color_checker_from_spectrum():
     d65_spd_5nm = d65_spd.values[::5, 1]
     cmfs_cie1931_5nm = cmfs_cie1931.values[::5]
 
-    normalize_coef = get_normalize_large_y_param()
+    normalize_coef = get_normalize_large_y_param() / 100
     large_xyz_buf = []
 
     # get large xyz data from spectrum
     for idx in range(24):
         temp = d65_spd_5nm * cc_spectrum.values[:, idx]
-        large_x = np.sum(temp * cmfs_cie1931_5nm[:, 0] * normalize_coef / 100)
-        large_y = np.sum(temp * cmfs_cie1931_5nm[:, 1] * normalize_coef / 100)
-        large_z = np.sum(temp * cmfs_cie1931_5nm[:, 2] * normalize_coef / 100)
-        large_xyz_buf.append(np.array([large_x, large_y, large_z]))
-    large_xyz_buf = np.array(large_xyz_buf)
+        temp = temp.reshape((d65_spd_5nm.shape[0], 1))
+        large_xyz = np.sum(temp * cmfs_cie1931_5nm * normalize_coef, axis=0)
+        large_xyz_buf.append(large_xyz)
 
     # convert from XYZ to sRGB
     illuminant_XYZ = D65_WHITE
