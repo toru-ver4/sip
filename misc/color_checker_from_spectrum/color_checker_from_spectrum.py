@@ -26,6 +26,7 @@ from colour.models import sRGB_COLOURSPACE
 from colour import xyY_to_XYZ, XYZ_to_RGB, XYZ_to_xy
 from colour.models import oetf_sRGB
 import test_pattern_generator2 as tpg2
+import cv2
 
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
@@ -470,21 +471,44 @@ def load_colorchecker_spectrum():
     return color_checker_spd
 
 
-def plot_color_checker_image(rgb):
+def plot_color_checker_image(rgb, rgb2=None, size=(1920, 1080),
+                             block_size=1/4.5, padding=0.01):
     """
-    rgb は表示フォーマットに正規化？されたデータ。
-    本関数ではrgb値は一切いじらない。
+    ColorCheckerをプロットする
+
+    Parameters
+    ----------
+    rgb : array_like
+        RGB value of the ColorChecker.
+        RGB's shape must be (24, 3).
+    rgb2 : array_like
+        It's a optional parameter.
+        If You want to draw two different ColorCheckers,
+        set the RGB value to this variable.
+    size : tuple
+        canvas size.
+    block_size : float
+        A each block's size.
+        This value is ratio to height of the canvas.
+    padding : float
+        A padding to the block.
+
+    Returns
+    -------
+    array_like
+        A ColorChecker image.
+
     """
-    IMG_HEIGHT = 1080
-    IMG_WIDTH = 1920
-    COLOR_CHECKER_SIZE = 1 / 4.5
+    IMG_HEIGHT = size[1]
+    IMG_WIDTH = size[0]
+    COLOR_CHECKER_SIZE = block_size
     COLOR_CHECKER_H_NUM = 6
     COLOR_CHECKER_V_NUM = 4
     COLOR_CHECKER_PADDING = 0.01
     # 基本パラメータ算出
     # --------------------------------------
-    h_num = 6
-    v_num = 4
+    COLOR_CHECKER_H_NUM = 6
+    COLOR_CHECKER_V_NUM = 4
     img_height = IMG_HEIGHT
     img_width = IMG_WIDTH
     patch_st_h = int(IMG_WIDTH / 2.0
@@ -504,14 +528,22 @@ def plot_color_checker_image(rgb):
     # 24ループで1枚の画像に24パッチを描画
     # -------------------------------------------------
     img_all_patch = np.zeros((img_height, img_width, 3), dtype=np.uint8)
-    for idx in range(h_num * v_num):
-        v_idx = idx // h_num
-        h_idx = (idx % h_num)
+    for idx in range(COLOR_CHECKER_H_NUM * COLOR_CHECKER_V_NUM):
+        v_idx = idx // COLOR_CHECKER_H_NUM
+        h_idx = (idx % COLOR_CHECKER_H_NUM)
         patch = np.ones((patch_height, patch_width, 3))
         patch[:, :] = rgb[idx]
         st_h = patch_st_h + (patch_width + patch_space) * h_idx
         st_v = patch_st_v + (patch_height + patch_space) * v_idx
         img_all_patch[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
+
+        # pt1 = (st_h, st_v)  # upper left
+        pt2 = (st_h + patch_width, st_v)  # upper right
+        pt3 = (st_h, st_v + patch_height)  # lower left
+        pt4 = (st_h + patch_width, st_v + patch_height)  # lower right
+        pts = np.array((pt2, pt3, pt4))
+        sub_color = rgb[idx].tolist() if rgb2 is None else rgb2[idx].tolist()
+        cv2.fillPoly(img_all_patch, [pts], sub_color)
 
     tpg2.preview_image(img_all_patch)
 
@@ -550,10 +582,11 @@ def make_color_checker_from_spectrum():
     rgb[rgb > 255] = 255
 
     rgb = np.uint8(np.round(oetf_sRGB(rgb) * 255))
-    print(rgb)
+    # print(rgb)
 
     # plot
     plot_color_checker_image(rgb)
+    plot_color_checker_image(rgb, rgb2=np.uint8(rgb/2))
 
 
 if __name__ == '__main__':
