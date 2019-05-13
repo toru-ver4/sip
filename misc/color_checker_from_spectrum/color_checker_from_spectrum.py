@@ -25,8 +25,7 @@ from colour.notation import munsell_colour_to_xyY
 from colour.models import sRGB_COLOURSPACE
 from colour import xyY_to_XYZ, XYZ_to_RGB, XYZ_to_xy
 from colour.models import oetf_sRGB
-import test_pattern_generator2 as tpg2
-import cv2
+import test_pattern_generator2 as tpg
 
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
@@ -446,10 +445,10 @@ def get_reiwa_color():
     ume = np.ones((200, 200, 3), dtype=np.uint8) * reiwa_rgb_colors[0]
     sumire = np.ones((200, 200, 3), dtype=np.uint8) * reiwa_rgb_colors[1]
     sakura = np.ones((200, 200, 3), dtype=np.uint8) * reiwa_rgb_colors[2]
-    tpg2.merge(img, ume, (100, 100))
-    tpg2.merge(img, sumire, (400, 100))
-    tpg2.merge(img, sakura, (700, 100))
-    tpg2.preview_image(img)
+    tpg.merge(img, ume, (100, 100))
+    tpg.merge(img, sumire, (400, 100))
+    tpg.merge(img, sakura, (700, 100))
+    tpg.preview_image(img)
     print(reiwa_rgb_colors)
 
 
@@ -469,83 +468,6 @@ def load_colorchecker_spectrum():
                                   interpolator=LinearInterpolator)
 
     return color_checker_spd
-
-
-def plot_color_checker_image(rgb, rgb2=None, size=(1920, 1080),
-                             block_size=1/4.5, padding=0.01):
-    """
-    ColorCheckerをプロットする
-
-    Parameters
-    ----------
-    rgb : array_like
-        RGB value of the ColorChecker.
-        RGB's shape must be (24, 3).
-    rgb2 : array_like
-        It's a optional parameter.
-        If You want to draw two different ColorCheckers,
-        set the RGB value to this variable.
-    size : tuple
-        canvas size.
-    block_size : float
-        A each block's size.
-        This value is ratio to height of the canvas.
-    padding : float
-        A padding to the block.
-
-    Returns
-    -------
-    array_like
-        A ColorChecker image.
-
-    """
-    IMG_HEIGHT = size[1]
-    IMG_WIDTH = size[0]
-    COLOR_CHECKER_SIZE = block_size
-    COLOR_CHECKER_H_NUM = 6
-    COLOR_CHECKER_V_NUM = 4
-    COLOR_CHECKER_PADDING = 0.01
-    # 基本パラメータ算出
-    # --------------------------------------
-    COLOR_CHECKER_H_NUM = 6
-    COLOR_CHECKER_V_NUM = 4
-    img_height = IMG_HEIGHT
-    img_width = IMG_WIDTH
-    patch_st_h = int(IMG_WIDTH / 2.0
-                     - (IMG_HEIGHT * COLOR_CHECKER_SIZE
-                        * COLOR_CHECKER_H_NUM / 2.0
-                        + (IMG_HEIGHT * COLOR_CHECKER_PADDING
-                           * (COLOR_CHECKER_H_NUM / 2.0 - 0.5)) / 2.0))
-    patch_st_v = int(IMG_HEIGHT / 2.0
-                     - (IMG_HEIGHT * COLOR_CHECKER_SIZE
-                        * COLOR_CHECKER_V_NUM / 2.0
-                        + (IMG_HEIGHT * COLOR_CHECKER_PADDING
-                           * (COLOR_CHECKER_V_NUM / 2.0 - 0.5)) / 2.0))
-    patch_width = int(img_height * COLOR_CHECKER_SIZE)
-    patch_height = patch_width
-    patch_space = int(img_height * COLOR_CHECKER_PADDING)
-
-    # 24ループで1枚の画像に24パッチを描画
-    # -------------------------------------------------
-    img_all_patch = np.zeros((img_height, img_width, 3), dtype=np.uint8)
-    for idx in range(COLOR_CHECKER_H_NUM * COLOR_CHECKER_V_NUM):
-        v_idx = idx // COLOR_CHECKER_H_NUM
-        h_idx = (idx % COLOR_CHECKER_H_NUM)
-        patch = np.ones((patch_height, patch_width, 3))
-        patch[:, :] = rgb[idx]
-        st_h = patch_st_h + (patch_width + patch_space) * h_idx
-        st_v = patch_st_v + (patch_height + patch_space) * v_idx
-        img_all_patch[st_v:st_v+patch_height, st_h:st_h+patch_width] = patch
-
-        # pt1 = (st_h, st_v)  # upper left
-        pt2 = (st_h + patch_width, st_v)  # upper right
-        pt3 = (st_h, st_v + patch_height)  # lower left
-        pt4 = (st_h + patch_width, st_v + patch_height)  # lower right
-        pts = np.array((pt2, pt3, pt4))
-        sub_color = rgb[idx].tolist() if rgb2 is None else rgb2[idx].tolist()
-        cv2.fillPoly(img_all_patch, [pts], sub_color)
-
-    tpg2.preview_image(img_all_patch)
 
 
 def make_color_checker_from_spectrum():
@@ -585,8 +507,8 @@ def make_color_checker_from_spectrum():
     # print(rgb)
 
     # plot
-    plot_color_checker_image(rgb)
-    plot_color_checker_image(rgb, rgb2=np.uint8(rgb/2))
+    tpg.plot_color_checker_image(rgb)
+    tpg.plot_color_checker_image(rgb, rgb2=np.uint8(rgb/1.1))
 
 
 if __name__ == '__main__':
