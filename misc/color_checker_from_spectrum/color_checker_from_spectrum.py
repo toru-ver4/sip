@@ -23,8 +23,8 @@ from colour.algebra import SpragueInterpolator, LinearInterpolator,\
 from colour.colorimetry import MultiSpectralDistribution
 from colour.notation import munsell_colour_to_xyY
 from colour.models import sRGB_COLOURSPACE
-from colour import xyY_to_XYZ, XYZ_to_RGB, XYZ_to_xy
-from colour.models import oetf_sRGB
+from colour import xyY_to_XYZ, XYZ_to_RGB, XYZ_to_xy, RGB_to_XYZ
+from colour.models import oetf_sRGB, oetf_reverse_sRGB
 import test_pattern_generator2 as tpg
 
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
@@ -225,6 +225,10 @@ def plot_d65():
     plt.show()
 
 
+def make_xy_value_from_temperature(temperature=6500):
+    return CCT_to_xy_CIE_D(temperature * 1.4388 / 1.4380)
+
+
 def make_day_light_by_calculation(temperature=6500,
                                   interpolater=None,
                                   interval=1):
@@ -233,7 +237,7 @@ def make_day_light_by_calculation(temperature=6500,
 
     interpolater: SpragueInterpolator or LinearInterpolator
     """
-    xy = CCT_to_xy_CIE_D(temperature * 1.4388 / 1.4380)
+    xy = make_xy_value_from_temperature(temperature)
     spd = sd_CIE_illuminant_D_series(xy)
     spd = spd.interpolate(SpectralShape(interval=interval),
                           interpolator=interpolater)
@@ -513,47 +517,58 @@ def make_color_checker_from_spectrum():
     d65_spd_5nm = d65_spd.values[::5, 1]
     cmfs_cie1931_5nm = cmfs_cie1931.values[::5]
 
-    normalize_coef = get_normalize_large_y_param_d65_5nm() / 100
-    large_xyz_buf = []
-
     # get large xyz data from spectrum
-    for idx in range(24):
-        temp = d65_spd_5nm * cc_spectrum.values[:, idx]
-        temp = temp.reshape((d65_spd_5nm.shape[0], 1))
-        large_xyz = np.sum(temp * cmfs_cie1931_5nm * normalize_coef, axis=0)
-        large_xyz_buf.append(large_xyz)
+    large_xyz = colorchecker_spectrum_to_large_xyz(
+        d_light_5nm=d65_spd_5nm, cc_spectrum=cc_spectrum,
+        cmfs_cie1931_5nm=cmfs_cie1931_5nm)
 
     # convert from XYZ to sRGB
-    illuminant_XYZ = D65_WHITE
-    illuminant_RGB = D65_WHITE
-    chromatic_adaptation_transform = 'CAT02'
-    xyz_to_rgb_matrix = sRGB_COLOURSPACE.XYZ_to_RGB_matrix
-    rgb = XYZ_to_RGB(large_xyz_buf, illuminant_XYZ,
-                     illuminant_RGB, xyz_to_rgb_matrix,
-                     chromatic_adaptation_transform)
+    rgb = color_checker_large_xyz_to_rgb(large_xyz)
 
     rgb[rgb < 0] = 0
     rgb[rgb > 1] = 1
 
     rgb = np.uint8(np.round(oetf_sRGB(rgb) * 255))
-    # print(rgb)
+    print(rgb)
 
     # plot
     tpg.plot_color_checker_image(rgb)
     tpg.plot_color_checker_image(rgb, rgb2=np.uint8(rgb/1.1))
 
 
+def linear_to_srgb_8bit(x):
+    return np.uint8(np.round(oetf_sRGB(x) * 255))
+
+
 def compare_spectrum_vs_chromatic_adaptation():
     """
     chromatic adaptation と スペクトルレンダリングの比較を行う。
     """
-    d65_base_colorchecker = make_color_checker_with_temperature(6500)
+    src_k = 6500
+    dst_k = 2000
+    colorchecker_rgb_d65 = make_color_checker_with_temperature(src_k)
+    colorchecker_rgb_xx = make_color_checker_with_temperature(dst_k)
+    after_chromatic_adaptation = temperature_convert(
+        colorchecker_rgb_d65, src_k, dst_k)
+    max_value = np.max(np.array([colorchecker_rgb_d65, colorchecker_rgb_xx,
+                                 after_chromatic_adaptation]))
+    colorchecker_rgb_d65 = colorchecker_rgb_d65 / max_value
+    colorchecker_rgb_xx = colorchecker_rgb_xx / max_value
+    after_chromatic_adaptation = after_chromatic_adaptation / max_value
+
+    tpg.plot_color_checker_image(linear_to_srgb_8bit(colorchecker_rgb_d65))
+    tpg.plot_color_checker_image(linear_to_srgb_8bit(colorchecker_rgb_xx))
+    tpg.plot_color_checker_image(
+        linear_to_srgb_8bit(after_chromatic_adaptation))
+    tpg.plot_color_checker_image(
+        linear_to_srgb_8bit(colorchecker_rgb_xx),
+        linear_to_srgb_8bit(after_chromatic_adaptation))
 
 
 def colorchecker_spectrum_to_large_xyz(d_light_5nm, cc_spectrum,
-                                       cmfs_cie1931_5nm):
+                                       cmfs_cie1931_5nm, temperature):
     large_xyz_buf = []
-    normalize_coef = get_normalize_large_y_param_cie1931_5nm() / 100
+    normalize_coef = get_normalize_large_y_param_cie1931_5nm(temperature) / 100
     for idx in range(24):
         temp = d_light_5nm * cc_spectrum.values[:, idx]
         temp = temp.reshape((d_light_5nm.shape[0], 1))
@@ -561,6 +576,25 @@ def colorchecker_spectrum_to_large_xyz(d_light_5nm, cc_spectrum,
         large_xyz_buf.append(large_xyz)
 
     return np.array(large_xyz_buf)
+
+
+def temperature_convert(rgb_in, src_temperature=6500, dst_temperature=5000):
+    """
+    ColorCheckerの色温度を変更するぞい
+    """
+    src_xy = make_xy_value_from_temperature(src_temperature)
+    dst_xy = make_xy_value_from_temperature(dst_temperature)
+    rgb_to_xyz_matrix = sRGB_COLOURSPACE.RGB_to_XYZ_matrix
+    xyz_to_rgb_matrix = sRGB_COLOURSPACE.XYZ_to_RGB_matrix
+    chromatic_adaptation = "CAT02"
+    large_xyz = RGB_to_XYZ(rgb_in, src_xy, src_xy, rgb_to_xyz_matrix,
+                           chromatic_adaptation)
+    rgb_out = XYZ_to_RGB(large_xyz, src_xy, dst_xy, xyz_to_rgb_matrix,
+                         chromatic_adaptation)
+    rgb_out[rgb_out < 0] = 0
+    # rgb_out[rgb_out > 1] = 1
+
+    return rgb_out
 
 
 def color_checker_large_xyz_to_rgb(large_xyz):
@@ -581,29 +615,29 @@ def make_color_checker_with_temperature(temperature=6500):
     """
     # get color checker spectrum
     cc_spectrum, cc_shape = load_colorchecker_spectrum()
-
     # make daylight
     d_light = make_day_light_by_calculation(temperature=temperature,
                                             interpolater=LinearInterpolator,
                                             interval=5)
-    # d_light.values = fit_significant_figures(d_light.values, 6)
     d_light.trim(cc_shape)
+    d_light_5nm = d_light.values
 
     # get cie1931 cmfs
     cmfs_cie1931 = load_cie1931_1nm_data().trim(cc_shape)
-    d_light_5nm = d_light.values
     cmfs_cie1931_5nm = cmfs_cie1931.values[::5]
 
     # get large xyz data from spectrum
     large_xyz = colorchecker_spectrum_to_large_xyz(
         d_light_5nm=d_light_5nm, cc_spectrum=cc_spectrum,
-        cmfs_cie1931_5nm=cmfs_cie1931_5nm)
+        cmfs_cie1931_5nm=cmfs_cie1931_5nm, temperature=temperature)
 
     # convert from XYZ to sRGB
     rgb = color_checker_large_xyz_to_rgb(large_xyz)
 
     rgb[rgb < 0] = 0
-    rgb[rgb > 1] = 1
+    # rgb[rgb > 1] = 1
+
+    return rgb
 
 
 if __name__ == '__main__':
