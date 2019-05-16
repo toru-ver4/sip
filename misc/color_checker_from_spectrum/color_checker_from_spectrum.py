@@ -545,24 +545,33 @@ def compare_spectrum_vs_chromatic_adaptation():
     chromatic adaptation と スペクトルレンダリングの比較を行う。
     """
     src_k = 6500
-    dst_k = 2000
+    dst_k = 20000
     colorchecker_rgb_d65 = make_color_checker_with_temperature(src_k)
     colorchecker_rgb_xx = make_color_checker_with_temperature(dst_k)
     after_chromatic_adaptation = temperature_convert(
-        colorchecker_rgb_d65, src_k, dst_k)
+        colorchecker_rgb_d65, src_k, dst_k, 'CAT02')
+    after_without_chromatic_adaptation = temperature_convert(
+        colorchecker_rgb_d65, src_k, dst_k, 'XYZ Scaling')
     max_value = np.max(np.array([colorchecker_rgb_d65, colorchecker_rgb_xx,
-                                 after_chromatic_adaptation]))
-    colorchecker_rgb_d65 = colorchecker_rgb_d65 / max_value
-    colorchecker_rgb_xx = colorchecker_rgb_xx / max_value
-    after_chromatic_adaptation = after_chromatic_adaptation / max_value
+                                 after_chromatic_adaptation,
+                                 after_without_chromatic_adaptation]))
+    colorchecker_rgb_d65 /= max_value
+    colorchecker_rgb_xx /= max_value
+    after_chromatic_adaptation /= max_value
+    after_without_chromatic_adaptation /= max_value
 
-    tpg.plot_color_checker_image(linear_to_srgb_8bit(colorchecker_rgb_d65))
-    tpg.plot_color_checker_image(linear_to_srgb_8bit(colorchecker_rgb_xx))
-    tpg.plot_color_checker_image(
-        linear_to_srgb_8bit(after_chromatic_adaptation))
+    # tpg.plot_color_checker_image(linear_to_srgb_8bit(colorchecker_rgb_d65))
+    # tpg.plot_color_checker_image(linear_to_srgb_8bit(colorchecker_rgb_xx))
+    # tpg.plot_color_checker_image(
+    #     linear_to_srgb_8bit(after_chromatic_adaptation))
+    # tpg.plot_color_checker_image(
+    #     linear_to_srgb_8bit(after_without_chromatic_adaptation))
     tpg.plot_color_checker_image(
         linear_to_srgb_8bit(colorchecker_rgb_xx),
         linear_to_srgb_8bit(after_chromatic_adaptation))
+    tpg.plot_color_checker_image(
+        linear_to_srgb_8bit(colorchecker_rgb_xx),
+        linear_to_srgb_8bit(after_without_chromatic_adaptation))
 
 
 def colorchecker_spectrum_to_large_xyz(d_light_5nm, cc_spectrum,
@@ -578,7 +587,8 @@ def colorchecker_spectrum_to_large_xyz(d_light_5nm, cc_spectrum,
     return np.array(large_xyz_buf)
 
 
-def temperature_convert(rgb_in, src_temperature=6500, dst_temperature=5000):
+def temperature_convert(rgb_in, src_temperature=6500, dst_temperature=5000,
+                        chromatic_adaptation="CAT02"):
     """
     ColorCheckerの色温度を変更するぞい
     """
@@ -586,7 +596,6 @@ def temperature_convert(rgb_in, src_temperature=6500, dst_temperature=5000):
     dst_xy = make_xy_value_from_temperature(dst_temperature)
     rgb_to_xyz_matrix = sRGB_COLOURSPACE.RGB_to_XYZ_matrix
     xyz_to_rgb_matrix = sRGB_COLOURSPACE.XYZ_to_RGB_matrix
-    chromatic_adaptation = "CAT02"
     large_xyz = RGB_to_XYZ(rgb_in, src_xy, src_xy, rgb_to_xyz_matrix,
                            chromatic_adaptation)
     rgb_out = XYZ_to_RGB(large_xyz, src_xy, dst_xy, xyz_to_rgb_matrix,
