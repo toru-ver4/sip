@@ -26,6 +26,8 @@ from colour.models import sRGB_COLOURSPACE
 from colour import xyY_to_XYZ, XYZ_to_RGB, XYZ_to_xy, RGB_to_XYZ
 from colour.models import oetf_sRGB, oetf_reverse_sRGB
 import test_pattern_generator2 as tpg
+import color_convert as cc
+from scipy import linalg
 
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
@@ -40,6 +42,12 @@ CIE2015_10 = 'CIE 2012 10 Degree Standard Observer'
 R_PLOT_COLOR = "#{:02x}{:02x}{:02x}".format(255, 75, 0)
 G_PLOT_COLOR = "#{:02x}{:02x}{:02x}".format(3, 175, 122)
 B_PLOT_COLOR = "#{:02x}{:02x}{:02x}".format(0, 90, 255)
+
+SRGB_2015_xy = [[0.64, 0.33],
+                [0.30, 0.60],
+                [0.15, 0.06]]
+D65_2015_XYZ = [94.755355951570309, 100.0, 107.54043441893683]
+D65_2015_xy = [0.31345245, 0.33080183]
 
 D65_xy = np.array([0.3127, 0.3290])
 
@@ -349,17 +357,6 @@ def fit_significant_figures(x, significant_figures=3):
     return ret_val
 
 
-def get_normalize_large_y_param_d65_5nm():
-    d65_spd = load_d65_spd_1nmdata().trim(SpectralShape(380, 780))
-    cmfs_cie1931 = load_cie1931_1nm_data().trim(SpectralShape(380, 780))
-    d65_spd_5nm = d65_spd.values[::5]
-    cmfs_cie1931_5nm = cmfs_cie1931.values[::5]
-    large_y = np.sum(d65_spd_5nm[:, 1] * cmfs_cie1931_5nm[:, 1])
-    normalize_coef = 100 / large_y
-
-    return normalize_coef
-
-
 def get_normalize_large_y_param_cie1931_5nm(temperature=6500):
     """
     XYZ算出用の正規化係数を算出する
@@ -373,6 +370,32 @@ def get_normalize_large_y_param_cie1931_5nm(temperature=6500):
     d_light_5nm = d_light.values
     cmfs_cie1931_5nm = cmfs_cie1931.values[::5]
     large_y = np.sum(d_light_5nm * cmfs_cie1931_5nm[:, 1])
+    normalize_coef = 100 / large_y
+
+    return normalize_coef
+
+
+def get_nomalize_large_y_cie2015(temperature=6500):
+    """
+    XYZ算出用の正規化係数を算出する
+    """
+    shape = SpectralShape(390, 830, 1)
+    if temperature == 6500:
+        d_light = load_d65_spd_1nmdata()
+    else:
+        d_light = make_day_light_by_calculation(
+            temperature=temperature, interpolater=LinearInterpolator,
+            interval=1)
+    d_light.trim(shape)
+    if temperature == 6500:
+        d_light_1nm = d_light.values[:, 1]
+    else:
+        d_light_1nm = d_light.values
+
+    cmfs =\
+        STANDARD_OBSERVERS_CMFS['CIE 2012 2 Degree Standard Observer'].copy()
+    cmfs_cie2015_1nm = cmfs.values
+    large_y = np.sum(d_light_1nm * cmfs_cie2015_1nm[:, 1])
     normalize_coef = 100 / large_y
 
     return normalize_coef
@@ -519,14 +542,14 @@ def make_color_checker_from_spectrum():
 
     # get large xyz data from spectrum
     large_xyz = colorchecker_spectrum_to_large_xyz(
-        d_light_5nm=d65_spd_5nm, cc_spectrum=cc_spectrum,
-        cmfs_cie1931_5nm=cmfs_cie1931_5nm)
+        d_light=d65_spd_5nm, cc_spectrum=cc_spectrum,
+        cmfs=cmfs_cie1931_5nm, temperature=6500)
 
     # convert from XYZ to sRGB
     rgb = color_checker_large_xyz_to_rgb(large_xyz)
 
     rgb[rgb < 0] = 0
-    rgb[rgb > 1] = 1
+    # rgb[rgb > 1] = 1
 
     rgb = np.uint8(np.round(oetf_sRGB(rgb) * 255))
     print(rgb)
@@ -574,14 +597,27 @@ def compare_spectrum_vs_chromatic_adaptation():
         linear_to_srgb_8bit(after_without_chromatic_adaptation))
 
 
-def colorchecker_spectrum_to_large_xyz(d_light_5nm, cc_spectrum,
-                                       cmfs_cie1931_5nm, temperature):
+def colorchecker_spectrum_to_large_xyz(d_light, cc_spectrum,
+                                       cmfs, temperature):
     large_xyz_buf = []
     normalize_coef = get_normalize_large_y_param_cie1931_5nm(temperature) / 100
     for idx in range(24):
-        temp = d_light_5nm * cc_spectrum.values[:, idx]
-        temp = temp.reshape((d_light_5nm.shape[0], 1))
-        large_xyz = np.sum(temp * cmfs_cie1931_5nm * normalize_coef, axis=0)
+        temp = d_light * cc_spectrum.values[:, idx]
+        temp = temp.reshape((d_light.shape[0], 1))
+        large_xyz = np.sum(temp * cmfs * normalize_coef, axis=0)
+        large_xyz_buf.append(large_xyz)
+
+    return np.array(large_xyz_buf)
+
+
+def colorchecker_spectrum_to_large_xyz_2015(d_light, cc_spectrum,
+                                            cmfs, temperature):
+    large_xyz_buf = []
+    normalize_coef = get_nomalize_large_y_cie2015(temperature) / 100
+    for idx in range(24):
+        temp = d_light * cc_spectrum.values[:, idx]
+        temp = temp.reshape((d_light.shape[0], 1))
+        large_xyz = np.sum(temp * cmfs * normalize_coef, axis=0)
         large_xyz_buf.append(large_xyz)
 
     return np.array(large_xyz_buf)
@@ -637,8 +673,8 @@ def make_color_checker_with_temperature(temperature=6500):
 
     # get large xyz data from spectrum
     large_xyz = colorchecker_spectrum_to_large_xyz(
-        d_light_5nm=d_light_5nm, cc_spectrum=cc_spectrum,
-        cmfs_cie1931_5nm=cmfs_cie1931_5nm, temperature=temperature)
+        d_light=d_light_5nm, cc_spectrum=cc_spectrum,
+        cmfs=cmfs_cie1931_5nm, temperature=temperature)
 
     # convert from XYZ to sRGB
     rgb = color_checker_large_xyz_to_rgb(large_xyz)
@@ -647,6 +683,69 @@ def make_color_checker_with_temperature(temperature=6500):
     # rgb[rgb > 1] = 1
 
     return rgb
+
+
+def calc_cie2015_d65_white_xy():
+    shape = SpectralShape(390, 830, 1)
+    cmfs = STANDARD_OBSERVERS_CMFS['CIE 2012 2 Degree Standard Observer']
+    d65_spd = load_d65_spd_1nmdata().trim(shape)
+    d65_1nm = d65_spd.values[:, 1]
+    cmfs_1nm = cmfs.values
+    large_x = np.sum(d65_1nm * cmfs_1nm[:, 0])
+    large_y = np.sum(d65_1nm * cmfs_1nm[:, 1])
+    large_z = np.sum(d65_1nm * cmfs_1nm[:, 2])
+
+    normalize_coef = 100 / large_y
+    large_xyz = [large_x * normalize_coef,
+                 large_y * normalize_coef,
+                 large_z * normalize_coef]
+
+    print(large_xyz)
+    print(XYZ_to_xy(large_xyz))
+
+
+def make_rgb_to_xyz_mtx_2015():
+    return(cc.get_rgb_to_xyz_matrix(SRGB_2015_xy, D65_2015_XYZ))
+
+
+def make_xyz_to_rgb_mtx_2015():
+    rgb_to_xyz_mtx = make_rgb_to_xyz_mtx_2015()
+    xyz_to_rgb_mtx = linalg.inv(rgb_to_xyz_mtx)
+
+    return xyz_to_rgb_mtx
+
+
+def make_srgb_2015_color_checker():
+    # get color checker spectrum
+    cc_spectrum, cc_shape = load_colorchecker_spectrum()
+    cc_shape = SpectralShape(390, 730, 1)
+    cc_spectrum.trim(cc_shape)
+    cc_spectrum = cc_spectrum.interpolate(SpectralShape(interval=1),
+                                          interpolator=LinearInterpolator)
+
+    # get d65 spd, cie1931 cmfs
+    d65_spd = load_d65_spd_1nmdata().trim(cc_shape)
+    cmfs_cie2015 =\
+        STANDARD_OBSERVERS_CMFS['CIE 2012 2 Degree Standard Observer'].copy()
+    cmfs_cie2015.trim(cc_shape)
+    d65_spd_1nm = d65_spd.values[:, 1]
+    cmfs_cie2015_1nm = cmfs_cie2015.values
+
+    # get large xyz data from spectrum
+    large_xyz = colorchecker_spectrum_to_large_xyz_2015(
+        d_light=d65_spd_1nm, cc_spectrum=cc_spectrum,
+        cmfs=cmfs_cie2015_1nm, temperature=6500)
+
+    # convert from XYZ to sRGB
+    rgb = color_checker_large_xyz_to_rgb(large_xyz)
+
+    rgb[rgb < 0] = 0
+    # rgb[rgb > 1] = 1
+
+    rgb = np.uint8(np.round(oetf_sRGB(rgb) * 255))
+
+    # plot
+    tpg.plot_color_checker_image(rgb)
 
 
 if __name__ == '__main__':
@@ -663,5 +762,7 @@ if __name__ == '__main__':
     # get_reiwa_color()
     # make_color_checker_from_spectrum()
     # get_normalize_large_y_param_cie1931_5nm(temperature=6500)
-    compare_spectrum_vs_chromatic_adaptation()
+    # compare_spectrum_vs_chromatic_adaptation()
     # get_normalize_large_y_param_cie1931_5nm_test()
+    # calc_cie2015_d65_white_xy()
+    make_srgb_2015_color_checker()
