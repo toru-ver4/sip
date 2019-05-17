@@ -159,6 +159,19 @@ def load_cie1931_1nm_data():
     return cmfs_1nm
 
 
+def load_cie2015_1nm_data():
+    """
+    cvrl.org の CIE2012 の 等色関数を取得する
+    """
+    cie_file = "./src_data/cvrl_cie2012_1nm.csv"
+    cms_2015 = np.loadtxt(cie_file, delimiter=',')
+    m_data = make_multispectral_format_data(
+        cms_2015[:, 0], cms_2015[:, 1:], "CIE2015_1nm_data")
+    cmfs_1nm = MultiSpectralDistribution(m_data)
+
+    return cmfs_1nm
+
+
 def load_d65_spd_1nmdata():
     """
     CIE S 014-2 に記載の D65 の SPD をLoadする。
@@ -748,6 +761,21 @@ def make_srgb_2015_color_checker():
     tpg.plot_color_checker_image(rgb)
 
 
+def check_cvrl_cie2015_cmfs_and_colour():
+    """
+    CVRL のデータと、colour のデータが同じか比較
+    """
+    cvrl = load_cie2015_1nm_data()
+    cvrl_value = cvrl.values
+    colour_cmfs =\
+        STANDARD_OBSERVERS_CMFS['CIE 2012 2 Degree Standard Observer'].copy()
+    colour_value = colour_cmfs.values
+
+    diff = (cvrl_value - colour_value)
+    print(np.min(diff))
+    print(np.max(diff))
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # modify_d65_csv()
@@ -765,4 +793,5 @@ if __name__ == '__main__':
     # compare_spectrum_vs_chromatic_adaptation()
     # get_normalize_large_y_param_cie1931_5nm_test()
     # calc_cie2015_d65_white_xy()
-    make_srgb_2015_color_checker()
+    # make_srgb_2015_color_checker()
+    check_cvrl_cie2015_cmfs_and_colour()
