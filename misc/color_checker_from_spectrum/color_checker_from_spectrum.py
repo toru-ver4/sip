@@ -24,7 +24,7 @@ from colour.colorimetry import MultiSpectralDistribution
 from colour.notation import munsell_colour_to_xyY
 from colour.models import sRGB_COLOURSPACE
 from colour import xyY_to_XYZ, XYZ_to_RGB, XYZ_to_xy, RGB_to_XYZ
-from colour.models import oetf_sRGB, oetf_reverse_sRGB
+from colour.models import oetf_sRGB
 import test_pattern_generator2 as tpg
 import color_convert as cc
 from scipy import linalg
@@ -262,7 +262,7 @@ def make_day_light_by_calculation(temperature=6500,
     spd = sd_CIE_illuminant_D_series(xy)
     spd = spd.interpolate(SpectralShape(interval=interval),
                           interpolator=interpolater)
-    spd.values = fit_significant_figures(spd.values, 6)                          
+    spd.values = fit_significant_figures(spd.values, 6)
     # ret_value = np.dstack([spd.wavelengths, spd.values])
 
     # return ret_value.reshape((len(spd.values), 2)).T
@@ -569,7 +569,8 @@ def make_color_checker_from_spectrum():
 
     # plot
     tpg.plot_color_checker_image(rgb)
-    tpg.plot_color_checker_image(rgb, rgb2=np.uint8(rgb/1.1))
+    # tpg.plot_color_checker_image(rgb, rgb2=np.uint8(rgb/1.1))
+    return rgb
 
 
 def linear_to_srgb_8bit(x):
@@ -659,7 +660,7 @@ def color_checker_large_xyz_to_rgb(large_xyz):
     illuminant_XYZ = D65_WHITE
     illuminant_RGB = illuminant_XYZ
     chromatic_adaptation_transform = 'CAT02'
-    xyz_to_rgb_matrix = sRGB_COLOURSPACE.XYZ_to_RGB_matrix
+    xyz_to_rgb_matrix = make_xyz_to_rgb_mtx_2015()
     rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ,
                      illuminant_RGB, xyz_to_rgb_matrix,
                      chromatic_adaptation_transform)
@@ -760,6 +761,8 @@ def make_srgb_2015_color_checker():
     # plot
     tpg.plot_color_checker_image(rgb)
 
+    return rgb
+
 
 def check_cvrl_cie2015_cmfs_and_colour():
     """
@@ -774,6 +777,12 @@ def check_cvrl_cie2015_cmfs_and_colour():
     diff = (cvrl_value - colour_value)
     print(np.min(diff))
     print(np.max(diff))
+
+
+def compare_1931_2015():
+    rgb_1931 = make_color_checker_from_spectrum()
+    rgb_2015 = make_srgb_2015_color_checker()
+    tpg.plot_color_checker_image(rgb_1931, rgb_2015)
 
 
 if __name__ == '__main__':
@@ -794,4 +803,5 @@ if __name__ == '__main__':
     # get_normalize_large_y_param_cie1931_5nm_test()
     # calc_cie2015_d65_white_xy()
     # make_srgb_2015_color_checker()
-    check_cvrl_cie2015_cmfs_and_colour()
+    # check_cvrl_cie2015_cmfs_and_colour()
+    compare_1931_2015()
