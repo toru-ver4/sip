@@ -8,15 +8,20 @@ Colorimetry
 import os
 import numpy as np
 from colour.colorimetry import STANDARD_OBSERVERS_CMFS
+from colour.colorimetry import ILLUMINANTS
 from colour.colorimetry.spectrum import SpectralShape
 from colour.algebra import SpragueInterpolator, LinearInterpolator
 from colour.colorimetry import MultiSpectralDistribution, SpectralDistribution
 from colour.utilities import tstack
 from colour.temperature import CCT_to_xy_CIE_D
 from colour import sd_CIE_illuminant_D_series
+from colour import XYZ_to_RGB
+import color_space as cs
 
 CIE1931 = 'CIE 1931 2 Degree Standard Observer'
 CIE2015_2 = 'CIE 2012 2 Degree Standard Observer'
+D65_WHITE = ILLUMINANTS[CIE1931]['D65']
+D50_WHITE = ILLUMINANTS[CIE1931]['D50']
 
 
 def _make_multispectral_format_data(wavelengths, values):
@@ -173,24 +178,52 @@ def get_nomalize_large_y_coef(d_light_before_trim, cmfs_before_trim):
 
 
 def colorchecker_spectrum_to_large_xyz(d_light, color_checker, cmfs):
+    """
+    ColorChecker のスペクトルと等色関数から
+    24色の各パターンのXYZ値を算出する。
+    """
     # calc large y normalize coef
-    normalize_coef = get_nomalize_large_y_coef(d_light, color_checker, cmfs)
+    normalize_coef = get_nomalize_large_y_coef(
+        d_light_before_trim=d_light, cmfs_before_trim=cmfs)
     normalize_coef /= 100
 
     # trim
-    # shape = calc_appropriate_shape(color_checker_spd, cmfs_spd)
-    # color_checker_spd.trim(shape)
-    # cmfs_spd.trim(shape)
-    # illuminant_spd.trim(shape)
+    shape = calc_appropriate_shape(color_checker, cmfs)
+    color_checker.trim(shape)
+    cmfs.trim(shape)
+    d_light.trim(shape)
+    
     large_xyz_buf = []
     for idx in range(24):
-        temp = d_light * color_checker.values[:, idx]
-        temp = temp.reshape((d_light.shape[0], 1))
-        large_xyz = np.sum(temp * cmfs * normalize_coef, axis=0)
+        temp = d_light.values * color_checker.values[:, idx]
+        temp = temp.reshape((d_light.values.shape[0], 1))
+        large_xyz = np.sum(temp * cmfs.values * normalize_coef, axis=0)
         large_xyz_buf.append(large_xyz)
 
     return np.array(large_xyz_buf)
 
+
+def color_checker_large_xyz_to_rgb(
+        large_xyz, color_space=cs.RGB_COLOURSPACES[cs.SRTB]):
+    illuminant_XYZ = D65_WHITE
+    illuminant_RGB = D65_WHITE
+    chromatic_adaptation_transform = None
+    xyz_to_rgb_matrix = color_space.XYZ_to_RGB_matrix
+    rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ,
+                     illuminant_RGB, xyz_to_rgb_matrix,
+                     chromatic_adaptation_transform)
+
+    # under flow check
+    if np.min(rgb) < 0:
+        print("under flow has occured, at color_checker_large_xyz_to_rgb.")
+        rgb[rgb < 0] = 0
+
+    # over flow check
+    if np.max(rgb) > 1:
+        print("over flow has occured, at color_checker_large_xyz_to_rgb.")
+        rgb = rgb / np.max(rgb)
+
+    return rgb
 
 
 if __name__ == '__main__':

@@ -15,6 +15,14 @@ from colour.algebra import SpragueInterpolator, LinearInterpolator,\
     CubicSplineInterpolator
 import matplotlib.pyplot as plt
 from colour import XYZ_to_xy
+import color_space as cs
+import transfer_functions as tf
+import test_pattern_generator2 as tpg
+
+SRGB_CS = cs.RGB_COLOURSPACES[cs.SRTB]
+BT709_CS = cs.RGB_COLOURSPACES[cs.BT709]
+BT2020_CS = cs.RGB_COLOURSPACES[cs.BT2020]
+P3_D65_CS = cs.RGB_COLOURSPACES[cs.P3_D65]
 
 
 def compare_sprague_and_spline():
@@ -59,19 +67,6 @@ def compare_sprague_and_spline():
     plt.show()
 
 
-def make_color_chekcer_linear_value(cmfs_name=cm.CIE1931, temperature=6500):
-    """
-    color checker の RGB値（Linear）を計算する。
-    """
-    # load & get basic data
-    color_checker_spd = cm.load_colorchecker_spectrum()
-    cmfs_spd = cm.load_cmfs(cmfs_name)
-    illuminant_spd = cm.get_day_light_spd(temperature=6500, interval=1)
-
-
-    # calc large xyz
-
-
 def calc_day_light_xy(temperature=6500, cmfs_name=cm.CIE1931):
     day_light_spd = cm.get_day_light_spd(temperature)
     cmfs = cm.load_cmfs(cmfs_name)
@@ -90,14 +85,61 @@ def calc_day_light_xy(temperature=6500, cmfs_name=cm.CIE1931):
     print(XYZ_to_xy(large_xyz))
 
 
+def make_color_chekcer_linear_value(cmfs_name=cm.CIE1931, temperature=6500,
+                                    color_space=SRGB_CS):
+    """
+    color checker の RGB値（Linear）を計算する。
+    """
+    # load & get basic data
+    color_checker_spd = cm.load_colorchecker_spectrum()
+    cmfs_spd = cm.load_cmfs(cmfs_name)
+    day_light_spd = cm.get_day_light_spd(temperature=temperature, interval=1)
+
+    # calc large xyz
+    large_xyz = cm.colorchecker_spectrum_to_large_xyz(
+        d_light=day_light_spd, color_checker=color_checker_spd, cmfs=cmfs_spd)
+
+    # large xyz to rgb(linear)
+    rgb_linear = cm.color_checker_large_xyz_to_rgb(large_xyz, color_space)
+
+    return rgb_linear
+
+
+def make_color_chekcer_value(cmfs_name=cm.CIE1931, temperature=6500,
+                             color_space=SRGB_CS, oetf_name=tf.SRGB):
+    """
+    color checker を OETF でエンコードしたRGB値を作る。
+    """
+    linear_rgb = make_color_chekcer_linear_value(cmfs_name=cmfs_name,
+                                                 temperature=temperature,
+                                                 color_space=color_space)
+    encoded_rgb = tf.oetf(linear_rgb, oetf_name)
+
+    return encoded_rgb
+
+
+def test_plot(cmfs_name=cm.CIE1931, temperature=6500,
+              color_space=SRGB_CS, oetf_name=tf.SRGB):
+    rgb = make_color_chekcer_value(
+        cmfs_name=cmfs_name, temperature=temperature,
+        color_space=color_space, oetf_name=oetf_name)
+    rgb2 = make_color_chekcer_value(
+        cmfs_name=cmfs_name, temperature=temperature,
+        color_space=color_space, oetf_name=oetf_name)
+    rgb = np.uint8(np.round(rgb * 0xFF))
+    rgb2 = np.uint8(np.round(rgb2 * 0xFF))
+    tpg.plot_color_checker_image(rgb, rgb2)
+
+
 def test_func():
     # compare_sprague_and_spline()
-    # make_color_chekcer_linear_value(cm.CIE1931)
-    calc_day_light_xy(6500, cm.CIE1931)
-    calc_day_light_xy(5000, cm.CIE1931)
-    calc_day_light_xy(6500, cm.CIE2015_2)
-    calc_day_light_xy(5000, cm.CIE2015_2)
-    # make_color_chekcer_linear_value(cm.CIE2015_2)
+    # calc_day_light_xy(6500, cm.CIE1931)
+    # calc_day_light_xy(5000, cm.CIE1931)
+    # calc_day_light_xy(6500, cm.CIE2015_2)
+    # calc_day_light_xy(5000, cm.CIE2015_2)
+    # make_color_chekcer_linear_value(cm.CIE1931, 6500, SRGB_CS)
+    test_plot(cmfs_name=cm.CIE1931, temperature=6500,
+              color_space=BT709_CS, oetf_name=tf.SRGB)
 
 
 def main_func():
