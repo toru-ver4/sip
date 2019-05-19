@@ -10,7 +10,7 @@ import numpy as np
 from colour.colorimetry import STANDARD_OBSERVERS_CMFS
 from colour.colorimetry.spectrum import SpectralShape
 from colour.algebra import SpragueInterpolator, LinearInterpolator
-from colour.colorimetry import MultiSpectralDistribution
+from colour.colorimetry import MultiSpectralDistribution, SpectralDistribution
 from colour.utilities import tstack
 from colour.temperature import CCT_to_xy_CIE_D
 from colour import sd_CIE_illuminant_D_series
@@ -92,8 +92,8 @@ def load_d65_spd_1nmdata(interval):
     cie_file = base_dir + "./data/d65_CIE_S_014-2.csv"
     cie = np.loadtxt(cie_file, delimiter=',')
     m_data = _make_multispectral_format_data(
-        cie[::interval, 0], cie[::interval, 2:])
-    d65_spd = MultiSpectralDistribution(m_data)
+        cie[::interval, 0], cie[::interval, 2])
+    d65_spd = SpectralDistribution(m_data)
 
     return d65_spd
 
@@ -157,13 +157,15 @@ def calc_appropriate_shape(spd1, spd2):
     return SpectralShape(start, end, interval)
 
 
-def get_nomalize_large_y_coef(d_light, color_checker, cmfs):
+def get_nomalize_large_y_coef(d_light_before_trim, cmfs_before_trim):
     """
-    XYZ算出用の正規化係数を算出する
+    XYZ算出用の正規化係数を算出する。
+    入力する d_light, cmfs は **.trim() する前の値とすること**。
+    そうしないと、狭い波長範囲で正規化係数を算出することになってしまう。
     """
-    shape = calc_appropriate_shape(d_light, cmfs)
-    d_light_calc = d_light.copy().trim(shape).values
-    cmfs_y = cmfs.copy().trim(shape).values[:, 1]
+    shape = calc_appropriate_shape(d_light_before_trim, cmfs_before_trim)
+    d_light_calc = d_light_before_trim.copy().trim(shape).values
+    cmfs_y = cmfs_before_trim.copy().trim(shape).values[:, 1]
     large_y = np.sum(d_light_calc * cmfs_y)
     normalize_coef = 100 / large_y
 

@@ -59,7 +59,7 @@ def compare_sprague_and_spline():
     plt.show()
 
 
-def make_color_chekcer_linear_img(cmfs_name=cm.CIE1931, temperature=6500):
+def make_color_chekcer_linear_value(cmfs_name=cm.CIE1931, temperature=6500):
     """
     color checker の RGB値（Linear）を計算する。
     """
@@ -72,35 +72,32 @@ def make_color_chekcer_linear_img(cmfs_name=cm.CIE1931, temperature=6500):
     # calc large xyz
 
 
-def calc_day_light_xy(temperature=6500):
+def calc_day_light_xy(temperature=6500, cmfs_name=cm.CIE1931):
     day_light_spd = cm.get_day_light_spd(temperature)
-    cmfs = cm.load_cmfs(cm.CIE1931)
+    cmfs = cm.load_cmfs(cmfs_name)
+    normalize_coef = cm.get_nomalize_large_y_coef(
+        d_light_before_trim=day_light_spd, cmfs_before_trim=cmfs)
 
     # trim
     shape = cm.calc_appropriate_shape(day_light_spd, cmfs)
-    shape = SpectralShape(380, 780)
     day_light_spd.trim(shape)
     cmfs.trim(shape)
-    print(cmfs.values)
 
     # calc
-    large_x = np.sum(day_light_spd.values * cmfs.values[:, 0])
-    large_y = np.sum(day_light_spd.values * cmfs.values[:, 1])
-    large_z = np.sum(day_light_spd.values * cmfs.values[:, 2])
-    normalize_coef = 100 / large_y
-    large_xyz = [large_x * normalize_coef,
-                 large_y * normalize_coef,
-                 large_z * normalize_coef]
-
+    large_xyz = [np.sum(day_light_spd.values * cmfs.values[:, x])
+                 * normalize_coef for x in range(3)]
     print(large_xyz)
     print(XYZ_to_xy(large_xyz))
 
 
 def test_func():
     # compare_sprague_and_spline()
-    # make_color_chekcer_linear_img(cm.CIE1931)
-    calc_day_light_xy(6500)
-    # make_color_chekcer_linear_img(cm.CIE2015_2)
+    # make_color_chekcer_linear_value(cm.CIE1931)
+    calc_day_light_xy(6500, cm.CIE1931)
+    calc_day_light_xy(5000, cm.CIE1931)
+    calc_day_light_xy(6500, cm.CIE2015_2)
+    calc_day_light_xy(5000, cm.CIE2015_2)
+    # make_color_chekcer_linear_value(cm.CIE2015_2)
 
 
 def main_func():
