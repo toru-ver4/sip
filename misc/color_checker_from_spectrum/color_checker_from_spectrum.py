@@ -131,6 +131,26 @@ def test_plot(cmfs_name=cm.CIE1931, temperature=6500,
     tpg.plot_color_checker_image(rgb, rgb2)
 
 
+def temperature_convert_test(
+        cmfs_name=cm.CIE1931, temperature=6500,
+        color_space=SRGB_CS, oetf_name=tf.SRGB):
+    full_spectrum_rgb = make_color_chekcer_value(
+        cmfs_name=cmfs_name, temperature=temperature,
+        color_space=color_space, oetf_name=oetf_name)
+
+    base_d65_rgb_linear = make_color_chekcer_linear_value(
+        cmfs_name=cmfs_name, temperature=6500,
+        color_space=color_space)
+    temp_conv_rgb_linear = cm.temperature_convert(
+        base_d65_rgb_linear, 6500, temperature,
+        chromatic_adaptation='CAT02', color_space=color_space)
+    temp_conv_rgb = tf.oetf(temp_conv_rgb_linear, oetf_name)
+
+    full_spectrum_rgb = np.uint8(np.round(full_spectrum_rgb * 0xFF))
+    temp_conv_rgb = np.uint8(np.round(temp_conv_rgb * 0xFF))
+    tpg.plot_color_checker_image(full_spectrum_rgb, temp_conv_rgb)
+
+
 def test_func():
     # compare_sprague_and_spline()
     # calc_day_light_xy(6500, cm.CIE1931)
@@ -138,8 +158,11 @@ def test_func():
     # calc_day_light_xy(6500, cm.CIE2015_2)
     # calc_day_light_xy(5000, cm.CIE2015_2)
     # make_color_chekcer_linear_value(cm.CIE1931, 6500, SRGB_CS)
-    test_plot(cmfs_name=cm.CIE1931, temperature=6500,
-              color_space=BT709_CS, oetf_name=tf.SRGB)
+    # test_plot(cmfs_name=cm.CIE1931, temperature=6500,
+    #           color_space=BT709_CS, oetf_name=tf.SRGB)
+    temperature_convert_test(
+        cmfs_name=cm.CIE1931, temperature=2000,
+        color_space=SRGB_CS, oetf_name=tf.SRGB)
 
 
 def main_func():

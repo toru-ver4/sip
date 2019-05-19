@@ -15,7 +15,7 @@ from colour.colorimetry import MultiSpectralDistribution, SpectralDistribution
 from colour.utilities import tstack
 from colour.temperature import CCT_to_xy_CIE_D
 from colour import sd_CIE_illuminant_D_series
-from colour import XYZ_to_RGB
+from colour import XYZ_to_RGB, RGB_to_XYZ
 import color_space as cs
 
 CIE1931 = 'CIE 1931 2 Degree Standard Observer'
@@ -224,6 +224,34 @@ def color_checker_large_xyz_to_rgb(
         rgb = rgb / np.max(rgb)
 
     return rgb
+
+
+def temperature_convert(
+       rgb_in, src_temperature=6500, dst_temperature=5000,
+       chromatic_adaptation="CAT02", color_space=cs.RGB_COLOURSPACES[cs.SRTB]):
+    """
+    ColorCheckerの色温度を変更する。
+    rgb_in は linear data とする。
+    """
+    src_xy = make_xy_value_from_temperature(src_temperature)
+    dst_xy = make_xy_value_from_temperature(dst_temperature)
+    rgb_to_xyz_matrix = color_space.RGB_to_XYZ_matrix
+    xyz_to_rgb_matrix = color_space.XYZ_to_RGB_matrix
+    large_xyz = RGB_to_XYZ(rgb_in, src_xy, src_xy, rgb_to_xyz_matrix,
+                           chromatic_adaptation)
+    rgb_out = XYZ_to_RGB(large_xyz, src_xy, dst_xy, xyz_to_rgb_matrix,
+                         chromatic_adaptation)
+    # under flow check
+    if np.min(rgb_out) < 0:
+        print("under flow has occured, at temperature_convert.")
+        rgb_out[rgb_out < 0] = 0
+
+    # over flow check
+    if np.max(rgb_out) > 1:
+        print("over flow has occured, at temperature_convert.")
+        rgb_out = rgb_out / np.max(rgb_out)
+
+    return rgb_out
 
 
 if __name__ == '__main__':
