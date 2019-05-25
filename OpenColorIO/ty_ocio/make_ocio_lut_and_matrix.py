@@ -12,6 +12,20 @@ import numpy as np
 import color_space as cs
 
 
+def gen_sp_eotf_lut_default(sample_num=8, out_dir_name='./luts',
+                            min=0, max=1.0):
+    """
+    OCIO特殊検証用の EOTF 1DLUT を作る。
+    """
+    x = np.linspace(0, 1, sample_num)
+    y = ((x ** 2.4) * (max - min) + min)
+    fname_base = "{}/experiment_min_{}_max_{}.spi1d"
+    fname = fname_base.format(out_dir_name, min, max)
+    fname = fname.replace("-", 'minus')
+    tylut.save_1dlut_spi_format(lut=y, filename=fname, min=min, max=max)
+    print("{} was generated.".format(fname))
+
+
 def gen_eotf_lut_for_ocio(eotf_name=tf.ST2084, sample_num=4096,
                           out_dir_name='./luts'):
     """
@@ -50,6 +64,9 @@ def make_all_1dluts():
     gen_eotf_lut_for_ocio(tf.DLOG, 4096, "./luts")
     gen_eotf_lut_for_ocio(tf.FLOG, 4096, "./luts")
     gen_eotf_lut_for_ocio(tf.SRGB, 4096, "./luts")
+    gen_sp_eotf_lut_default(sample_num=8, min=0, max=1)
+    gen_sp_eotf_lut_default(sample_num=8, min=-1, max=2)
+    gen_sp_eotf_lut_default(sample_num=8, min=-1, max=0.5)
 
 
 def print_matrix_name(src=cs.ACES_AP0, dst=cs.BT709):
@@ -82,7 +99,25 @@ def make_all_matrixes():
     make_and_print_each_matrix(cs.ACES_AP0, cs.RED_WIDE_GAMUT_RGB)
 
 
+def make_exp_3dlut(grid_num=9, min=0, max=1, out_dir_name='./luts'):
+    g_num = 9
+    lut = tylut.get_3d_grid_cube_format(grid_num=g_num)
+    lut = (lut ** 2.4) * (max - min) + min
+    fname_base = "{}/experiment_min_{}_max_{}.spi3d"
+    fname = fname_base.format(out_dir_name, min, max)
+    fname = fname.replace("-", 'minus')
+    tylut.save_3dlut(lut, grid_num, fname)
+    print("{} was generated.".format(fname))
+
+
+def make_3dlut_all():
+    make_exp_3dlut(grid_num=9, min=0, max=1)
+    make_exp_3dlut(grid_num=9, min=-1, max=2)
+    make_exp_3dlut(grid_num=9, min=-1, max=0.5)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     make_all_1dluts()
     make_all_matrixes()
+    make_3dlut_all()

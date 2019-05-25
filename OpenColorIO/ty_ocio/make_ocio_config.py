@@ -42,7 +42,6 @@ class OcioConfigControl:
         self.config.setRole(OCIO.Constants.ROLE_TEXTURE_PAINT, 'raw')
 
     def set_color_space(self):
-        self.config.addColorSpace(mocs.make_ref_color_space())
         self.config.addColorSpace(mocs.make_raw_color_space())
         self.config.addColorSpace(mocs.make_srgb_color_space())
         self.config.addColorSpace(mocs.make_bt1886_color_space())
@@ -52,6 +51,10 @@ class OcioConfigControl:
         self.config.addColorSpace(mocs.make_arri_logc_color_space())
         self.config.addColorSpace(mocs.make_bt2020_logc_color_space())
         self.config.addColorSpace(mocs.make_bt2020_log3g10_color_space())
+        self.config.addColorSpace(mocs.make_exp_0_1_cs())
+        self.config.addColorSpace(mocs.make_exp_m1_2_cs())
+        self.config.addColorSpace(mocs.make_exp_m0_1_3dlut_linear_cs())
+        self.config.addColorSpace(mocs.make_exp_m0_1_3dlut_log_cs())
 
     def set_display(self):
         display = 'default'
@@ -63,6 +66,11 @@ class OcioConfigControl:
             self.config.addDisplay(display,
                                    get_display_name(display_cs),
                                    get_colorspace_name(display_cs))
+        # Experiment
+        self.config.addDisplay(display,
+                               "gm24_min0_max1",
+                               "gm24_min0_max1")
+
         self.config.setActiveDisplays(display)
         self.config.setActiveViews(get_colorspace_name(BT1886_CS))
 
