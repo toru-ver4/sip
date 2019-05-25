@@ -10,9 +10,7 @@
 import os
 import numpy as np
 import colorimetry as cm
-from colour.colorimetry.spectrum import SpectralShape
-from colour.algebra import SpragueInterpolator, LinearInterpolator,\
-    CubicSplineInterpolator
+from colour.algebra import SpragueInterpolator, CubicSplineInterpolator
 import matplotlib.pyplot as plt
 from colour import XYZ_to_xy
 import color_space as cs
@@ -49,7 +47,7 @@ def compare_sprague_and_spline():
         if v_idx == (v_num - 1):
             axarr[v_idx, h_idx].set_xlabel("wavelength [nm]")
         if h_idx == 0:
-            axarr[v_idx, h_idx].set_ylabel("reflectance")
+            axarr[v_idx, h_idx].set_ylabel("spectral reflectance")
         axarr[v_idx, h_idx].set_xlim(380, 730)
         axarr[v_idx, h_idx].set_ylim(0, 1.0)
         axarr[v_idx, h_idx].set_xticks([400, 500, 600, 700])
@@ -62,8 +60,8 @@ def compare_sprague_and_spline():
         axarr[v_idx, h_idx].plot(x2, y2, '-o', label='spline')
         x1 = original.wavelengths
         y1 = original.values[:, idx]
-        axarr[v_idx, h_idx].plot(x1, y1, '-o', label='original')
-    # plt.savefig('temp_fig.png', bbox_inches='tight')
+        axarr[v_idx, h_idx].plot(x1, y1, '-o', label='spectral reflectance')
+    plt.savefig('temp_fig.png', bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 
@@ -151,25 +149,34 @@ def temperature_convert_test(
     tpg.plot_color_checker_image(full_spectrum_rgb, temp_conv_rgb)
 
 
-def test_func():
+def plot_color_checker(cmfs_name=cm.CIE1931, temperature=6500,
+                       color_space=BT709_CS, oetf_name=tf.SRGB):
+    rgb_linear = make_color_chekcer_linear_value(
+        cmfs_name=cmfs_name, temperature=6500, color_space=color_space)
+    rgb = np.uint8(np.round(tf.oetf(rgb_linear, oetf_name) * 0xFF))
+    tpg.plot_color_checker_image(rgb)
+
+
+def trial_func():
     # compare_sprague_and_spline()
     # calc_day_light_xy(6500, cm.CIE1931)
     # calc_day_light_xy(5000, cm.CIE1931)
     # calc_day_light_xy(6500, cm.CIE2015_2)
     # calc_day_light_xy(5000, cm.CIE2015_2)
     # make_color_chekcer_linear_value(cm.CIE1931, 6500, SRGB_CS)
-    # test_plot(cmfs_name=cm.CIE1931, temperature=6500,
-    #           color_space=BT709_CS, oetf_name=tf.SRGB)
-    temperature_convert_test(
-        cmfs_name=cm.CIE1931, temperature=2000,
-        color_space=SRGB_CS, oetf_name=tf.SRGB)
+    test_plot(cmfs_name=cm.CIE1931, temperature=6500,
+              color_space=BT709_CS, oetf_name=tf.SRGB)
+    # temperature_convert_test(
+    #     cmfs_name=cm.CIE1931, temperature=2000,
+    #     color_space=SRGB_CS, oetf_name=tf.SRGB)
 
 
 def main_func():
-    pass
+    plot_color_checker(cmfs_name=cm.CIE2015_2, temperature=6500,
+                       color_space=BT709_CS, oetf_name=tf.SRGB)
 
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    test_func()
+    # trial_func()
     main_func()

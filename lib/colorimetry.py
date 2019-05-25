@@ -141,6 +141,11 @@ def make_day_light_by_calculation(temperature=6500,
 def get_day_light_spd(temperature=6500,
                       interpolater=LinearInterpolator,
                       interval=1):
+    """
+    D65の相対分光分布を計算する。
+    計算によるD65値がどうしても有効数字6桁目でズレるため、
+    6500Kに関しては規格値のcsvをLoadするようにした。
+    """
     if temperature == 6500:
         spd = load_d65_spd_1nmdata(interval)
     else:
@@ -154,6 +159,15 @@ def calc_appropriate_shape(spd1, spd2):
     """
     等色関数と測定対象の波長範囲が一致しない場合に
     適切な Shape を設定する。
+
+    例：
+    ```
+    a.shape = SpectralShape(390, 830, 1)
+    b.shape = SpectralShape(360, 780, 5)
+
+    calc_appropriate_shape(a, b)
+    >>> SpectralShape(360, 780, 5)
+    ```
     """
     start = np.max(np.array([spd1.shape.start, spd2.shape.start]))
     end = np.min(np.array([spd1.shape.end, spd2.shape.end]))
@@ -256,4 +270,3 @@ def temperature_convert(
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    print(load_colorchecker_spectrum())
