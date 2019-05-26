@@ -410,8 +410,8 @@ class TpgDraw:
         # -------------------------------------------------------------
         _name, data, whitepoint = colour_checker_param
         temp_xyY = []
-        for _index, label, xyY in data:
-            temp_xyY.append(xyY)
+        for key in data.keys():
+            temp_xyY.append(data[key])
         temp_xyY = np.array(temp_xyY)
         large_xyz = colour.models.xyY_to_XYZ(temp_xyY)
 
