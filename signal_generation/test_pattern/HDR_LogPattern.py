@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -12,9 +11,9 @@ from TpgIO import TpgIO
 from TpgDraw import TpgDraw
 import transfer_functions as tf
 import colour
-# import gamma_func as gm
+from multiprocessing import Pool, cpu_count
 
-REVISION = 2
+REVISION = 3
 BIT_DEPTH = 10
 
 
@@ -37,6 +36,8 @@ ALEXA_WIDE_GAMUT_CS = colour.models.ALEXA_WIDE_GAMUT_COLOURSPACE
 RED_WIDE_GAMUT_RGB_CS = colour.models.RED_WIDE_GAMUT_RGB_COLOURSPACE
 DCI_P3_CS = DciP3ColorSpace()
 SRGB_CS = colour.models.sRGB_COLOURSPACE
+ACES_AP1_CS = colour.models.ACES_CG_COLOURSPACE
+ACES_AP0_CS = colour.models.ACES_2065_1_COLOURSPACE
 
 PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
               {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
@@ -50,18 +51,9 @@ PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
               {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
               {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
               {'tf': tf.LOG3G10, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.LOG3G12, 'cs': BT2020_CS, 'wp': 'D65'}]
-
-# PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.SLOG3, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.VLOG, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.LOGC, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.LOG3G10, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.DLOG, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.FLOG, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.NLOG, 'cs': BT709_CS, 'wp': 'D65'},
-#               {'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
-
+              {'tf': tf.LOG3G12, 'cs': BT2020_CS, 'wp': 'D65'},
+              {'tf': tf.ST2084, 'cs': ACES_AP1_CS, 'wp': 'D60'},
+              {'tf': tf.ST2084, 'cs': ACES_AP0_CS, 'wp': 'D60'}]
 # PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
 
 
@@ -126,42 +118,38 @@ class TpgControl:
         self.load_img = io.load_image(fname)
 
 
+def make_test_pattern(
+        resolution, transfer_function, color_space, white_point, revision):
+
+    fname_str_base = "./img/{}_{}_{}_{}_rev{:02d}_type1.{}"
+    tpg_ctrl = TpgControl(resolution=resolution,
+                          transfer_function=transfer_function,
+                          color_space=color_space,
+                          white_point=white_point,
+                          revision=revision)
+    tpg_ctrl.draw_image_type1(preview=False)
+    fname = fname_str_base.format(transfer_function, color_space.name,
+                                  white_point, resolution, revision, "dpx")
+    tpg_ctrl.save_image(fname, transfer_function)
+    fname = fname_str_base.format(transfer_function, color_space.name,
+                                  white_point, resolution, revision, "exr")
+    tpg_ctrl.save_image(fname, transfer_function)
+
+
+def thread_wrapper(args):
+    return make_test_pattern(*args)
+
+
 def main_func():
     resolution_list = ['1920x1080', '3840x2160']
-    # resolution_list = ['1920x1080']
 
-    for param in PARAM_LIST:
-        transfer_function = param['tf']
-        color_space = param['cs']
-        white_point = param['wp']
-        for resolution in resolution_list:
-            tpg_ctrl = TpgControl(resolution=resolution,
-                                  transfer_function=transfer_function,
-                                  color_space=color_space,
-                                  white_point=white_point,
-                                  revision=REVISION)
-            tpg_ctrl.draw_image_type1(preview=False)
-            fname_str = "./img/{}_{}_{}_{}_rev{:02d}_type1.dpx"
-            fname = fname_str.format(transfer_function,
-                                     color_space.name,
-                                     white_point,
-                                     resolution,
-                                     REVISION)
-            tpg_ctrl.save_image(fname, transfer_function)
-            fname_exr = "./img/{}_{}_{}_{}_rev{:02d}_type1.exr"
-            fname = fname_exr.format(transfer_function,
-                                     color_space.name,
-                                     white_point,
-                                     resolution,
-                                     REVISION)
-            tpg_ctrl.save_image(fname, transfer_function)
-
-            # tpg_ctrl.draw_image_type2(preview=False)
-            # fname_str = "./img/{}_{}_rev{:02d}_type2.exr"
-            # fname = fname_str.format(transfer_function,
-            #                          resolution,
-            #                          REVISION)
-            # tpg_ctrl.save_image(fname, transfer_function)
+    with Pool(cpu_count()//2) as pool:
+        args = [
+            (x, y['tf'], y['cs'], y['wp'], REVISION)
+            for x in resolution_list
+            for y in PARAM_LIST
+        ]
+        pool.map(thread_wrapper, args)
 
 
 if __name__ == '__main__':
