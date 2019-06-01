@@ -123,3 +123,5 @@ site-packages/
 Scripts/
 
 sip/share/man/man1/isympy.1
+
+misc/resolve_aces/**
