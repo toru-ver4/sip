@@ -124,4 +124,7 @@ Scripts/
 
 sip/share/man/man1/isympy.1
 
-misc/resolve_aces/**
+misc/resolve_aces/**/*.exr
+misc/resolve_aces/ctl/**
+misc/resolve_aces/**/*.tiff
+misc/resolve_aces/**/*.tif
