@@ -39,22 +39,22 @@ SRGB_CS = colour.models.sRGB_COLOURSPACE
 ACES_AP1_CS = colour.models.ACES_CG_COLOURSPACE
 ACES_AP0_CS = colour.models.ACES_2065_1_COLOURSPACE
 
-PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
-              {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.HLG, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.ST2084, 'cs': DCI_P3_CS, 'wp': 'D65'},
-              {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
-              {'tf': tf.VLOG, 'cs': V_LOG_CS, 'wp': 'D65'},
-              {'tf': tf.LOGC, 'cs': ALEXA_WIDE_GAMUT_CS, 'wp': 'D65'},
-              {'tf': tf.LOGC, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
-              {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
-              {'tf': tf.LOG3G10, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.LOG3G12, 'cs': BT2020_CS, 'wp': 'D65'},
-              {'tf': tf.ST2084, 'cs': ACES_AP1_CS, 'wp': 'D60'},
-              {'tf': tf.ST2084, 'cs': ACES_AP0_CS, 'wp': 'D60'}]
-# PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'}]
+# PARAM_LIST = [{'tf': tf.GAMMA24, 'cs': BT709_CS, 'wp': 'D65'},
+#               {'tf': tf.GAMMA24, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.HLG, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.ST2084, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.ST2084, 'cs': DCI_P3_CS, 'wp': 'D65'},
+#               {'tf': tf.SLOG3, 'cs': S_GAMUT3_CS, 'wp': 'D65'},
+#               {'tf': tf.VLOG, 'cs': V_LOG_CS, 'wp': 'D65'},
+#               {'tf': tf.LOGC, 'cs': ALEXA_WIDE_GAMUT_CS, 'wp': 'D65'},
+#               {'tf': tf.LOGC, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.LOG3G10, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+#               {'tf': tf.LOG3G12, 'cs': RED_WIDE_GAMUT_RGB_CS, 'wp': 'D65'},
+#               {'tf': tf.LOG3G10, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.LOG3G12, 'cs': BT2020_CS, 'wp': 'D65'},
+#               {'tf': tf.ST2084, 'cs': ACES_AP1_CS, 'wp': 'D60'},
+#               {'tf': tf.ST2084, 'cs': ACES_AP0_CS, 'wp': 'D60'}]
+PARAM_LIST = [{'tf': tf.ST2084, 'cs': BT709_CS, 'wp': 'D65'}]
 
 
 class TpgControl:
