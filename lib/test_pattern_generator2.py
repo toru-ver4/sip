@@ -13,7 +13,6 @@ from scipy import linalg
 import plot_utility as pu
 import matplotlib.pyplot as plt
 import numpy as np
-import math
 from colour.colorimetry import CMFS, ILLUMINANTS
 from colour.models import XYZ_to_xy, xy_to_XYZ, XYZ_to_RGB, RGB_to_XYZ
 from colour.models import xy_to_xyY, xyY_to_XYZ
@@ -23,6 +22,7 @@ from colour import RGB_COLOURSPACES
 from scipy.spatial import Delaunay
 from scipy.ndimage.filters import convolve
 import common
+import color_space as cs
 import imp
 imp.reload(pu)
 
@@ -30,6 +30,9 @@ imp.reload(pu)
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
 YCBCR_CHECK_MARKER = [0, 0, 0]
+
+UNIVERSAL_COLOR_LIST = ["#F6AA00", "#FFF100", "#03AF7A",
+                        "#005AFF", "#4DC4FF", "#804000"]
 
 
 def preview_image(img, order='rgb', over_disp=False):
@@ -268,7 +271,8 @@ def get_secondaries(name='ITU-R BT.2020'):
     return xy, secondary_rgb.reshape((3, 3))
 
 
-def plot_chromaticity_diagram(rate=480/755.0*2, **kwargs):
+def plot_chromaticity_diagram(
+        rate=480/755.0*2, xmin=0.0, xmax=0.8, ymin=0.0, ymax=0.9, **kwargs):
     # キーワード引数の初期値設定
     # ------------------------------------
     monitor_primaries = kwargs.get('monitor_primaries', None)
@@ -278,24 +282,31 @@ def plot_chromaticity_diagram(rate=480/755.0*2, **kwargs):
 
     # プロット用データ準備
     # ---------------------------------
-    xy_image = get_chromaticity_image()
+    xy_image = get_chromaticity_image(
+        xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     cmf_xy = _get_cmfs_xy()
 
-    bt709_gamut, _ = get_primaries('ITU-R BT.709')
-    bt2020_gamut, _ = get_primaries('ITU-R BT.2020')
-    dci_p3_gamut, _ = get_primaries('DCI-P3')
+    bt709_gamut, _ = get_primaries(name=cs.BT709)
+    bt2020_gamut, _ = get_primaries(name=cs.BT2020)
+    dci_p3_gamut, _ = get_primaries(name=cs.P3_D65)
+    ap0_gamut, _ = get_primaries(name=cs.ACES_AP0)
+    ap1_gamut, _ = get_primaries(name=cs.ACES_AP1)
+    xlim = (min(0, xmin), max(0.8, xmax))
+    ylim = (min(0, ymin), max(0.9, ymax))
 
     ax1 = pu.plot_1_graph(fontsize=20 * rate,
-                          figsize=(8 * rate, 9 * rate),
+                          figsize=((xmax - xmin) * 10 * rate,
+                                   (ymax - ymin) * 10 * rate),
                           graph_title="CIE1931 Chromaticity Diagram",
                           graph_title_size=None,
                           xlabel=None, ylabel=None,
                           axis_label_size=None,
                           legend_size=18 * rate,
-                          xlim=(0, 0.8),
-                          ylim=(0, 0.9),
-                          xtick=[x * 0.1 for x in range(9)],
-                          ytick=[x * 0.1 for x in range(10)],
+                          xlim=xlim, ylim=ylim,
+                          xtick=[x * 0.1 + xmin for x in
+                                 range(int((xlim[1] - xlim[0])/0.1) + 1)],
+                          ytick=[x * 0.1 + ymin for x in
+                                 range(int((ylim[1] - ylim[0])/0.1) + 1)],
                           xtick_size=17 * rate,
                           ytick_size=17 * rate,
                           linewidth=4 * rate,
@@ -304,12 +315,16 @@ def plot_chromaticity_diagram(rate=480/755.0*2, **kwargs):
     ax1.plot(cmf_xy[..., 0], cmf_xy[..., 1], '-k', lw=3.5*rate, label=None)
     ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
              '-k', lw=3.5*rate, label=None)
-    ax1.plot(bt709_gamut[:, 0], bt709_gamut[:, 1], c="#0080FF",
-             label="BT.709", lw=3*rate)
-    ax1.plot(bt2020_gamut[:, 0], bt2020_gamut[:, 1], c="#FFD000",
-             label="BT.2020", lw=3*rate)
-    ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1], c="#C03030",
-             label="DCI-P3", lw=3*rate)
+    ax1.plot(bt709_gamut[:, 0], bt709_gamut[:, 1],
+             c=UNIVERSAL_COLOR_LIST[0], label="BT.709", lw=2.5*rate)
+    ax1.plot(bt2020_gamut[:, 0], bt2020_gamut[:, 1],
+             c=UNIVERSAL_COLOR_LIST[1], label="BT.2020", lw=2.5*rate)
+    ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1],
+             c=UNIVERSAL_COLOR_LIST[2], label="DCI-P3", lw=2.5*rate)
+    ax1.plot(ap1_gamut[:, 0], ap1_gamut[:, 1],
+             c=UNIVERSAL_COLOR_LIST[3], label="ACES AP1", lw=2.5*rate)
+    ax1.plot(ap0_gamut[:, 0], ap0_gamut[:, 1],
+             c=UNIVERSAL_COLOR_LIST[4], label="ACES AP0", lw=2.5*rate)
     if monitor_primaries is not None:
         ax1.plot(monitor_primaries[:, 0], monitor_primaries[:, 1],
                  c="#202020", label="???", lw=3*rate)
@@ -326,13 +341,14 @@ def plot_chromaticity_diagram(rate=480/755.0*2, **kwargs):
                     s=300*rate, marker='s', c='#CCCCCC',
                     edgecolors='#404040', linewidth=2*rate)
 
-    ax1.imshow(xy_image, extent=(0, 1, 0, 1))
+    ax1.imshow(xy_image, extent=(xmin, xmax, ymin, ymax))
     plt.legend(loc='upper right')
     plt.savefig('temp_fig.png', bbox_inches='tight')
-    # plt.show()
+    plt.show()
 
 
-def get_chromaticity_image(samples=1024, antialiasing=True, bg_color=0.9):
+def get_chromaticity_image(samples=1024, antialiasing=True, bg_color=0.9,
+                           xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0):
     """
     xy色度図の馬蹄形の画像を生成する
 
@@ -347,7 +363,8 @@ def get_chromaticity_image(samples=1024, antialiasing=True, bg_color=0.9):
     若干色が薄くなるのが難点。暇があれば改良したい。
     """
     # color_space = models.BT2020_COLOURSPACE
-    color_space = models.S_GAMUT3_COLOURSPACE
+    # color_space = models.S_GAMUT3_COLOURSPACE
+    color_space = models.ACES_CG_COLOURSPACE
 
     # 馬蹄形のxy値を算出
     # --------------------------
@@ -377,7 +394,8 @@ def get_chromaticity_image(samples=1024, antialiasing=True, bg_color=0.9):
     0以下のリストで領域判定の mask を作ることができる。
     """
     xx, yy\
-        = np.meshgrid(np.linspace(0, 1, samples), np.linspace(1, 0, samples))
+        = np.meshgrid(np.linspace(xmin, xmax, samples),
+                      np.linspace(ymax, ymin, samples))
     xy = np.dstack((xx, yy))
     mask = (triangulation.find_simplex(xy) < 0).astype(np.float)
 
@@ -400,7 +418,7 @@ def get_chromaticity_image(samples=1024, antialiasing=True, bg_color=0.9):
     # ------------------------
     illuminant_XYZ = D65_WHITE
     illuminant_RGB = color_space.whitepoint
-    chromatic_adaptation_transform = 'CAT02'
+    chromatic_adaptation_transform = 'XYZ Scaling'
     large_xyz_to_rgb_matrix = color_space.XYZ_to_RGB_matrix
     large_xyz = xy_to_XYZ(xy)
     rgb = XYZ_to_RGB(large_xyz, illuminant_XYZ, illuminant_RGB,
@@ -1051,7 +1069,8 @@ def plot_color_checker_image(rgb, rgb2=None, size=(1920, 1080),
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # plot_chromaticity_diagram()
+    plot_chromaticity_diagram()
+    plot_chromaticity_diagram(xmin=-0.1, xmax=0.8, ymin=-0.1, ymax=1.05)
     # plot_xyY_color_space(name='ITU-R BT.2020', samples=256)
     # samples = 1024
     # p0 = np.array([0.5, 0.5])
@@ -1067,7 +1086,7 @@ if __name__ == '__main__':
     #                      lv1=np.array([940, 0, 940], dtype=np.uint16),
     #                      lv2=np.array([1023, 1023, 0], dtype=np.uint16),
     #                      stripe_num=6)
-    make_ycbcr_checker(height=30, v_tile_num=2)
-    make_tile_pattern(width=960, height=480, h_tile_num=7,
-                      v_tile_num=4, low_level=(940, 940, 940),
-                      high_level=(1023, 1023, 1023))
+    # make_ycbcr_checker(height=30, v_tile_num=2)
+    # make_tile_pattern(width=960, height=480, h_tile_num=7,
+    #                   v_tile_num=4, low_level=(940, 940, 940),
+    #                   high_level=(1023, 1023, 1023))
