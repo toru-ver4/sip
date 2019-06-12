@@ -22,21 +22,29 @@ CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
 
 
-def make_primary_value_on_ap0():
+def make_primary_value_on_ap0(oetf=tf.GAMMA24):
     """
     各種カラースペースの RGB Primary値が
     AP0 ではどの値になるかを計算する。
     """
     cs_name_list = [cs.BT709, cs.P3_D65, cs.BT2020, cs.ACES_AP1, cs.ACES_AP0]
-    dst_cs = RGB_COLOURSPACES[cs.BT2020]
+    dst_cs = RGB_COLOURSPACES[cs.ACES_AP0]
     src_primaries = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
     src_primaries = np.array(src_primaries)
 
     dst_primaries = {}
     for src_cs_name in cs_name_list:
         src_cs = RGB_COLOURSPACES[src_cs_name]
-        temp = RGB_to_RGB(src_primaries, src_cs, dst_cs)
-        dst_primaries[src_cs_name] = temp
+        chromatic_acaptation = "XYZ Scaling"
+        temp = RGB_to_RGB(src_primaries, src_cs, dst_cs, chromatic_acaptation)
+        if src_cs_name == cs.ACES_AP0:
+            cs_name = "ACES_AP0"
+        elif src_cs_name == cs.ACES_AP1:
+            cs_name = "ACES_AP1"
+        else:
+            cs_name = src_cs_name
+        temp = np.clip(temp, 0.0, 1.0)
+        dst_primaries[cs_name] = tf.oetf(temp, oetf)
 
     return dst_primaries
 
@@ -148,13 +156,17 @@ def plot_rgb_stacked_bar_graph(data):
     x_val = np.arange(len(data)) + 1
     x_offset = [-0.25, 0.0, 0.25]
     ax1 = pu.plot_1_graph(fontsize=20,
-                          figsize=(9, 9),
+                          figsize=(12, 9),
                           graph_title="Color Space Conversion to ACES AP0",
                           xlabel="Source Gamut",
                           ylabel="Percentage of RGB values [%]",
                           ylim=(0, 105))
     for gg, gamut in enumerate(data):  # 色域のループ
         value = data[gamut]
+        value[value < 0] = 0
+        value[value > 1] = 1
+        normalize_val = np.sum(value, axis=-1) / 100
+        value = value / normalize_val.reshape(value.shape[0], 1)
         for ii in range(3):  # 原色が3種類ある、のループ
             x = x_val[gg] + x_offset[ii]
             bottom = 0
@@ -164,6 +176,7 @@ def plot_rgb_stacked_bar_graph(data):
                 ax1.bar(x, y, bottom=bottom, width=0.2, color=color)
                 bottom += y
     plt.xticks(x_val, list(data.keys()))
+    plt.savefig('stacked_ap0.png', bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 
@@ -367,7 +380,7 @@ def plot_from_white_to_primary_rgb_value_with_bar(
 
     ax1 = pu.plot_1_graph(fontsize=20,
                           figsize=(9, 9),
-                          graph_title="Percentage of RGB values",
+                          graph_title="色とRGBの割合の関係",
                           xlabel=None,
                           ylabel="Percentage of RGB values [%]",
                           ylim=(0, 105))
@@ -384,6 +397,14 @@ def plot_from_white_to_primary_rgb_value_with_bar(
     plt.show()
 
 
+def plot_converted_primaries_with_bar():
+    """
+    積み上げ棒グラフでAP0に色域変換したRGB値を表示する。
+    """
+    dst_primaries = make_primary_value_on_ap0()
+    plot_rgb_stacked_bar_graph(dst_primaries)
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # data = make_primary_value_on_ap0()
@@ -397,10 +418,11 @@ if __name__ == '__main__':
     #         "BT.709": np.array([[70, 20, 10], [10, 70, 20], [20, 10, 70]]),
     #         "BT.2020": np.array([[85, 10, 5], [5, 85, 10], [10, 5, 85]])}
     # plot_rgb_stacked_bar_graph(data)
-    # rgb = get_from_white_to_primary_rgb_value(
-    #     'green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
-    # print(rgb)
+    rgb = get_from_white_to_primary_rgb_value(
+        'green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
+    print(rgb)
     # plot_from_white_to_primary_rgb_value(
     #     'green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
-    plot_from_white_to_primary_rgb_value_with_bar(
-        primary_color='green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
+    # plot_from_white_to_primary_rgb_value_with_bar(
+    #     primary_color='green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
+    # plot_converted_primaries_with_bar()
