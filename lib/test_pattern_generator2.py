@@ -316,15 +316,15 @@ def plot_chromaticity_diagram(
     ax1.plot((cmf_xy[-1, 0], cmf_xy[0, 0]), (cmf_xy[-1, 1], cmf_xy[0, 1]),
              '-k', lw=3.5*rate, label=None)
     ax1.plot(bt709_gamut[:, 0], bt709_gamut[:, 1],
-             c=UNIVERSAL_COLOR_LIST[0], label="BT.709", lw=2.5*rate)
+             c=UNIVERSAL_COLOR_LIST[0], label="BT.709", lw=2.75*rate)
     ax1.plot(bt2020_gamut[:, 0], bt2020_gamut[:, 1],
-             c=UNIVERSAL_COLOR_LIST[1], label="BT.2020", lw=2.5*rate)
+             c=UNIVERSAL_COLOR_LIST[1], label="BT.2020", lw=2.75*rate)
     ax1.plot(dci_p3_gamut[:, 0], dci_p3_gamut[:, 1],
-             c=UNIVERSAL_COLOR_LIST[2], label="DCI-P3", lw=2.5*rate)
+             c=UNIVERSAL_COLOR_LIST[2], label="DCI-P3", lw=2.75*rate)
     ax1.plot(ap1_gamut[:, 0], ap1_gamut[:, 1],
-             c=UNIVERSAL_COLOR_LIST[3], label="ACES AP1", lw=2.5*rate)
+             c=UNIVERSAL_COLOR_LIST[3], label="ACES AP1", lw=2.75*rate)
     ax1.plot(ap0_gamut[:, 0], ap0_gamut[:, 1],
-             c=UNIVERSAL_COLOR_LIST[4], label="ACES AP0", lw=2.5*rate)
+             c=UNIVERSAL_COLOR_LIST[4], label="ACES AP0", lw=2.75*rate)
     if monitor_primaries is not None:
         ax1.plot(monitor_primaries[:, 0], monitor_primaries[:, 1],
                  c="#202020", label="???", lw=3*rate)
