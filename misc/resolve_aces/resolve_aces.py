@@ -9,12 +9,18 @@ import os
 import color_space as cs
 import numpy as np
 from colour import RGB_to_RGB, XYZ_to_RGB, xy_to_XYZ, RGB_COLOURSPACES
-from colour.colorimetry import CMFS, ILLUMINANTS
-import test_pattern_generator2 as tpg
+from colour.colorimetry import ILLUMINANTS
+from sympy import Symbol
+from subprocess import run
+from subprocess import TimeoutExpired
+import OpenImageIO as oiio
+
+# original libraty
+import transfer_functions as tf
 import plot_utility as pu
 import matplotlib.pyplot as plt
-from sympy import Symbol
-import transfer_functions as tf
+import test_pattern_generator2 as tpg
+import TyImageIO as tyio
 
 
 RGB_COLOUR_LIST = ["#FF4800", "#03AF7A", "#005AFF"]
@@ -405,8 +411,123 @@ def plot_converted_primaries_with_bar():
     plot_rgb_stacked_bar_graph(dst_primaries)
 
 
-if __name__ == '__main__':
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+def make_dst_name(src_name, suffix_list):
+    """
+    Examples
+    --------
+    >>> src_name = "./src_709_gamut.exr"
+    >>> suffix_list = ["./ctl/rrt/RRT.ctl",
+                       "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    >>> make_dst_name(src_name, suffix_list)
+    ./src_709_gamut_RRT_ODT.Academy.sRGB_100nits_dim.exr
+    """
+    src_root, src_ext = os.path.splitext(src_name)
+    dst_ext = ".tiff"
+    suffix_bare_list = [os.path.basename(os.path.splitext(x)[0])
+                        for x in suffix_list]
+    out_name = src_root + "_" + "_".join(suffix_bare_list) + dst_ext
+
+    return out_name
+
+
+def apply_ctl_to_exr_image(img_list, ctl_list):
+    """
+    Examples
+    --------
+    >>> img_list = ["./src_709_gamut.exr", "./src_2020_gamut.exr",
+                    "./src_ap1.exr", "./src_ap0.exr"]
+    >>> ctl_list = ["./ctl/rrt/RRT.ctl",
+                    "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    >>> out_img_name_list = apply_ctl_to_exr_image(img_list, ctl_list)
+    >>> print(out_img_name_list)
+    ['./src_709_gamut_RRT_ODT.Academy.sRGB_100nits_dim.tiff',
+     './src_2020_gamut_RRT_ODT.Academy.sRGB_100nits_dim.tiff',
+     './src_ap1_RRT_ODT.Academy.sRGB_100nits_dim.tiff',
+     './src_ap0_RRT_ODT.Academy.sRGB_100nits_dim.tiff']
+    """
+    cmd_base = "ctlrender "
+    ctl_ops = ["-ctl {}".format(x) for x in ctl_list]
+    format_ops = "-format tiff16"
+    cmd_base += " ".join(ctl_ops) + " " + format_ops
+    cmd_list = ["{} {} {}".format(cmd_base, src, make_dst_name(src, ctl_list))
+                for src in img_list]
+    for cmd in cmd_list:
+        print(cmd)
+        # run(cmd.split(" "))
+
+    return [make_dst_name(src, ctl_list) for src in img_list]
+
+
+def exr_file_read(fname):
+    reader = tyio.TyReader(fname)
+    return reader.read()
+
+
+def exr_file_write(img, fname):
+    writer = tyio.TyWriter(img, fname)
+    writer.write(out_img_type_desc=oiio.FLOAT)
+
+
+def gamut_convert_linear_data(src_img, src_cs_name, dst_cs_name):
+    """
+    Examples
+    --------
+    >>> src_img = exr_file_read("src_bt709.exr")
+    >>> dst_img = gamut_convert_linear_data(src_img,
+                                            'ITU-R BT.709', 'ACES2065-1')
+    >>> exr_file_write(dst_img, "src_bt709_to_ap0.exr")
+    """
+    chromatic_adaptation = 'XYZ Scaling'
+    src_cs = RGB_COLOURSPACES[src_cs_name]
+    dst_cs = RGB_COLOURSPACES[dst_cs_name]
+    dst_img = RGB_to_RGB(src_img, src_cs, dst_cs, chromatic_adaptation)
+    return dst_img
+
+
+def file_list_cs_convert(
+        src_file_list, dst_file_list, src_cs_list, dst_cs_list):
+    """
+    Examples
+    --------
+    >>> src_file_list = ["src_bt709.exr", "src_bt2020.exr"]
+    >>> dst_file_list = ["src_bt709_to_ap0.exr", "src_bt2020_to_ap0.exr"]
+    >>> src_cs_list = ['ITU-R BT.709', 'ITU-R BT.2020']
+    >>> dst_cs_list = ['ACES2065-1', 'ACES2065-1']
+    >>> file_list_cs_convert(src_file_list, dst_file_list,
+                             src_cs_list, dst_cs_list)
+    """
+    for idx, src_file in enumerate(src_file_list):
+        src_img = exr_file_read(src_file)
+        src_cs = src_cs_list[idx]
+        dst_cs = dst_cs_list[idx]
+        dst_file = dst_file_list[idx]
+        dst_img = gamut_convert_linear_data(src_img, src_cs, dst_cs)
+        exr_file_write(dst_img, dst_file)
+
+
+def make_to_ap0_file_name(src_file_list):
+    """
+    Examples
+    --------
+    >>> src_file_list = ["src_bt709.exr", "src_bt2020.exr"]
+    >>> make_to_ap0_file_name(src_file_list)
+    ["src_bt709_to_ap0.exr", "src_bt2020_to_ap0.exr"]
+    """
+    suffix = "_to_ap0.exr"
+    return [os.path.splitext(name)[0] + suffix for name in src_file_list]
+
+
+def make_rrt_src_exr_files():
+    src_file_list = ["src_bt709.exr", "src_p3.exr",
+                     "src_bt2020.exr", "src_ap0.exr"]
+    dst_file_list = make_to_ap0_file_name(src_file_list)
+    src_cs_list = [cs.BT709, cs.P3_D65, cs.BT2020, cs.ACES_AP0]
+    dst_cs_list = [cs.ACES_AP0 for x in range(len(src_file_list))]
+    file_list_cs_convert(
+        src_file_list, dst_file_list, src_cs_list, dst_cs_list)
+
+
+def experiment_func():
     # data = make_primary_value_on_ap0()
     # print_table_ap0_rgb_value(data)
     # RGB = np.array([1023, 100, 0], dtype=np.uint16)
@@ -418,11 +539,31 @@ if __name__ == '__main__':
     #         "BT.709": np.array([[70, 20, 10], [10, 70, 20], [20, 10, 70]]),
     #         "BT.2020": np.array([[85, 10, 5], [5, 85, 10], [10, 5, 85]])}
     # plot_rgb_stacked_bar_graph(data)
-    rgb = get_from_white_to_primary_rgb_value(
-        'green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
-    print(rgb)
+    # rgb = get_from_white_to_primary_rgb_value(
+    #     'green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
+    # print(rgb)
     # plot_from_white_to_primary_rgb_value(
     #     'green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
     # plot_from_white_to_primary_rgb_value_with_bar(
     #     primary_color='green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
     # plot_converted_primaries_with_bar()
+    # src_name = "./src_709_gamut.exr"
+    # suffix_list = ["./ctl/rrt/RRT.ctl",
+    #                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    # make_dst_name(src_name, suffix_list)
+    # img_list = ["./src_709_gamut.exr", "./src_2020_gamut.exr",
+    #             "./src_ap1.exr", "./src_ap0.exr"]
+    # ctl_list = ["./ctl/rrt/RRT.ctl",
+    #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    # out_img_name_list = apply_ctl_to_exr_image(img_list, ctl_list)
+    # print(out_img_name_list)
+    make_rrt_src_exr_files()
+
+
+def main_func():
+    pass
+
+
+if __name__ == '__main__':
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    experiment_func()
