@@ -453,7 +453,8 @@ def apply_ctl_to_exr_image(img_list, ctl_list):
                 for src in img_list]
     for cmd in cmd_list:
         print(cmd)
-        # run(cmd.split(" "))
+        os.environ['CTL_MODULE_PATH'] = "/work/src/misc/resolve_aces/ctl/lib"
+        run(cmd.split(" "))
 
     return [make_dst_name(src, ctl_list) for src in img_list]
 
@@ -518,13 +519,15 @@ def make_to_ap0_file_name(src_file_list):
 
 
 def make_rrt_src_exr_files():
-    src_file_list = ["src_bt709.exr", "src_p3.exr",
-                     "src_bt2020.exr", "src_ap0.exr"]
+    src_file_list = ["./src_bt709.exr", "./src_p3.exr",
+                     "./src_bt2020.exr", "./src_ap0.exr"]
     dst_file_list = make_to_ap0_file_name(src_file_list)
     src_cs_list = [cs.BT709, cs.P3_D65, cs.BT2020, cs.ACES_AP0]
     dst_cs_list = [cs.ACES_AP0 for x in range(len(src_file_list))]
     file_list_cs_convert(
         src_file_list, dst_file_list, src_cs_list, dst_cs_list)
+
+    return dst_file_list
 
 
 def experiment_func():
@@ -557,7 +560,11 @@ def experiment_func():
     #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
     # out_img_name_list = apply_ctl_to_exr_image(img_list, ctl_list)
     # print(out_img_name_list)
-    make_rrt_src_exr_files()
+    img_list = make_rrt_src_exr_files()
+    ctl_list = ["./ctl/rrt/RRT.ctl",
+                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    out_img_name_list = apply_ctl_to_exr_image(img_list, ctl_list)
+    print(out_img_name_list)
 
 
 def main_func():
