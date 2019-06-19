@@ -1067,6 +1067,24 @@ def plot_color_checker_image(rgb, rgb2=None, size=(1920, 1080),
     return img_all_patch
 
 
+def get_log2_x_scale(
+        sample_num=32, ref_val=1.0, min_exposure=-6.5, max_exposure=6.5):
+    """
+    Log2スケールのx軸データを作る。
+
+    Examples
+    --------
+    >>> get_log2_x_scale(sample_num=10, min_exposure=-4.0, max_exposure=4.0)
+    array([[  0.0625       0.11573434   0.214311     0.39685026   0.73486725
+              1.36079      2.5198421    4.66611616   8.64047791  16.        ]])
+    """
+    x_min = np.log2(ref_val * (2 ** min_exposure))
+    x_max = np.log2(ref_val * (2 ** max_exposure))
+    x = np.linspace(x_min, x_max, sample_num)
+
+    return 2.0 ** x
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     plot_chromaticity_diagram()
