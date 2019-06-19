@@ -530,6 +530,156 @@ def make_rrt_src_exr_files():
     return dst_file_list
 
 
+def shaper_func_linear_to_log2(
+        x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5):
+    """
+    ACESutil.Lin_to_Log2_param.ctl を参考に作成。
+    https://github.com/ampas/aces-dev/blob/master/transforms/ctl/utilities/ACESutil.Lin_to_Log2_param.ctl
+
+    Parameters
+    ----------
+    x : array_like
+        linear data.
+    mid_gray : float
+        18% gray value on linear scale.
+    min_exposure : float
+        minimum value on log scale.
+    max_exposure : float
+        maximum value on log scale.
+
+    Returns
+    -------
+    array_like
+        log2 value that is transformed from linear x value.
+
+    Examples
+    --------
+    >>> shaper_func_linear_to_log2(
+    ...     x=0.18, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    0.5
+    >>> shaper_func_linear_to_log2(
+    ...     x=np.array([0.00198873782209, 16.2917402385])
+    ...     mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    array([  1.58232402e-13   1.00000000e+00])
+    """
+    # log2空間への変換。mid_gray が 0.0 となるように補正
+    y = np.log2(x / mid_gray)
+
+    # min, max の範囲で正規化。
+    y_normalized = (y - min_exposure) / (max_exposure - min_exposure)
+
+    return y_normalized
+
+
+def shaper_func_log2_to_linear(
+        x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5):
+    """
+    ACESutil.Log2_to_Lin_param.ctl を参考に作成。
+    https://github.com/ampas/aces-dev/blob/master/transforms/ctl/utilities/ACESutil.Log2_to_Lin_param.ctl
+
+    Log2空間の補足は shaper_func_linear_to_log2() の説明を参照
+
+    Examples
+    --------
+    >>> x = np.array([0.0, 1.0])
+    >>> shaper_func_log2_to_linear(
+    ...     x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    array([0.00198873782209, 16.2917402385])
+    """
+    x_re_scale = x * (max_exposure - min_exposure) + min_exposure
+    y = (2.0 ** x_re_scale) * mid_gray
+    # plt.plot(x, y)
+    # plt.show()
+
+    return y
+
+
+def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
+    ex_exposure = 1.0
+    x = tpg.get_log2_x_scale(sample_num=32, ref_val=0.18,
+                             min_exposure=min_exposure-ex_exposure,
+                             max_exposure=max_exposure+ex_exposure)
+    y_lg2 = np.log2(x * mid_gray)
+    y_logNorm = shaper_func_linear_to_log2(
+        x, mid_gray=mid_gray,
+        min_exposure=min_exposure, max_exposure=max_exposure)
+
+    ax1 = pu.plot_1_graph(
+        fontsize=20,
+        figsize=(10, 8),
+        graph_title="Linear to Log2",
+        graph_title_size=None,
+        xlabel="Linear ",
+        ylabel="lg2",
+        axis_label_size=None,
+        legend_size=17,
+        xlim=None,
+        ylim=None,
+        xtick=None,
+        ytick=None,
+        xtick_size=None, ytick_size=None,
+        linewidth=3,
+        minor_xtick_num=None,
+        minor_ytick_num=None)
+    ax1.plot(x, y_lg2, '-o', label="lg2")
+    plt.legend(loc='upper left')
+    plt.savefig("lg2_with_linear_x.png", bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+    ax1 = pu.plot_1_graph(
+        fontsize=20,
+        figsize=(10, 8),
+        graph_title="Linear to Log2",
+        graph_title_size=None,
+        xlabel="Linear Value (Log Scale)",
+        ylabel="lg2",
+        axis_label_size=None,
+        legend_size=17,
+        xlim=None,
+        ylim=None,
+        xtick=None,
+        ytick=None,
+        xtick_size=13, ytick_size=None,
+        linewidth=3,
+        minor_xtick_num=None,
+        minor_ytick_num=None)
+    ax1.set_xscale('log', basex=2.0)
+    ax1.plot(x, y_lg2, '-o', label="lg2")
+    x_val = [mid_gray * (2 ** (x - 6)) for x in range(13) if x % 2 == 0]
+    # x_caption = [str(x - 6) for x in range(13) if x % 2 == 0]
+    x_caption = [r"$0.18 \times 2^{{{}}}$".format(x - 6)
+                 for x in range(13) if x % 2 == 0]
+    plt.xticks(x_val, x_caption)
+    plt.legend(loc='upper left')
+    plt.savefig("log2_with_log_x.png", bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+    ax1 = pu.plot_1_graph(
+        fontsize=20,
+        figsize=(10, 8),
+        graph_title="Linear to Log2",
+        graph_title_size=None,
+        xlabel="Linear Value (Log scale)", ylabel="LogNorm",
+        axis_label_size=None,
+        legend_size=17,
+        xlim=None,
+        ylim=None,
+        xtick=None,
+        ytick=None,
+        xtick_size=13, ytick_size=None,
+        linewidth=3,
+        minor_xtick_num=None,
+        minor_ytick_num=None)
+    ax1.set_xscale('log', basex=2.0)
+    ax1.plot(x, y_logNorm, '-o', label="logNorm")
+    x_caption = [r"$0.18 \times 2^{{{}}}$".format(x - 6)
+                 for x in range(13) if x % 2 == 0]
+    plt.xticks(x_val, x_caption)
+    plt.legend(loc='upper left')
+    plt.savefig("logNorm_with_log_x.png", bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+
 def experiment_func():
     # data = make_primary_value_on_ap0()
     # print_table_ap0_rgb_value(data)
@@ -550,21 +700,25 @@ def experiment_func():
     # plot_from_white_to_primary_rgb_value_with_bar(
     #     primary_color='green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
     # plot_converted_primaries_with_bar()
-    # src_name = "./src_709_gamut.exr"
-    # suffix_list = ["./ctl/rrt/RRT.ctl",
-    #                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
-    # make_dst_name(src_name, suffix_list)
-    # img_list = ["./src_709_gamut.exr", "./src_2020_gamut.exr",
-    #             "./src_ap1.exr", "./src_ap0.exr"]
+
+    # make
+    # img_list = make_rrt_src_exr_files()
     # ctl_list = ["./ctl/rrt/RRT.ctl",
     #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
     # out_img_name_list = apply_ctl_to_exr_image(img_list, ctl_list)
     # print(out_img_name_list)
-    img_list = make_rrt_src_exr_files()
-    ctl_list = ["./ctl/rrt/RRT.ctl",
-                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
-    out_img_name_list = apply_ctl_to_exr_image(img_list, ctl_list)
-    print(out_img_name_list)
+
+    # 3dlut
+    # shaper_func_log2_to_linear(np.linspace(0, 1, 1024))
+    # y = shaper_func_log2_to_linear(
+    #     np.array([-0.0, 0.18, 1.0]), mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    # print(y)
+    # x = np.array([0.00198873782209, 16.2917402385])
+    # y2 = shaper_func_linear_to_log2(
+    #     x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    # print(y2)
+    # print(shaper_func_linear_to_log2(x=(0.18*(2**4)), mid_gray=0.18, min_exposure=-6.5, max_exposure=4.0))
+    plot_shaper_func()
 
 
 def main_func():
