@@ -1,4 +1,4 @@
-# ACES の Linear_to_Log2 に関するメモ
+# ACES の Linear to Log2 に関するメモ
 
 ## 目的
 
@@ -27,6 +27,8 @@ OpenColorIO-Configs の aces_1.0.3 では shaper LUT の作成に ACES の "Line
   * 例:  ```maxExposure = 6.0``` の場合、Linear値で ```0.18 * (2^6.0) = 11.52``` が Log2空間の 1.0 に対応する
   * 例:  ```minExposure = -6.0``` の場合、Linear値で ```0.18 * (2^6.0) = 0.0028125``` が Log2空間の 0.0 に対応する
 * ```middleGrey = 0.18```,  ```minExposure = -6.0```, ```maxExposure = 6.0``` の例を図1に示す。
+
+![graph](./logNorm_with_log_x.png)
 
 ## 解説
 
@@ -58,6 +60,23 @@ float lin_to_log2_32f
 * ```middleGrey```: 0.18
 * ```minExposure```: -6.0
 * ```maxExposure```: 6.0
+
+図2に ```lg2``` のプロット結果を示す。
+
+![graph2](./lg2_with_linear_x.png)
+
+しかし、横軸が Linear スケールのため大変見づらい。横軸を対数スケールに変換したものを図3に示す。
+
+![graph3](./log2_with_log_x.png)
+
+図3を見ると分かる通り、```lg2``` の値は単純に ```log2(x * middleGrey)``` の計算を行っただけなので、[0:1] には正規化されていない。これを ```minExposure```, ```maxExposure``` に対応する値で [0:1] に正規化した値が ```logNorm```
+すなわち Linear to Log2 変換の出力値である。プロットした結果は冒頭の図1で示した通りである。
+
+## 感想
+
+```minExposure``` と ```maxExposure```を (-6.0, 6.0) や (-10.0, 10.0) のように絶対値が同一となるように設定すると、Log2空間では ```middleGray``` が ```0.5``` となるため、```middleGray``` が基準であるとハッキリ分かり気持ちが良い。
+
+ACES の RRT+ODT 以外でも shaper を作る機会があれば積極的に使いたいと思った。
 
 ## 参考資料
 

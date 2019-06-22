@@ -596,10 +596,10 @@ def shaper_func_log2_to_linear(
 
 def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
     ex_exposure = 1.0
-    x = tpg.get_log2_x_scale(sample_num=32, ref_val=0.18,
+    x = tpg.get_log2_x_scale(sample_num=1024, ref_val=0.18,
                              min_exposure=min_exposure-ex_exposure,
                              max_exposure=max_exposure+ex_exposure)
-    y_lg2 = np.log2(x * mid_gray)
+    y_lg2 = np.log2(x / mid_gray)
     y_logNorm = shaper_func_linear_to_log2(
         x, mid_gray=mid_gray,
         min_exposure=min_exposure, max_exposure=max_exposure)
@@ -621,7 +621,7 @@ def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
         linewidth=3,
         minor_xtick_num=None,
         minor_ytick_num=None)
-    ax1.plot(x, y_lg2, '-o', label="lg2")
+    ax1.plot(x, y_lg2, '-', label="lg2")
     plt.legend(loc='upper left')
     plt.savefig("lg2_with_linear_x.png", bbox_inches='tight', pad_inches=0.1)
     plt.show()
@@ -644,7 +644,7 @@ def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
         minor_xtick_num=None,
         minor_ytick_num=None)
     ax1.set_xscale('log', basex=2.0)
-    ax1.plot(x, y_lg2, '-o', label="lg2")
+    ax1.plot(x, y_lg2, '-', label="lg2")
     x_val = [mid_gray * (2 ** (x - 6)) for x in range(13) if x % 2 == 0]
     # x_caption = [str(x - 6) for x in range(13) if x % 2 == 0]
     x_caption = [r"$0.18 \times 2^{{{}}}$".format(x - 6)
@@ -659,24 +659,53 @@ def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
         figsize=(10, 8),
         graph_title="Linear to Log2",
         graph_title_size=None,
-        xlabel="Linear Value (Log scale)", ylabel="LogNorm",
+        xlabel="Linear Value (Log scale)",
+        ylabel="Linear to Log2 Value",
         axis_label_size=None,
         legend_size=17,
         xlim=None,
         ylim=None,
         xtick=None,
-        ytick=None,
+        ytick=[0.1 * x - 0.1 for x in range(13)],
         xtick_size=13, ytick_size=None,
         linewidth=3,
         minor_xtick_num=None,
         minor_ytick_num=None)
     ax1.set_xscale('log', basex=2.0)
-    ax1.plot(x, y_logNorm, '-o', label="logNorm")
+    y2 = y_logNorm.copy()
+    y2[y2 < 0.0] = 0.0
+    ax1.plot(x, y2, '-', label="logNorm")
     x_caption = [r"$0.18 \times 2^{{{}}}$".format(x - 6)
                  for x in range(13) if x % 2 == 0]
     plt.xticks(x_val, x_caption)
     plt.legend(loc='upper left')
-    plt.savefig("logNorm_with_log_x.png", bbox_inches='tight', pad_inches=0.1)
+    plt.savefig("linear_to_log.png", bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+    ax1 = pu.plot_1_graph(
+        fontsize=20,
+        figsize=(10, 8),
+        graph_title="Linear to Log2",
+        graph_title_size=None,
+        xlabel="Linear Value (Log scale)",
+        ylabel="logNorm",
+        axis_label_size=None,
+        legend_size=17,
+        xlim=None,
+        ylim=None,
+        xtick=None,
+        ytick=[0.1 * x - 0.1 for x in range(13)],
+        xtick_size=13, ytick_size=None,
+        linewidth=3,
+        minor_xtick_num=None,
+        minor_ytick_num=None)
+    ax1.set_xscale('log', basex=2.0)
+    ax1.plot(x, y_logNorm, '-', label="logNorm")
+    x_caption = [r"$0.18 \times 2^{{{}}}$".format(x - 6)
+                 for x in range(13) if x % 2 == 0]
+    plt.xticks(x_val, x_caption)
+    plt.legend(loc='upper left')
+    plt.savefig("logNorm.png", bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 
@@ -718,7 +747,7 @@ def experiment_func():
     #     x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
     # print(y2)
     # print(shaper_func_linear_to_log2(x=(0.18*(2**4)), mid_gray=0.18, min_exposure=-6.5, max_exposure=4.0))
-    plot_shaper_func()
+    plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0)
 
 
 def main_func():
