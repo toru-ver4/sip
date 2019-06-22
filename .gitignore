@@ -4,7 +4,9 @@ __pycache__/matplot_scatter.cpython-34.pyc
 __pycache__/matplot_test.cpython-34.pyc
 aa.flv
 bb.flv
-ffmpeg.exe
+**/ffmpeg.exe
+**/ffprobe.exe
+**/ffplay.exe
 gochiusa.mp4
 hanayamata.mp4
 hiasshuku.tiff
