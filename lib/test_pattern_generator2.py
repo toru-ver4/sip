@@ -1085,6 +1085,72 @@ def get_log2_x_scale(
     return 2.0 ** x
 
 
+def shaper_func_linear_to_log2(
+        x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5):
+    """
+    ACESutil.Lin_to_Log2_param.ctl を参考に作成。
+    https://github.com/ampas/aces-dev/blob/master/transforms/ctl/utilities/ACESutil.Lin_to_Log2_param.ctl
+
+    Parameters
+    ----------
+    x : array_like
+        linear data.
+    mid_gray : float
+        18% gray value on linear scale.
+    min_exposure : float
+        minimum value on log scale.
+    max_exposure : float
+        maximum value on log scale.
+
+    Returns
+    -------
+    array_like
+        log2 value that is transformed from linear x value.
+
+    Examples
+    --------
+    >>> shaper_func_linear_to_log2(
+    ...     x=0.18, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    0.5
+    >>> shaper_func_linear_to_log2(
+    ...     x=np.array([0.00198873782209, 16.2917402385])
+    ...     mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    array([  1.58232402e-13   1.00000000e+00])
+    """
+    # log2空間への変換。mid_gray が 0.0 となるように補正
+    y = np.log2(x / mid_gray)
+
+    # min, max の範囲で正規化。
+    y_normalized = (y - min_exposure) / (max_exposure - min_exposure)
+
+    y_normalized[y_normalized < 0] = 0
+
+    return y_normalized
+
+
+def shaper_func_log2_to_linear(
+        x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5):
+    """
+    ACESutil.Log2_to_Lin_param.ctl を参考に作成。
+    https://github.com/ampas/aces-dev/blob/master/transforms/ctl/utilities/ACESutil.Log2_to_Lin_param.ctl
+
+    Log2空間の補足は shaper_func_linear_to_log2() の説明を参照
+
+    Examples
+    --------
+    >>> x = np.array([0.0, 1.0])
+    >>> shaper_func_log2_to_linear(
+    ...     x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    array([0.00198873782209, 16.2917402385])
+    """
+    x_re_scale = x * (max_exposure - min_exposure) + min_exposure
+    y = (2.0 ** x_re_scale) * mid_gray
+    # plt.plot(x, y)
+    # plt.show()
+
+    return y
+
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     plot_chromaticity_diagram()

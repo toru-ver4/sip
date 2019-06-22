@@ -12,7 +12,6 @@ from colour import RGB_to_RGB, XYZ_to_RGB, xy_to_XYZ, RGB_COLOURSPACES
 from colour.colorimetry import ILLUMINANTS
 from sympy import Symbol
 from subprocess import run
-from subprocess import TimeoutExpired
 import OpenImageIO as oiio
 
 # original libraty
@@ -21,6 +20,7 @@ import plot_utility as pu
 import matplotlib.pyplot as plt
 import test_pattern_generator2 as tpg
 import TyImageIO as tyio
+import lut
 
 
 RGB_COLOUR_LIST = ["#FF4800", "#03AF7A", "#005AFF"]
@@ -411,7 +411,7 @@ def plot_converted_primaries_with_bar():
     plot_rgb_stacked_bar_graph(dst_primaries)
 
 
-def make_dst_name(src_name, suffix_list):
+def make_dst_name(src_name, suffix_list, dst_ext=".tiff"):
     """
     Examples
     --------
@@ -422,7 +422,6 @@ def make_dst_name(src_name, suffix_list):
     ./src_709_gamut_RRT_ODT.Academy.sRGB_100nits_dim.exr
     """
     src_root, src_ext = os.path.splitext(src_name)
-    dst_ext = ".tiff"
     suffix_bare_list = [os.path.basename(os.path.splitext(x)[0])
                         for x in suffix_list]
     out_name = src_root + "_" + "_".join(suffix_bare_list) + dst_ext
@@ -430,7 +429,7 @@ def make_dst_name(src_name, suffix_list):
     return out_name
 
 
-def apply_ctl_to_exr_image(img_list, ctl_list):
+def apply_ctl_to_exr_image(img_list, ctl_list, out_ext=".tiff"):
     """
     Examples
     --------
@@ -445,18 +444,23 @@ def apply_ctl_to_exr_image(img_list, ctl_list):
      './src_ap1_RRT_ODT.Academy.sRGB_100nits_dim.tiff',
      './src_ap0_RRT_ODT.Academy.sRGB_100nits_dim.tiff']
     """
-    cmd_base = "ctlrender "
+    cmd_base = "ctlrender -force "
     ctl_ops = ["-ctl {}".format(x) for x in ctl_list]
-    format_ops = "-format tiff16"
+    if out_ext == ".tiff":
+        format_ops = "-format tiff16"
+    else:
+        format_ops = "-format exr32"
     cmd_base += " ".join(ctl_ops) + " " + format_ops
-    cmd_list = ["{} {} {}".format(cmd_base, src, make_dst_name(src, ctl_list))
+    cmd_list = ["{} {} {}".format(cmd_base,
+                                  src,
+                                  make_dst_name(src, ctl_list, out_ext))
                 for src in img_list]
     for cmd in cmd_list:
         print(cmd)
         os.environ['CTL_MODULE_PATH'] = "/work/src/misc/resolve_aces/ctl/lib"
         run(cmd.split(" "))
 
-    return [make_dst_name(src, ctl_list) for src in img_list]
+    return [make_dst_name(src, ctl_list, out_ext) for src in img_list]
 
 
 def exr_file_read(fname):
@@ -465,6 +469,14 @@ def exr_file_read(fname):
 
 
 def exr_file_write(img, fname):
+    """
+    Examples
+    --------
+    >>> x = np.linspace(0, 1, 1920)
+    >>> line = np.dstack((x, x, x))
+    >>> img = np.vstack([line for x in range(1080)])
+    >>> exr_file_write(img, "gray_ramp.exr")
+    """
     writer = tyio.TyWriter(img, fname)
     writer.write(out_img_type_desc=oiio.FLOAT)
 
@@ -519,8 +531,8 @@ def make_to_ap0_file_name(src_file_list):
 
 
 def make_rrt_src_exr_files():
-    src_file_list = ["./src_bt709.exr", "./src_p3.exr",
-                     "./src_bt2020.exr", "./src_ap0.exr"]
+    src_file_list = ["./src_img/src_bt709.exr", "./src_img/src_p3.exr",
+                     "./src_img/src_bt2020.exr", "./src_img/src_ap0.exr"]
     dst_file_list = make_to_ap0_file_name(src_file_list)
     src_cs_list = [cs.BT709, cs.P3_D65, cs.BT2020, cs.ACES_AP0]
     dst_cs_list = [cs.ACES_AP0 for x in range(len(src_file_list))]
@@ -530,77 +542,13 @@ def make_rrt_src_exr_files():
     return dst_file_list
 
 
-def shaper_func_linear_to_log2(
-        x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5):
-    """
-    ACESutil.Lin_to_Log2_param.ctl を参考に作成。
-    https://github.com/ampas/aces-dev/blob/master/transforms/ctl/utilities/ACESutil.Lin_to_Log2_param.ctl
-
-    Parameters
-    ----------
-    x : array_like
-        linear data.
-    mid_gray : float
-        18% gray value on linear scale.
-    min_exposure : float
-        minimum value on log scale.
-    max_exposure : float
-        maximum value on log scale.
-
-    Returns
-    -------
-    array_like
-        log2 value that is transformed from linear x value.
-
-    Examples
-    --------
-    >>> shaper_func_linear_to_log2(
-    ...     x=0.18, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
-    0.5
-    >>> shaper_func_linear_to_log2(
-    ...     x=np.array([0.00198873782209, 16.2917402385])
-    ...     mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
-    array([  1.58232402e-13   1.00000000e+00])
-    """
-    # log2空間への変換。mid_gray が 0.0 となるように補正
-    y = np.log2(x / mid_gray)
-
-    # min, max の範囲で正規化。
-    y_normalized = (y - min_exposure) / (max_exposure - min_exposure)
-
-    return y_normalized
-
-
-def shaper_func_log2_to_linear(
-        x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5):
-    """
-    ACESutil.Log2_to_Lin_param.ctl を参考に作成。
-    https://github.com/ampas/aces-dev/blob/master/transforms/ctl/utilities/ACESutil.Log2_to_Lin_param.ctl
-
-    Log2空間の補足は shaper_func_linear_to_log2() の説明を参照
-
-    Examples
-    --------
-    >>> x = np.array([0.0, 1.0])
-    >>> shaper_func_log2_to_linear(
-    ...     x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
-    array([0.00198873782209, 16.2917402385])
-    """
-    x_re_scale = x * (max_exposure - min_exposure) + min_exposure
-    y = (2.0 ** x_re_scale) * mid_gray
-    # plt.plot(x, y)
-    # plt.show()
-
-    return y
-
-
 def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
     ex_exposure = 1.0
     x = tpg.get_log2_x_scale(sample_num=1024, ref_val=0.18,
                              min_exposure=min_exposure-ex_exposure,
                              max_exposure=max_exposure+ex_exposure)
     y_lg2 = np.log2(x / mid_gray)
-    y_logNorm = shaper_func_linear_to_log2(
+    y_logNorm = tpg.shaper_func_linear_to_log2(
         x, mid_gray=mid_gray,
         min_exposure=min_exposure, max_exposure=max_exposure)
 
@@ -711,7 +659,8 @@ def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
 
 def make_rrt_odt_3dlut(
         lut_grid_num=65,
-        mid_gray=0.18, min_expoure=-10.0, max_exposure=1.0,
+        mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
+        rrt_ctl="./ctl/rrt/RRT.ctl",
         odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"):
     """
     Log2スケールのx軸データを作る。
@@ -719,11 +668,73 @@ def make_rrt_odt_3dlut(
     Examples
     --------
     >>> make_rrt_odt_3dlut(
-            mid_gray=0.18, min_expoure=-10.0, max_exposure=1.0,
-            odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
+    ...     mid_gray=0.18, min_expoure=-10.0, max_exposure=1.0,
+    ...     rrt_ctl="./ctl/rrt/RRT.ctl",
+    ...     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
     """
-    x = np.linspace(0, 1, lut_grid_num)
-    print(x)
+    temp_exr_name = "./temp_3dlut.exr"
+
+    # Log2 to Linear
+    log_x = tpg.get_3d_grid_cube_format(lut_grid_num)
+    lin_x = tpg.shaper_func_log2_to_linear(
+        log_x, mid_gray=mid_gray,
+        min_exposure=min_expoure, max_exposure=max_exposure)
+
+    # save data in OpenEXR format
+    exr_file_write(lin_x, temp_exr_name)
+
+    # exec rrt+odt using ctlrender
+    out_img_name_list = apply_ctl_to_exr_image(
+        img_list=[temp_exr_name], ctl_list=[rrt_ctl, odt_ctl], out_ext=".exr")
+
+    # load data from OpenEXR file.
+    file_name = out_img_name_list[0]
+    rrt_odt_img = exr_file_read(file_name)[0, :, :3]
+
+    # save as the 3dlut file.
+    fmt_str = "rrt_{}_3dlut_midg_{}_minexp_{}_maxexp_{}.spi3d"
+    odt_name = os.path.basename(os.path.splitext(odt_ctl)[0])
+    file_name = fmt_str.format(odt_name, mid_gray, min_expoure, max_exposure)
+    lut.save_3dlut(rrt_odt_img, lut_grid_num, file_name)
+
+
+def make_shaper_1dlut(
+        sample_num=4096,
+        mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0):
+    """
+    Note
+    ----
+    本関数で生成するのは、Log2 to Linear の 1DLUT である。
+    OCIO 上で Linear to Log2 をする場合は、Inverse オプションを
+    有効化すること。
+
+    Examples
+    --------
+    >>> make_shaper_1dlut(
+    ...     sample_num=4096,
+    ...     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0)
+    """
+    x = np.linspace(0, 1, sample_num)
+    y = tpg.shaper_func_log2_to_linear(
+        x, mid_gray=mid_gray,
+        min_exposure=min_expoure, max_exposure=max_exposure)
+    fmt_str = "shaper_log2_lin_1dlut_midg_{}_minexp_{}_maxexp_{}.spi1d"
+    file_name = fmt_str.format(mid_gray, min_expoure, max_exposure)
+    lut.save_1dlut(y, file_name)
+
+
+def make_rrt_odt_1dlut_and_3dlut(
+        lut_1d_sample_num=4096,
+        lut_3d_grid_num=65,
+        mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
+        rrt_ctl="./ctl/rrt/RRT.ctl",
+        odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"):
+    make_shaper_1dlut(
+        sample_num=lut_1d_sample_num,
+        mid_gray=mid_gray, min_expoure=min_expoure, max_exposure=max_exposure)
+    make_rrt_odt_3dlut(
+        lut_grid_num=lut_3d_grid_num,
+        mid_gray=mid_gray, min_expoure=min_expoure, max_exposure=max_exposure)
 
 
 def experiment_func():
@@ -757,14 +768,36 @@ def experiment_func():
     # 3dlut
     # shaper_func_log2_to_linear(np.linspace(0, 1, 1024))
     # y = shaper_func_log2_to_linear(
-    #     np.array([-0.0, 0.18, 1.0]), mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
+    #     np.array([-0.0, 0.18, 1.0]), mid_gray=0.18, min_exposure=-6.5,
+    #     max_exposure=6.5)
     # print(y)
     # x = np.array([0.00198873782209, 16.2917402385])
     # y2 = shaper_func_linear_to_log2(
     #     x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
     # print(y2)
-    # print(shaper_func_linear_to_log2(x=(0.18*(2**4)), mid_gray=0.18, min_exposure=-6.5, max_exposure=4.0))
-    plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0)
+    # print(shaper_func_linear_to_log2(x=(0.18*(2**4)), mid_gray=0.18,
+    #                                  min_exposure=-6.5, max_exposure=4.0))
+    # plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0)
+    # make_rrt_odt_3dlut(
+    #     lut_grid_num=65,
+    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
+    #     rrt_ctl="./ctl/rrt/RRT.ctl",
+    #     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
+    # make_shaper_1dlut(
+    #     sample_num=4096,
+    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0)
+    make_rrt_odt_1dlut_and_3dlut(
+        lut_1d_sample_num=4096,
+        lut_3d_grid_num=65,
+        mid_gray=1.0, min_expoure=-2.0, max_exposure=8.0,
+        rrt_ctl="./ctl/rrt/RRT.ctl",
+        odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
+    # make_rrt_odt_1dlut_and_3dlut(
+    #     lut_1d_sample_num=4096,
+    #     lut_3d_grid_num=65,
+    #     mid_gray=0.18, min_expoure=-6.5, max_exposure=6.5,
+    #     rrt_ctl="./ctl/rrt/RRT.ctl",
+    #     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
 
 
 def main_func():
