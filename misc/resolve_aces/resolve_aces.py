@@ -709,6 +709,23 @@ def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
     plt.show()
 
 
+def make_rrt_odt_3dlut(
+        lut_grid_num=65,
+        mid_gray=0.18, min_expoure=-10.0, max_exposure=1.0,
+        odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"):
+    """
+    Log2スケールのx軸データを作る。
+
+    Examples
+    --------
+    >>> make_rrt_odt_3dlut(
+            mid_gray=0.18, min_expoure=-10.0, max_exposure=1.0,
+            odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
+    """
+    x = np.linspace(0, 1, lut_grid_num)
+    print(x)
+
+
 def experiment_func():
     # data = make_primary_value_on_ap0()
     # print_table_ap0_rgb_value(data)
