@@ -128,3 +128,4 @@ misc/resolve_aces/**/*.exr
 misc/resolve_aces/ctl/**
 misc/resolve_aces/**/*.tiff
 misc/resolve_aces/**/*.tif
+.code-workspace.code-workspace
