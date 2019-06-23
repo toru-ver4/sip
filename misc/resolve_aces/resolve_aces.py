@@ -737,6 +737,101 @@ def make_rrt_odt_1dlut_and_3dlut(
         mid_gray=mid_gray, min_expoure=min_expoure, max_exposure=max_exposure)
 
 
+def make_wrgbmyc_ramp():
+    """
+    3DLUT と ctlrender の結果比較用に Rampパターンを作る。
+    ramp image を返す。
+
+    Examples
+    --------
+    >>> img = make_wrgbmyc_ramp()
+    """
+    x = tpg.get_log2_x_scale(
+        sample_num=1920, ref_val=1.0, min_exposure=-8.0, max_exposure=8.0)
+    z = np.zeros_like(x)
+    w = np.dstack([x, x, x])
+    r = np.dstack([x, z, z])
+    g = np.dstack([z, x, z])
+    b = np.dstack([z, z, x])
+    m = np.dstack([x, z, x])
+    y = np.dstack([x, x, z])
+    c = np.dstack([z, x, x])
+    img = np.vstack([w, r, g, b, m, y, c])
+
+    return x, img
+
+
+def _plot_rdt_odt_blue_data(x, nuke_b, ctl_b):
+    """
+    3DLUT と ctlrender の比較プロット
+    """
+    ax1 = pu.plot_1_graph(
+        fontsize=20,
+        figsize=(10, 8),
+        graph_title="ctlrender vs 3DLUT",
+        graph_title_size=None,
+        xlabel="Linear",
+        ylabel="After RRT + ODT(sRGB)",
+        axis_label_size=None,
+        legend_size=17,
+        xlim=None,
+        ylim=None,
+        xtick=None,
+        ytick=None,
+        xtick_size=14, ytick_size=None,
+        linewidth=3,    
+        minor_xtick_num=None,
+        minor_ytick_num=None)
+    ax1.set_xscale('log', basex=2.0)
+    x_val = [1.0 * (2 ** (x - 8)) for x in range(17) if x % 2 == 0]
+    x_caption = [r"$1.0 \times 2^{{{}}}$".format(x - 8)
+                 for x in range(17) if x % 2 == 0]
+    ax1.plot(x, ctl_b[..., 0], '-', color=RGB_COLOUR_LIST[0], label="CTL R")
+    ax1.plot(x, ctl_b[..., 1], '-', color=RGB_COLOUR_LIST[1], label="CTL G")
+    ax1.plot(x, ctl_b[..., 2], '-', color=RGB_COLOUR_LIST[2], label="CTL B")
+    ax1.plot(x, nuke_b[..., 0], '--', color=RGB_COLOUR_LIST[0], label="3DLUT R")
+    ax1.plot(x, nuke_b[..., 1], '--', color=RGB_COLOUR_LIST[1], label="3DLUT G")
+    ax1.plot(x, nuke_b[..., 2], '--', color=RGB_COLOUR_LIST[2], label="3DLUT B")
+    plt.xticks(x_val, x_caption)
+    plt.legend(loc='upper left')
+    plt.savefig("ctlrender_vs_3dlut.png", bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+
+def plot_ctl_and_3dlut_result():
+    """
+    ctlrender と 3DLUT の結果の差異の分析のために、
+    データをプロットしてじっくり比較してみる。
+    """
+    # 画像データ作成。1920x7。WRGBMYCのRamp
+    x, img = make_wrgbmyc_ramp()
+
+    # BT.2020 --> AP0 への変換
+    ap0_img = gamut_convert_linear_data(img, cs.BT2020, cs.ACES_AP0)
+
+    # ファイルの保存
+    ramp_fname = "./wrgbmyc_ramp.exr"
+    exr_file_write(ap0_img, ramp_fname)
+
+    # ctlrender で RRT+ODT をかける
+    ctl_list = ["./ctl/rrt/RRT.ctl",
+                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    ctlrrender_ramp_name =\
+        apply_ctl_to_exr_image([ramp_fname], ctl_list, out_ext=".exr")[0]
+
+    # NUKEで 3DLUT の変換をやっておく
+    nuke_ramp_name = "./wrgbmyc_ramp_nuke_3dlut.exr"
+
+    # ctlrender の結果を 3DLUT の結ふファイルを Read
+    ctl_img = exr_file_read(ctlrrender_ramp_name)[3, :, :3]
+    nuke_img = exr_file_read(nuke_ramp_name)[3, :, :3]
+
+    # Blue のデータをそれぞれプロット
+    print(ctl_img.shape)
+    print(nuke_img.shape)
+    _plot_rdt_odt_blue_data(x, ctl_b=ctl_img, nuke_b=nuke_img)
+
+
 def experiment_func():
     # data = make_primary_value_on_ap0()
     # print_table_ap0_rgb_value(data)
@@ -786,18 +881,19 @@ def experiment_func():
     # make_shaper_1dlut(
     #     sample_num=4096,
     #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0)
-    make_rrt_odt_1dlut_and_3dlut(
-        lut_1d_sample_num=4096,
-        lut_3d_grid_num=65,
-        mid_gray=1.0, min_expoure=-2.0, max_exposure=8.0,
-        rrt_ctl="./ctl/rrt/RRT.ctl",
-        odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
+    # make_rrt_odt_1dlut_and_3dlut(
+    #     lut_1d_sample_num=4096,
+    #     lut_3d_grid_num=65,
+    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
+    #     rrt_ctl="./ctl/rrt/RRT.ctl",
+    #     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
     # make_rrt_odt_1dlut_and_3dlut(
     #     lut_1d_sample_num=4096,
     #     lut_3d_grid_num=65,
     #     mid_gray=0.18, min_expoure=-6.5, max_exposure=6.5,
     #     rrt_ctl="./ctl/rrt/RRT.ctl",
     #     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
+    plot_ctl_and_3dlut_result()
 
 
 def main_func():
