@@ -23,7 +23,8 @@ import TyImageIO as tyio
 import lut
 
 
-RGB_COLOUR_LIST = ["#FF4800", "#03AF7A", "#005AFF"]
+RGB_COLOUR_LIST = ["#FF4800", "#03AF7A", "#005AFF",
+                   "#FF0000", "#00FF00", "#0000FF"]
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
 
@@ -445,7 +446,10 @@ def apply_ctl_to_exr_image(img_list, ctl_list, out_ext=".tiff"):
      './src_ap0_RRT_ODT.Academy.sRGB_100nits_dim.tiff']
     """
     cmd_base = "ctlrender -force "
-    ctl_ops = ["-ctl {}".format(x) for x in ctl_list]
+    if len(ctl_list) < 2:
+        ctl_ops = ["-ctl {}".format(ctl_list[0])]
+    else:
+        ctl_ops = ["-ctl {}".format(x) for x in ctl_list]
     if out_ext == ".tiff":
         format_ops = "-format tiff16"
     else:
@@ -660,8 +664,8 @@ def plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0):
 def make_rrt_odt_3dlut(
         lut_grid_num=65,
         mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
-        rrt_ctl="./ctl/rrt/RRT.ctl",
-        odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"):
+        ctl_list=["./ctl/rrt/RRT.ctl",
+                  "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]):
     """
     Log2スケールのx軸データを作る。
 
@@ -685,7 +689,7 @@ def make_rrt_odt_3dlut(
 
     # exec rrt+odt using ctlrender
     out_img_name_list = apply_ctl_to_exr_image(
-        img_list=[temp_exr_name], ctl_list=[rrt_ctl, odt_ctl], out_ext=".exr")
+        img_list=[temp_exr_name], ctl_list=ctl_list, out_ext=".exr")
 
     # load data from OpenEXR file.
     file_name = out_img_name_list[0]
@@ -693,7 +697,7 @@ def make_rrt_odt_3dlut(
 
     # save as the 3dlut file.
     fmt_str = "rrt_{}_3dlut_midg_{}_minexp_{}_maxexp_{}.spi3d"
-    odt_name = os.path.basename(os.path.splitext(odt_ctl)[0])
+    odt_name = os.path.basename(os.path.splitext(ctl_list[-1])[0])
     file_name = fmt_str.format(odt_name, mid_gray, min_expoure, max_exposure)
     lut.save_3dlut(rrt_odt_img, lut_grid_num, file_name)
 
@@ -727,14 +731,15 @@ def make_rrt_odt_1dlut_and_3dlut(
         lut_1d_sample_num=4096,
         lut_3d_grid_num=65,
         mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
-        rrt_ctl="./ctl/rrt/RRT.ctl",
-        odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"):
+        ctl_list=["./ctl/rrt/RRT.ctl",
+                  "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]):
     make_shaper_1dlut(
         sample_num=lut_1d_sample_num,
         mid_gray=mid_gray, min_expoure=min_expoure, max_exposure=max_exposure)
     make_rrt_odt_3dlut(
         lut_grid_num=lut_3d_grid_num,
-        mid_gray=mid_gray, min_expoure=min_expoure, max_exposure=max_exposure)
+        mid_gray=mid_gray, min_expoure=min_expoure, max_exposure=max_exposure,
+        ctl_list=ctl_list)
 
 
 def make_wrgbmyc_ramp():
@@ -761,7 +766,7 @@ def make_wrgbmyc_ramp():
     return x, img
 
 
-def _plot_rdt_odt_blue_data(x, nuke_b, ctl_b):
+def _plot_rdt_odt_blue_data(x, ctl_b, nuke_b):
     """
     3DLUT と ctlrender の比較プロット
     """
@@ -771,7 +776,7 @@ def _plot_rdt_odt_blue_data(x, nuke_b, ctl_b):
         graph_title="ctlrender vs 3DLUT",
         graph_title_size=None,
         xlabel="Linear",
-        ylabel="After RRT + ODT(sRGB)",
+        ylabel="After RRT",
         axis_label_size=None,
         legend_size=17,
         xlim=None,
@@ -786,12 +791,13 @@ def _plot_rdt_odt_blue_data(x, nuke_b, ctl_b):
     x_val = [1.0 * (2 ** (x - 8)) for x in range(17) if x % 2 == 0]
     x_caption = [r"$1.0 \times 2^{{{}}}$".format(x - 8)
                  for x in range(17) if x % 2 == 0]
+    ax1.set_yscale('log', basey=10.0)
     ax1.plot(x, ctl_b[..., 0], '-', color=RGB_COLOUR_LIST[0], label="CTL R")
     ax1.plot(x, ctl_b[..., 1], '-', color=RGB_COLOUR_LIST[1], label="CTL G")
     ax1.plot(x, ctl_b[..., 2], '-', color=RGB_COLOUR_LIST[2], label="CTL B")
-    ax1.plot(x, nuke_b[..., 0], '--', color=RGB_COLOUR_LIST[0], label="3DLUT R")
-    ax1.plot(x, nuke_b[..., 1], '--', color=RGB_COLOUR_LIST[1], label="3DLUT G")
-    ax1.plot(x, nuke_b[..., 2], '--', color=RGB_COLOUR_LIST[2], label="3DLUT B")
+    ax1.plot(x, nuke_b[..., 0], '--', color=RGB_COLOUR_LIST[3], label="3DLUT -10stops R")
+    ax1.plot(x, nuke_b[..., 1], '--', color=RGB_COLOUR_LIST[4], label="3DLUT -10stops G")
+    ax1.plot(x, nuke_b[..., 2], '--', color=RGB_COLOUR_LIST[5], label="3DLUT -10stops B")
     plt.xticks(x_val, x_caption)
     plt.legend(loc='upper left')
     plt.savefig("ctlrender_vs_3dlut.png", bbox_inches='tight', pad_inches=0.1)
@@ -814,13 +820,14 @@ def plot_ctl_and_3dlut_result():
     exr_file_write(ap0_img, ramp_fname)
 
     # ctlrender で RRT+ODT をかける
-    ctl_list = ["./ctl/rrt/RRT.ctl",
-                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    # ctl_list = ["./ctl/rrt/RRT.ctl",
+    #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    ctl_list = ["./ctl/rrt/RRT.ctl"]
     ctlrrender_ramp_name =\
         apply_ctl_to_exr_image([ramp_fname], ctl_list, out_ext=".exr")[0]
 
     # NUKEで 3DLUT の変換をやっておく
-    nuke_ramp_name = "./wrgbmyc_ramp_nuke_3dlut.exr"
+    nuke_ramp_name = "./wrgbmyc_ramp_nuke_3dlut_rrt_only.exr"
 
     # ctlrender の結果を 3DLUT の結ふファイルを Read
     ctl_img = exr_file_read(ctlrrender_ramp_name)[3, :, :3]
@@ -857,6 +864,7 @@ def experiment_func():
     # img_list = make_rrt_src_exr_files()
     # ctl_list = ["./ctl/rrt/RRT.ctl",
     #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    # ctl_list = ["./ctl/rrt/RRT.ctl"]
     # out_img_name_list = apply_ctl_to_exr_image(img_list, ctl_list)
     # print(out_img_name_list)
 
@@ -882,11 +890,10 @@ def experiment_func():
     #     sample_num=4096,
     #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0)
     # make_rrt_odt_1dlut_and_3dlut(
-    #     lut_1d_sample_num=4096,
-    #     lut_3d_grid_num=65,
-    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
-    #     rrt_ctl="./ctl/rrt/RRT.ctl",
-    #     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
+    #     lut_1d_sample_num=65535,
+    #     lut_3d_grid_num=129,
+    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
+    #     ctl_list=["./ctl/rrt/RRT.ctl"])
     # make_rrt_odt_1dlut_and_3dlut(
     #     lut_1d_sample_num=4096,
     #     lut_3d_grid_num=65,
