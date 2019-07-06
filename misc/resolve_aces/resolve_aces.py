@@ -673,8 +673,8 @@ def make_rrt_odt_3dlut(
     --------
     >>> make_rrt_odt_3dlut(
     ...     mid_gray=0.18, min_expoure=-10.0, max_exposure=1.0,
-    ...     rrt_ctl="./ctl/rrt/RRT.ctl",
-    ...     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
+    ...     ctl_list=["./ctl/rrt/RRT.ctl",
+    ...               "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"])
     """
     temp_exr_name = "./temp_3dlut.exr"
 
@@ -776,7 +776,7 @@ def _plot_rdt_odt_blue_data(x, ctl_b, nuke_b):
         graph_title="ctlrender vs 3DLUT",
         graph_title_size=None,
         xlabel="Linear",
-        ylabel="After RRT",
+        ylabel='After RRT and ODT(init)',
         axis_label_size=None,
         legend_size=17,
         xlim=None,
@@ -788,23 +788,26 @@ def _plot_rdt_odt_blue_data(x, ctl_b, nuke_b):
         minor_xtick_num=None,
         minor_ytick_num=None)
     ax1.set_xscale('log', basex=2.0)
+    ax1.set_yscale('log', basey=10.0)
     x_val = [1.0 * (2 ** (x - 8)) for x in range(17) if x % 2 == 0]
     x_caption = [r"$1.0 \times 2^{{{}}}$".format(x - 8)
                  for x in range(17) if x % 2 == 0]
-    ax1.set_yscale('log', basey=10.0)
     ax1.plot(x, ctl_b[..., 0], '-', color=RGB_COLOUR_LIST[0], label="CTL R")
     ax1.plot(x, ctl_b[..., 1], '-', color=RGB_COLOUR_LIST[1], label="CTL G")
     ax1.plot(x, ctl_b[..., 2], '-', color=RGB_COLOUR_LIST[2], label="CTL B")
-    ax1.plot(x, nuke_b[..., 0], '--', color=RGB_COLOUR_LIST[3], label="3DLUT -10stops R")
-    ax1.plot(x, nuke_b[..., 1], '--', color=RGB_COLOUR_LIST[4], label="3DLUT -10stops G")
-    ax1.plot(x, nuke_b[..., 2], '--', color=RGB_COLOUR_LIST[5], label="3DLUT -10stops B")
+    ax1.plot(x, nuke_b[..., 0], '--', color=RGB_COLOUR_LIST[3], label="3DLUT R")
+    ax1.plot(x, nuke_b[..., 1], '--', color=RGB_COLOUR_LIST[4], label="3DLUT G")
+    ax1.plot(x, nuke_b[..., 2], '--', color=RGB_COLOUR_LIST[5], label="3DLUT B")
     plt.xticks(x_val, x_caption)
     plt.legend(loc='upper left')
-    plt.savefig("ctlrender_vs_3dlut.png", bbox_inches='tight', pad_inches=0.1)
+    plt.savefig("ctlrender_vs_3dlut_init.png", bbox_inches='tight',
+                pad_inches=0.1)
     plt.show()
 
 
-def plot_ctl_and_3dlut_result():
+def plot_ctl_and_3dlut_result(
+        ctl_list=["./ctl/rrt/RRT.ctl",
+                  "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]):
     """
     ctlrender と 3DLUT の結果の差異の分析のために、
     データをプロットしてじっくり比較してみる。
@@ -820,14 +823,11 @@ def plot_ctl_and_3dlut_result():
     exr_file_write(ap0_img, ramp_fname)
 
     # ctlrender で RRT+ODT をかける
-    # ctl_list = ["./ctl/rrt/RRT.ctl",
-    #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
-    ctl_list = ["./ctl/rrt/RRT.ctl"]
     ctlrrender_ramp_name =\
         apply_ctl_to_exr_image([ramp_fname], ctl_list, out_ext=".exr")[0]
 
     # NUKEで 3DLUT の変換をやっておく
-    nuke_ramp_name = "./wrgbmyc_ramp_nuke_3dlut_rrt_only.exr"
+    nuke_ramp_name = "./wrgbmyc_ramp_nuke_3dlut_init_odt.exr"
 
     # ctlrender の結果を 3DLUT の結ふファイルを Read
     ctl_img = exr_file_read(ctlrrender_ramp_name)[3, :, :3]
@@ -881,26 +881,17 @@ def experiment_func():
     # print(shaper_func_linear_to_log2(x=(0.18*(2**4)), mid_gray=0.18,
     #                                  min_exposure=-6.5, max_exposure=4.0))
     # plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0)
-    # make_rrt_odt_3dlut(
-    #     lut_grid_num=65,
-    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
-    #     rrt_ctl="./ctl/rrt/RRT.ctl",
-    #     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
     # make_shaper_1dlut(
     #     sample_num=4096,
     #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0)
+    ctl_list = ["./ctl/rrt/RRT.ctl",
+                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim_tochu.ctl"]    
     # make_rrt_odt_1dlut_and_3dlut(
     #     lut_1d_sample_num=65535,
     #     lut_3d_grid_num=129,
     #     mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
-    #     ctl_list=["./ctl/rrt/RRT.ctl"])
-    # make_rrt_odt_1dlut_and_3dlut(
-    #     lut_1d_sample_num=4096,
-    #     lut_3d_grid_num=65,
-    #     mid_gray=0.18, min_expoure=-6.5, max_exposure=6.5,
-    #     rrt_ctl="./ctl/rrt/RRT.ctl",
-    #     odt_ctl="./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl")
-    plot_ctl_and_3dlut_result()
+    #     ctl_list=ctl_list)
+    plot_ctl_and_3dlut_result(ctl_list=ctl_list)
 
 
 def main_func():
