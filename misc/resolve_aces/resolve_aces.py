@@ -24,7 +24,8 @@ import lut
 
 
 RGB_COLOUR_LIST = ["#FF4800", "#03AF7A", "#005AFF",
-                   "#FF0000", "#00FF00", "#0000FF"]
+                   "#FF0000", "#00FF00", "#0000FF",
+                   "#FF00FF", "#E0FF00", "#00FFFF"]
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
 
@@ -766,7 +767,7 @@ def make_wrgbmyc_ramp():
     return x, img
 
 
-def _plot_rdt_odt_blue_data(x, ctl_b, nuke_b):
+def _plot_rdt_odt_blue_data(x, ctl_b, nuke_b, org):
     """
     3DLUT と ctlrender の比較プロット
     """
@@ -798,6 +799,9 @@ def _plot_rdt_odt_blue_data(x, ctl_b, nuke_b):
     ax1.plot(x, nuke_b[..., 0], '--', color=RGB_COLOUR_LIST[3], label="3DLUT R")
     ax1.plot(x, nuke_b[..., 1], '--', color=RGB_COLOUR_LIST[4], label="3DLUT G")
     ax1.plot(x, nuke_b[..., 2], '--', color=RGB_COLOUR_LIST[5], label="3DLUT B")
+    ax1.plot(x, org[..., 0], '--', color=RGB_COLOUR_LIST[6], label="ORG R")
+    ax1.plot(x, org[..., 1], '--', color=RGB_COLOUR_LIST[7], label="ORG G")
+    ax1.plot(x, org[..., 2], '--', color=RGB_COLOUR_LIST[8], label="ORG B")
     plt.xticks(x_val, x_caption)
     plt.legend(loc='upper left')
     plt.savefig("ctlrender_vs_3dlut_init.png", bbox_inches='tight',
@@ -827,16 +831,17 @@ def plot_ctl_and_3dlut_result(
         apply_ctl_to_exr_image([ramp_fname], ctl_list, out_ext=".exr")[0]
 
     # NUKEで 3DLUT の変換をやっておく
-    nuke_ramp_name = "./wrgbmyc_ramp_nuke_3dlut_init_odt.exr"
+    nuke_ramp_name = "./wrgbmyc_ramp_nuke_3dlut_ap0_to_ap1.exr"
+    org_name = "./wrgbmyc_ramp_nuke_3dlut_init_odt.exr"
 
     # ctlrender の結果を 3DLUT の結ふファイルを Read
     ctl_img = exr_file_read(ctlrrender_ramp_name)[3, :, :3]
     nuke_img = exr_file_read(nuke_ramp_name)[3, :, :3]
+    # org_img = exr_file_read(org_name)[3, :, :3]
+    org_img = ap0_img[3, :, :3]
 
     # Blue のデータをそれぞれプロット
-    print(ctl_img.shape)
-    print(nuke_img.shape)
-    _plot_rdt_odt_blue_data(x, ctl_b=ctl_img, nuke_b=nuke_img)
+    _plot_rdt_odt_blue_data(x, ctl_b=ctl_img, nuke_b=nuke_img, org=org_img)
 
 
 def experiment_func():
@@ -885,13 +890,13 @@ def experiment_func():
     #     sample_num=4096,
     #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0)
     ctl_list = ["./ctl/rrt/RRT.ctl",
-                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim_tochu.ctl"]    
-    # make_rrt_odt_1dlut_and_3dlut(
-    #     lut_1d_sample_num=65535,
-    #     lut_3d_grid_num=129,
-    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
-    #     ctl_list=ctl_list)
-    plot_ctl_and_3dlut_result(ctl_list=ctl_list)
+                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    make_rrt_odt_1dlut_and_3dlut(
+        lut_1d_sample_num=65535,
+        lut_3d_grid_num=129,
+        mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
+        ctl_list=ctl_list)
+    # plot_ctl_and_3dlut_result(ctl_list=ctl_list)
 
 
 def main_func():
