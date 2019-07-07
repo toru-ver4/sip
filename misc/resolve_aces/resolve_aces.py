@@ -28,6 +28,12 @@ RGB_COLOUR_LIST = ["#FF4800", "#03AF7A", "#005AFF",
                    "#FF00FF", "#E0FF00", "#00FFFF"]
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
+OUTPUT_TRANS_P3D65_108NITS_CTL =\
+    "./ctl/outputTransforms/RRTODT.Academy.P3D65_108nits_7.2nits_ST2084.ctl"
+OUTPUT_TRANS_BT2020_1000NITS_CTL =\
+    "./ctl/outputTransforms/RRTODT.Academy.Rec2020_1000nits_15nits_ST2084.ctl"
+OUTPUT_TRANS_BT2020_4000NITS_CTL =\
+    "./ctl/outputTransforms/RRTODT.Academy.Rec2020_4000nits_15nits_ST2084.ctl"
 
 
 def make_primary_value_on_ap0(oetf=tf.GAMMA24):
@@ -486,7 +492,8 @@ def exr_file_write(img, fname):
     writer.write(out_img_type_desc=oiio.FLOAT)
 
 
-def gamut_convert_linear_data(src_img, src_cs_name, dst_cs_name):
+def gamut_convert_linear_data(
+        src_img, src_cs_name, dst_cs_name, ca='XYZ Scaling'):
     """
     Examples
     --------
@@ -495,7 +502,7 @@ def gamut_convert_linear_data(src_img, src_cs_name, dst_cs_name):
                                             'ITU-R BT.709', 'ACES2065-1')
     >>> exr_file_write(dst_img, "src_bt709_to_ap0.exr")
     """
-    chromatic_adaptation = 'XYZ Scaling'
+    chromatic_adaptation = ca
     src_cs = RGB_COLOURSPACES[src_cs_name]
     dst_cs = RGB_COLOURSPACES[dst_cs_name]
     dst_img = RGB_to_RGB(src_img, src_cs, dst_cs, chromatic_adaptation)
@@ -743,7 +750,8 @@ def make_rrt_odt_1dlut_and_3dlut(
         ctl_list=ctl_list)
 
 
-def make_wrgbmyc_ramp():
+def make_wrgbmyc_ramp(
+        sample_num=1920, ref_val=1.0, min_exposure=-8.0, max_exposure=8.0):
     """
     3DLUT と ctlrender の結果比較用に Rampパターンを作る。
     ramp image を返す。
@@ -753,7 +761,8 @@ def make_wrgbmyc_ramp():
     >>> img = make_wrgbmyc_ramp()
     """
     x = tpg.get_log2_x_scale(
-        sample_num=1920, ref_val=1.0, min_exposure=-8.0, max_exposure=8.0)
+        sample_num=sample_num, ref_val=ref_val,
+        min_exposure=min_exposure, max_exposure=max_exposure)
     z = np.zeros_like(x)
     w = np.dstack([x, x, x])
     r = np.dstack([x, z, z])
@@ -817,7 +826,8 @@ def plot_ctl_and_3dlut_result(
     データをプロットしてじっくり比較してみる。
     """
     # 画像データ作成。1920x7。WRGBMYCのRamp
-    x, img = make_wrgbmyc_ramp()
+    x, img = make_wrgbmyc_ramp(
+        sample_num=1920, ref_val=1.0, min_exposure=-8.0, max_exposure=8.0)
 
     # BT.2020 --> AP0 への変換
     ap0_img = gamut_convert_linear_data(img, cs.BT2020, cs.ACES_AP0)
@@ -844,59 +854,109 @@ def plot_ctl_and_3dlut_result(
     _plot_rdt_odt_blue_data(x, ctl_b=ctl_img, nuke_b=nuke_img, org=org_img)
 
 
+def get_after_ctl_image(
+        src_img_name,
+        ctl_list=["./ctl/rrt/RRT.ctl",
+                  "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]):
+    """
+    CTL実行後にファイルを開いて返す。
+
+    Examples
+    --------
+    >>> ap0_img = gamut_convert_linear_data(
+    ...     img, cs.P3_D65, cs.ACES_AP0, ca='CAT02')
+    >>> ramp_fname = "./wrgbmyc_ramp_for_dolby_cinema.exr"
+    >>> exr_file_write(ap0_img, ramp_fname)
+    >>> img = get_after_ctl_image(ramp_fname, OUTPUT_TRANS_P3D65_108NITS)
+    """
+    ctlrrender_after_name =\
+        apply_ctl_to_exr_image([src_img_name], ctl_list, out_ext=".exr")[0]
+    img = exr_file_read(ctlrrender_after_name)[0, :, :3]
+
+    return img
+
+
+def _plot_comparison_between_1000nits_and_108nits(
+        x, ot_108_img, ot_1000_img,
+        x_min_exposure, x_max_exposure):
+    ax1 = pu.plot_1_graph(
+        fontsize=20,
+        figsize=(16, 10),
+        graph_title="OutputTrasform comparison",
+        graph_title_size=None,
+        xlabel="Linear (center is 18% gray)",
+        ylabel='PQ Code Value',
+        axis_label_size=None,
+        legend_size=20,
+        xlim=None,
+        ylim=None,
+        xtick=None,
+        ytick=None,
+        xtick_size=16, ytick_size=None,
+        linewidth=3,
+        minor_xtick_num=None,
+        minor_ytick_num=None)
+    ax1.set_xscale('log', basex=2.0)
+    # ax1.set_yscale('log', basey=10.0)
+    x_val_num = x_max_exposure - x_min_exposure + 1
+    x_val = [0.18 * (2 ** (x + x_min_exposure))
+             for x in range(x_val_num) if x % 2 == 0]
+    x_caption = [r"$0.18 \times 2^{{{}}}$".format(x + x_min_exposure)
+                 for x in range(x_val_num) if x % 2 == 0]
+    ax1.plot(x, ot_108_img[..., 1], '-', color=RGB_COLOUR_LIST[0],
+             label="Output Transform P3D65 108nits")
+    ax1.plot(x, ot_1000_img[..., 1], '-', color=RGB_COLOUR_LIST[1],
+             label="Output Transform BT2020 1000nits")
+    plt.xticks(x_val, x_caption)
+    plt.legend(loc='upper left')
+    plt.savefig("comparison_108_vs_1000.png", bbox_inches='tight',
+                pad_inches=0.1)
+    plt.show()
+
+
+def comparison_between_1000nits_and_108nits(
+        min_exposure=-10.0, max_exposure=10.0):
+    """
+    Output Transforms の 1000nits と 108nits の結果を比較してみる
+    """
+    x, img = make_wrgbmyc_ramp(
+        sample_num=1920, ref_val=0.18,
+        min_exposure=min_exposure, max_exposure=max_exposure)
+
+    # P3-D65 --> AP0 への変換
+    ap0_img = gamut_convert_linear_data(img, cs.P3_D65, cs.ACES_AP0, ca='CAT02')
+    ramp_fname = "./wrgbmyc_ramp_for_dolby_cinema.exr"
+    exr_file_write(ap0_img, ramp_fname)
+
+    # ctlrender で 108nits 変換を実行
+    ctl_list = [OUTPUT_TRANS_P3D65_108NITS_CTL]
+    ot_108_img = get_after_ctl_image(ramp_fname, ctl_list)
+
+    # ctlrender で 1000nits 変換を実行
+    ctl_list = [OUTPUT_TRANS_BT2020_1000NITS_CTL]
+    ot_1000_img = get_after_ctl_image(ramp_fname, ctl_list)
+
+    _plot_comparison_between_1000nits_and_108nits(
+        x, ot_108_img=ot_108_img, ot_1000_img=ot_1000_img,
+        x_min_exposure=int(min_exposure), x_max_exposure=int(max_exposure))
+
+
 def experiment_func():
-    # data = make_primary_value_on_ap0()
-    # print_table_ap0_rgb_value(data)
-    # RGB = np.array([1023, 100, 0], dtype=np.uint16)
-    # print(RGB)
-    # print(_np_split_with_comma(RGB))
-    # plot_ap0_ap1()
-    # tpg.plot_chromaticity_diagram(xmin=-0.1, xmax=0.8, ymin=-0.1, ymax=1.05)
-    # data = {"ACES AP0": np.array([[100, 0, 0], [0, 100, 0], [0, 0, 100]]),
-    #         "BT.709": np.array([[70, 20, 10], [10, 70, 20], [20, 10, 70]]),
-    #         "BT.2020": np.array([[85, 10, 5], [5, 85, 10], [10, 5, 85]])}
-    # plot_rgb_stacked_bar_graph(data)
-    # rgb = get_from_white_to_primary_rgb_value(
-    #     'green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
-    # print(rgb)
-    # plot_from_white_to_primary_rgb_value(
-    #     'green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
-    # plot_from_white_to_primary_rgb_value_with_bar(
-    #     primary_color='green', step=5, name=cs.BT709, oetf_name=tf.GAMMA24)
-    # plot_converted_primaries_with_bar()
-
-    # make
-    # img_list = make_rrt_src_exr_files()
-    # ctl_list = ["./ctl/rrt/RRT.ctl",
-    #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
-    # ctl_list = ["./ctl/rrt/RRT.ctl"]
-    # out_img_name_list = apply_ctl_to_exr_image(img_list, ctl_list)
-    # print(out_img_name_list)
-
-    # 3dlut
-    # shaper_func_log2_to_linear(np.linspace(0, 1, 1024))
-    # y = shaper_func_log2_to_linear(
-    #     np.array([-0.0, 0.18, 1.0]), mid_gray=0.18, min_exposure=-6.5,
-    #     max_exposure=6.5)
-    # print(y)
-    # x = np.array([0.00198873782209, 16.2917402385])
-    # y2 = shaper_func_linear_to_log2(
-    #     x, mid_gray=0.18, min_exposure=-6.5, max_exposure=6.5)
-    # print(y2)
     # print(shaper_func_linear_to_log2(x=(0.18*(2**4)), mid_gray=0.18,
     #                                  min_exposure=-6.5, max_exposure=4.0))
     # plot_shaper_func(mid_gray=0.18, min_exposure=-6.0, max_exposure=6.0)
     # make_shaper_1dlut(
     #     sample_num=4096,
     #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0)
-    ctl_list = ["./ctl/rrt/RRT.ctl",
-                "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
-    make_rrt_odt_1dlut_and_3dlut(
-        lut_1d_sample_num=65535,
-        lut_3d_grid_num=129,
-        mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
-        ctl_list=ctl_list)
+    # ctl_list = ["./ctl/rrt/RRT.ctl",
+    #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    # make_rrt_odt_1dlut_and_3dlut(
+    #     lut_1d_sample_num=65535,
+    #     lut_3d_grid_num=129,
+    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
+    #     ctl_list=ctl_list)
     # plot_ctl_and_3dlut_result(ctl_list=ctl_list)
+    comparison_between_1000nits_and_108nits()
 
 
 def main_func():
