@@ -13,6 +13,7 @@ from colour.colorimetry import ILLUMINANTS
 from sympy import Symbol
 from subprocess import run
 import OpenImageIO as oiio
+import transfer_functions as tf
 
 # original libraty
 import transfer_functions as tf
@@ -871,7 +872,7 @@ def get_after_ctl_image(
     """
     ctlrrender_after_name =\
         apply_ctl_to_exr_image([src_img_name], ctl_list, out_ext=".exr")[0]
-    img = exr_file_read(ctlrrender_after_name)[0, :, :3]
+    img = exr_file_read(ctlrrender_after_name)
 
     return img
 
@@ -885,7 +886,7 @@ def _plot_comparison_between_1000nits_and_108nits(
         graph_title="OutputTrasform comparison",
         graph_title_size=None,
         xlabel="Linear (center is 18% gray)",
-        ylabel='PQ Code Value',
+        ylabel='Luminance [nits]',
         axis_label_size=None,
         legend_size=20,
         xlim=None,
@@ -897,7 +898,7 @@ def _plot_comparison_between_1000nits_and_108nits(
         minor_xtick_num=None,
         minor_ytick_num=None)
     ax1.set_xscale('log', basex=2.0)
-    # ax1.set_yscale('log', basey=10.0)
+    ax1.set_yscale('log', basey=10.0)
     x_val_num = x_max_exposure - x_min_exposure + 1
     x_val = [0.18 * (2 ** (x + x_min_exposure))
              for x in range(x_val_num) if x % 2 == 0]
@@ -930,12 +931,16 @@ def comparison_between_1000nits_and_108nits(
 
     # ctlrender で 108nits 変換を実行
     ctl_list = [OUTPUT_TRANS_P3D65_108NITS_CTL]
-    ot_108_img = get_after_ctl_image(ramp_fname, ctl_list)
+    ot_108_img = get_after_ctl_image(ramp_fname, ctl_list)[0, :, :3]
 
     # ctlrender で 1000nits 変換を実行
     ctl_list = [OUTPUT_TRANS_BT2020_1000NITS_CTL]
-    ot_1000_img = get_after_ctl_image(ramp_fname, ctl_list)
+    ot_1000_img = get_after_ctl_image(ramp_fname, ctl_list)[0, :, :3]
 
+    ot_108_img = tf.eotf_to_luminance(ot_108_img, tf.ST2084)
+    ot_1000_img = tf.eotf_to_luminance(ot_1000_img, tf.ST2084)
+    print(ot_108_img[960, 1])
+    print(ot_1000_img[960, 1])
     _plot_comparison_between_1000nits_and_108nits(
         x, ot_108_img=ot_108_img, ot_1000_img=ot_1000_img,
         x_min_exposure=int(min_exposure), x_max_exposure=int(max_exposure))
