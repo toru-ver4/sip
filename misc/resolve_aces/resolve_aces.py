@@ -27,6 +27,7 @@ import lut
 RGB_COLOUR_LIST = ["#FF4800", "#03AF7A", "#005AFF",
                    "#FF0000", "#00FF00", "#0000FF",
                    "#FF00FF", "#E0FF00", "#00FFFF"]
+COLOR_NAME_LIST = ["White", "Red", "Green", "Blue"]
 CMFS_NAME = 'CIE 1931 2 Degree Standard Observer'
 D65_WHITE = ILLUMINANTS[CMFS_NAME]['D65']
 OUTPUT_TRANS_P3D65_108NITS_CTL =\
@@ -899,19 +900,77 @@ def _plot_comparison_between_1000nits_and_108nits(
         minor_ytick_num=None)
     ax1.set_xscale('log', basex=2.0)
     ax1.set_yscale('log', basey=10.0)
+    y_600nits = np.ones_like(x) * 600
     x_val_num = x_max_exposure - x_min_exposure + 1
     x_val = [0.18 * (2 ** (x + x_min_exposure))
              for x in range(x_val_num) if x % 2 == 0]
     x_caption = [r"$0.18 \times 2^{{{}}}$".format(x + x_min_exposure)
                  for x in range(x_val_num) if x % 2 == 0]
-    ax1.plot(x, ot_108_img[..., 1], '-', color=RGB_COLOUR_LIST[0],
+    ax1.plot(x, ot_108_img[..., 1], '-', color='k',
              label="Output Transform P3D65 108nits")
-    ax1.plot(x, ot_1000_img[..., 1], '-', color=RGB_COLOUR_LIST[1],
+    ax1.plot(x, ot_1000_img[..., 1], '--', color='k',
              label="Output Transform BT2020 1000nits")
+    ax1.plot(x, y_600nits, '-', color="#606060",
+             label="600nits", lw=1)
     plt.xticks(x_val, x_caption)
     plt.legend(loc='upper left')
     plt.savefig("comparison_108_vs_1000.png", bbox_inches='tight',
                 pad_inches=0.1)
+    plt.show()
+
+
+def _plot_comparison_between_1000nits_and_108nits_primaries(
+        x, color_idx, cs_name, min_value, max_value,
+        ot_108_img, ot_1000_img,
+        x_min_exposure, x_max_exposure):
+    title_base = "OutputTrasform comparison {}_{}"
+    title_str = title_base.format(cs_name, COLOR_NAME_LIST[color_idx])
+    ax1 = pu.plot_1_graph(
+        fontsize=20,
+        figsize=(16, 10),
+        graph_title=title_str,
+        graph_title_size=None,
+        xlabel="Linear (center is 18% gray)",
+        ylabel='Luminance [nits]',
+        axis_label_size=None,
+        legend_size=20,
+        xlim=None,
+        ylim=(min_value, max_value),
+        xtick=None,
+        ytick=None,
+        xtick_size=16, ytick_size=None,
+        linewidth=3,
+        minor_xtick_num=None,
+        minor_ytick_num=None)
+    ax1.set_xscale('log', basex=2.0)
+    ax1.set_yscale('log', basey=10.0)
+    y_600nits = np.ones_like(x) * 600
+    x_val_num = x_max_exposure - x_min_exposure + 1
+    x_val = [0.18 * (2 ** (x + x_min_exposure))
+             for x in range(x_val_num) if x % 2 == 0]
+    x_caption = [r"$0.18 \times 2^{{{}}}$".format(x + x_min_exposure)
+                 for x in range(x_val_num) if x % 2 == 0]
+    ax1.plot(x, ot_1000_img[color_idx, :, 0], '-', color=RGB_COLOUR_LIST[0],
+             label="Output Transform BT2020 1000nits")
+    ax1.plot(x, ot_1000_img[color_idx, :, 1], '-', color=RGB_COLOUR_LIST[1],
+             label="Output Transform BT2020 1000nits")
+    ax1.plot(x, ot_1000_img[color_idx, :, 2], '-', color=RGB_COLOUR_LIST[2],
+             label="Output Transform BT2020 1000nits")
+
+    ax1.plot(x, ot_108_img[color_idx, :, 0], '--', color=RGB_COLOUR_LIST[0],
+             label="Output Transform P3D65 108nits")
+    ax1.plot(x, ot_108_img[color_idx, :, 1], '--', color=RGB_COLOUR_LIST[1],
+             label="Output Transform P3D65 108nits")
+    ax1.plot(x, ot_108_img[color_idx, :, 2], '--', color=RGB_COLOUR_LIST[2],
+             label="Output Transform P3D65 108nits")
+    ax1.plot(x, y_600nits, '-', color="#606060",
+             label="600nits", lw=1)
+
+    plt.xticks(x_val, x_caption)
+    plt.legend(loc='upper left')
+    img_name_base = "comparison_108_vs_1000_primaries_{}_{}.png"
+    img_name = img_name_base.format(cs_name, COLOR_NAME_LIST[color_idx])
+    plt.savefig(img_name, bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 
@@ -939,11 +998,53 @@ def comparison_between_1000nits_and_108nits(
 
     ot_108_img = tf.eotf_to_luminance(ot_108_img, tf.ST2084)
     ot_1000_img = tf.eotf_to_luminance(ot_1000_img, tf.ST2084)
-    print(ot_108_img[960, 1])
-    print(ot_1000_img[960, 1])
     _plot_comparison_between_1000nits_and_108nits(
         x, ot_108_img=ot_108_img, ot_1000_img=ot_1000_img,
         x_min_exposure=int(min_exposure), x_max_exposure=int(max_exposure))
+
+
+def comparison_between_1000nits_and_108nits_primaries(
+        min_exposure=-10.0, max_exposure=10.0, src_cs=cs.BT709):
+    """
+    Output Transforms の 1000nits と 108nits の結果を比較してみる。
+    今回は Primary版。
+    """
+    x, img = make_wrgbmyc_ramp(
+        sample_num=1920, ref_val=0.18,
+        min_exposure=min_exposure, max_exposure=max_exposure)
+
+    # src_cs --> AP0 への変換
+    ap0_img = gamut_convert_linear_data(img, src_cs, cs.ACES_AP0, ca='CAT02')
+    ramp_fname = "./wrgbmyc_ramp_for_dolby_cinema.exr"
+    exr_file_write(ap0_img, ramp_fname)
+
+    # ctlrender で 108nits 変換を実行
+    ctl_list = [OUTPUT_TRANS_P3D65_108NITS_CTL]
+    ot_108_img = get_after_ctl_image(ramp_fname, ctl_list)[:, :, :3]
+
+    # ctlrender で 1000nits 変換を実行
+    ctl_list = [OUTPUT_TRANS_BT2020_1000NITS_CTL]
+    ot_1000_img = get_after_ctl_image(ramp_fname, ctl_list)[:, :, :3]
+
+    ot_108_img = tf.eotf_to_luminance(ot_108_img, tf.ST2084)
+    ot_1000_img = tf.eotf_to_luminance(ot_1000_img, tf.ST2084)
+
+    # 1000nits のやつは DCI-P3 色域にする。108nitsと色域を合わせるために
+    ot_1000_img = gamut_convert_linear_data(
+        ot_1000_img / 10000, cs.BT2020, cs.P3_D65, ca='CAT02')
+    ot_1000_img = ot_1000_img * 10000
+
+    min_value = np.min(ot_108_img[0, :, :]) / 2
+    max_value = np.max(ot_1000_img[0, :, :]) * 2
+
+    print(min_value, max_value)
+
+    for color_idx in range(len(COLOR_NAME_LIST)):
+        _plot_comparison_between_1000nits_and_108nits_primaries(
+            x, color_idx, src_cs, min_value, max_value,
+            ot_108_img=ot_108_img, ot_1000_img=ot_1000_img,
+            x_min_exposure=int(min_exposure),
+            x_max_exposure=int(max_exposure))
 
 
 def make_cinema_picture_on_sRGB():
@@ -992,7 +1093,6 @@ def analyze_error_between_3dlut_and_ctl():
     # 比較用のテストパターン作成
     test_pattern_name = "./pattern_3dlut_ctl_diff_ana.exr"
     make_tp_for_analyze_error_between_3dlut_and_ctl(test_pattern_name)
-    
 
     # 3DLUT と CTL の差分計算＆可視化
 
@@ -1012,8 +1112,13 @@ def experiment_func():
     #     mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
     #     ctl_list=ctl_list)
     # plot_ctl_and_3dlut_result(ctl_list=ctl_list)
-    # comparison_between_1000nits_and_108nits()
-    make_cinema_picture_on_sRGB()
+    # comparison_between_1000nits_and_108nits(
+    #     min_exposure=-6.0, max_exposure=10.0)
+    # make_cinema_picture_on_sRGB()
+    # analyze_error_between_3dlut_and_ctl()
+    comparison_between_1000nits_and_108nits_primaries(
+        min_exposure=-6.0, max_exposure=10.0, src_cs=cs.P3_D65)
+
 
 
 def main_func():
