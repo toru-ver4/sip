@@ -13,7 +13,7 @@ from colour.colorimetry import ILLUMINANTS
 from sympy import Symbol
 from subprocess import run
 import OpenImageIO as oiio
-import transfer_functions as tf
+import cv2
 
 # original libraty
 import transfer_functions as tf
@@ -946,6 +946,57 @@ def comparison_between_1000nits_and_108nits(
         x_min_exposure=int(min_exposure), x_max_exposure=int(max_exposure))
 
 
+def make_cinema_picture_on_sRGB():
+    """
+    1000nits と 108nits の Output Transform を当てた画像を
+    sRGB のガンマに載せ替えて普通のモニターで見られるようにする。
+    """
+    # 作成済みの TestPattern に OutputTransform を適用
+    src_img_name = "./src_img/src_bt2020_to_ap0.exr"
+    ctl_108 = [OUTPUT_TRANS_P3D65_108NITS_CTL]
+    ctl_1000 = [OUTPUT_TRANS_BT2020_1000NITS_CTL]
+    ot_108_img = get_after_ctl_image(src_img_name, ctl_108)[:, :, :3]
+    ot_1000_img = get_after_ctl_image(src_img_name, ctl_1000)[:, :, :3]
+
+    # Linear に戻す
+    ot_108_img = tf.eotf_to_luminance(ot_108_img, tf.ST2084) / 108
+    ot_1000_img = tf.eotf_to_luminance(ot_1000_img, tf.ST2084) / 1000
+    
+    # clipping
+    ot_108_img = np.clip(ot_108_img, 0.0, 1.0)
+    ot_1000_img = np.clip(ot_1000_img, 0.0, 1.0)
+
+    # sRGB がガンマに載せ替える
+    ot_108_img = tf.oetf(ot_108_img, tf.SRGB)
+    ot_1000_img = tf.oetf(ot_1000_img, tf.SRGB)
+
+    # 保存
+    cv2.imwrite("./108_sRGB.png", np.uint8(np.round(ot_108_img * 0xFF))[:, :, ::-1])
+    cv2.imwrite("./1000_sRGB.png", np.uint8(np.round(ot_1000_img * 0xFF))[:, :, ::-1])
+
+
+def make_tp_for_analyze_error_between_3dlut_and_ctl(test_pattern_name):
+    img_base = np.zeros((1080 * 1920, 3), dtype=np.float32)
+    grid_num = 127
+    lut_img = tpg.get_3d_grid_cube_format(grid_num)
+    img_base[:grid_num**3, :] = lut_img
+
+
+def analyze_error_between_3dlut_and_ctl():
+    """
+    3DLUTとCTLとの差が、どの色で起こりやすいのかを調査する。
+    以下の2処理から成る。
+    * 調査用のテストパターン作成
+    * 3DLUT と CTL の差分計算＆可視化
+    """
+    # 比較用のテストパターン作成
+    test_pattern_name = "./pattern_3dlut_ctl_diff_ana.exr"
+    make_tp_for_analyze_error_between_3dlut_and_ctl(test_pattern_name)
+    
+
+    # 3DLUT と CTL の差分計算＆可視化
+
+
 def experiment_func():
     # print(shaper_func_linear_to_log2(x=(0.18*(2**4)), mid_gray=0.18,
     #                                  min_exposure=-6.5, max_exposure=4.0))
@@ -961,7 +1012,8 @@ def experiment_func():
     #     mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
     #     ctl_list=ctl_list)
     # plot_ctl_and_3dlut_result(ctl_list=ctl_list)
-    comparison_between_1000nits_and_108nits()
+    # comparison_between_1000nits_and_108nits()
+    make_cinema_picture_on_sRGB()
 
 
 def main_func():
