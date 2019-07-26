@@ -476,6 +476,25 @@ def apply_ctl_to_exr_image(img_list, ctl_list, out_ext=".tiff"):
     return [make_dst_name(src, ctl_list, out_ext) for src in img_list]
 
 
+def tiff_img_read(filename):
+    """
+    OpenCV の BGR 配列が怖いので並べ替えるwrapperを用意。
+    """
+    img = cv2.imread(filename, cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
+
+    if img is not None:
+        return img[:, :, ::-1]
+    else:
+        return img
+
+
+def tiff_img_write(filename, img):
+    """
+    OpenCV の BGR 配列が怖いので並べ替えるwrapperを用意。
+    """
+    cv2.imwrite(filename, img[:, :, ::-1])
+
+
 def exr_file_read(fname):
     reader = tyio.TyReader(fname)
     return reader.read()
@@ -1062,7 +1081,7 @@ def make_cinema_picture_on_sRGB():
     # Linear に戻す
     ot_108_img = tf.eotf_to_luminance(ot_108_img, tf.ST2084) / 108
     ot_1000_img = tf.eotf_to_luminance(ot_1000_img, tf.ST2084) / 1000
-    
+
     # clipping
     ot_108_img = np.clip(ot_108_img, 0.0, 1.0)
     ot_1000_img = np.clip(ot_1000_img, 0.0, 1.0)
@@ -1080,7 +1099,52 @@ def make_tp_for_analyze_error_between_3dlut_and_ctl(test_pattern_name):
     img_base = np.zeros((1080 * 1920, 3), dtype=np.float32)
     grid_num = 127
     lut_img = tpg.get_3d_grid_cube_format(grid_num)
+    lut_img = tpg.shaper_func_log2_to_linear(
+        lut_img, mid_gray=0.18, min_exposure=-8.0, max_exposure=9.0)
     img_base[:grid_num**3, :] = lut_img
+    img_base = gamut_convert_linear_data(img_base, cs.BT2020, cs.ACES_AP0)
+    img_base = img_base.reshape((1080, 1920, 3))
+    exr_file_write(img_base, test_pattern_name)
+
+
+def calc_error_between_3dlut_and_ctl(ana_error_ctl_name, ana_error_3dlut_name):
+    img_ctl = np.float64(exr_file_read(ana_error_ctl_name))[:, :, :3]
+    img_3dlut = np.float64(exr_file_read(ana_error_3dlut_name))[:, :, :3]
+    diff = np.zeros_like(img_ctl)
+    ok_idx = (img_ctl > 0)
+    diff[ok_idx] = (img_ctl[ok_idx] - img_3dlut[ok_idx]) / img_ctl[ok_idx]
+    # diff[ok_idx] = (img_ctl[ok_idx] - img_3dlut[ok_idx])
+
+    # SQRT算出
+    diff_sqrt = (diff[..., 0] ** 2) + (diff[..., 1] ** 2) + (diff[..., 2] ** 2)
+    diff_sqrt = diff_sqrt ** 0.5
+
+    # 後の作業をやりやすくするため1次元にする
+    diff_sqrt = np.reshape(diff_sqrt, (1080 * 1920))
+    org_img = np.reshape(img_ctl.copy(), (1080 * 1920, 3))
+    lut_img = np.reshape(img_3dlut.copy(), (1080 * 1920, 3))
+
+    # 全体抽出
+    # sorted_idx = np.argsort(diff_sqrt)[::-1]
+    sorted_idx = np.argsort(diff_sqrt)
+    sorted_img = np.reshape(org_img[sorted_idx, :], (1080, 1920, 3))
+    tiff_img_write("./sorted_img.tiff", np.uint16(sorted_img * 0xFFFF))
+
+    # TOP 65536 の発表
+    width = 128
+    height = 128
+    ctl_img_top = org_img[sorted_idx, :][:width*height, :]
+    lut_img_top = lut_img[sorted_idx, :][:width*height, :]
+    sorted_img_ctl = np.reshape(ctl_img_top, (height, width, 3))
+    sorted_img_ctl = cv2.resize(sorted_img_ctl, (height*8, width*8),
+                                interpolation=cv2.INTER_NEAREST)
+    sorted_img_lut = np.reshape(lut_img_top, (height, width, 3))
+    sorted_img_lut = cv2.resize(sorted_img_lut, (height*8, width*8),
+                                interpolation=cv2.INTER_NEAREST)
+    tiff_img_write("./sorted_img_top_ctl.tiff",
+                   np.uint16(sorted_img_ctl * 0xFFFF))
+    tiff_img_write("./sorted_img_top_3dlut.tiff",
+                   np.uint16(sorted_img_lut * 0xFFFF))
 
 
 def analyze_error_between_3dlut_and_ctl():
@@ -1095,6 +1159,19 @@ def analyze_error_between_3dlut_and_ctl():
     make_tp_for_analyze_error_between_3dlut_and_ctl(test_pattern_name)
 
     # 3DLUT と CTL の差分計算＆可視化
+    # img_list = [test_pattern_name]
+    # ctl_list = ["./ctl/rrt/RRT.ctl",
+    #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
+    # ana_error_ctl_name = apply_ctl_to_exr_image(
+    #     img_list, ctl_list, out_ext=".exr")[0]
+    ana_error_ctl_name = "./pattern_3dlut_ctl_diff_ana_RRT_ODT.Academy.sRGB_100nits_dim.exr"
+
+    # NUKEで ```test_pattern_name``` の exr ファイルを 3dlut で変換しておく
+    # 変換後のファイル名は ```ana_error_3dlut_name = ./ana_error_3dlut.exr```
+    ana_error_3dlut_name = "./ana_error_3dlut.exr"
+
+    calc_error_between_3dlut_and_ctl(ana_error_ctl_name,
+                                     ana_error_3dlut_name)
 
 
 def experiment_func():
@@ -1109,16 +1186,15 @@ def experiment_func():
     # make_rrt_odt_1dlut_and_3dlut(
     #     lut_1d_sample_num=65535,
     #     lut_3d_grid_num=129,
-    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=12.0,
+    #     mid_gray=0.18, min_expoure=-10.0, max_exposure=10.0,
     #     ctl_list=ctl_list)
     # plot_ctl_and_3dlut_result(ctl_list=ctl_list)
     # comparison_between_1000nits_and_108nits(
     #     min_exposure=-6.0, max_exposure=10.0)
     # make_cinema_picture_on_sRGB()
-    # analyze_error_between_3dlut_and_ctl()
-    comparison_between_1000nits_and_108nits_primaries(
-        min_exposure=-6.0, max_exposure=10.0, src_cs=cs.P3_D65)
-
+    analyze_error_between_3dlut_and_ctl()
+    # comparison_between_1000nits_and_108nits_primaries(
+    #     min_exposure=-6.0, max_exposure=10.0, src_cs=cs.P3_D65)
 
 
 def main_func():
