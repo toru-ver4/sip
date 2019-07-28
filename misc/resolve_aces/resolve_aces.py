@@ -476,19 +476,19 @@ def apply_ctl_to_exr_image(img_list, ctl_list, out_ext=".tiff"):
     return [make_dst_name(src, ctl_list, out_ext) for src in img_list]
 
 
-def tiff_img_read(filename):
+def tiff_file_read(filename):
     """
     OpenCV の BGR 配列が怖いので並べ替えるwrapperを用意。
     """
     img = cv2.imread(filename, cv2.IMREAD_ANYDEPTH | cv2.IMREAD_COLOR)
 
     if img is not None:
-        return img[:, :, ::-1]
+        return img[:, :, ::-1] / 0xFFFF
     else:
         return img
 
 
-def tiff_img_write(filename, img):
+def tiff_file_write(filename, img):
     """
     OpenCV の BGR 配列が怖いので並べ替えるwrapperを用意。
     """
@@ -1107,44 +1107,68 @@ def make_tp_for_analyze_error_between_3dlut_and_ctl(test_pattern_name):
     exr_file_write(img_base, test_pattern_name)
 
 
+def calc_root_mean_square_eror(diff):
+    r, g, b = np.dsplit(diff, 3)
+    square_error = (r ** 2) + (g ** 2) + (b ** 2)
+    sqrt = square_error ** 0.5
+
+    return sqrt
+
+
+def make_top_xxx_diff_img(sorted_img, width, height):
+    """
+    sort済みの画像から上位xxx個の画像を生成する。
+    """
+    top_xxx_img = sorted_img[:, :width*height, :]
+    top_xxx_img = np.reshape(top_xxx_img, (height, width, 3))
+    top_xxx_img = cv2.resize(top_xxx_img, (height*8, width*8),
+                             interpolation=cv2.INTER_NEAREST)
+    return top_xxx_img
+
+
 def calc_error_between_3dlut_and_ctl(ana_error_ctl_name, ana_error_3dlut_name):
-    img_ctl = np.float64(exr_file_read(ana_error_ctl_name))[:, :, :3]
-    img_3dlut = np.float64(exr_file_read(ana_error_3dlut_name))[:, :, :3]
+    img_ctl = np.float64(tiff_file_read(ana_error_ctl_name))[:, :, :3]
+    img_ctl = np.reshape(img_ctl, (1, 1080 * 1920, 3))
+    img_3dlut = np.float64(tiff_file_read(ana_error_3dlut_name))[:, :, :3]
+    img_3dlut = np.reshape(img_3dlut, (1, 1080 * 1920, 3))
     diff = np.zeros_like(img_ctl)
     ok_idx = (img_ctl > 0)
     diff[ok_idx] = (img_ctl[ok_idx] - img_3dlut[ok_idx]) / img_ctl[ok_idx]
     # diff[ok_idx] = (img_ctl[ok_idx] - img_3dlut[ok_idx])
 
-    # SQRT算出
-    diff_sqrt = (diff[..., 0] ** 2) + (diff[..., 1] ** 2) + (diff[..., 2] ** 2)
-    diff_sqrt = diff_sqrt ** 0.5
+    # RMSE算出
+    diff_sqrt = calc_root_mean_square_eror(diff)
+    print(diff_sqrt.shape)
 
     # 後の作業をやりやすくするため1次元にする
     diff_sqrt = np.reshape(diff_sqrt, (1080 * 1920))
-    org_img = np.reshape(img_ctl.copy(), (1080 * 1920, 3))
-    lut_img = np.reshape(img_3dlut.copy(), (1080 * 1920, 3))
+    # org_img = np.reshape(img_ctl.copy(), (1080 * 1920, 3))
+    # lut_img = np.reshape(img_3dlut.copy(), (1080 * 1920, 3))
 
     # 全体抽出
     # sorted_idx = np.argsort(diff_sqrt)[::-1]
     sorted_idx = np.argsort(diff_sqrt)
-    sorted_img = np.reshape(org_img[sorted_idx, :], (1080, 1920, 3))
-    tiff_img_write("./sorted_img.tiff", np.uint16(sorted_img * 0xFFFF))
+    print(sorted_idx.shape)
+    print(img_ctl.shape)
+    print(img_ctl[0, 1544852, :])
+    sorted_ctl_img = img_ctl[:, sorted_idx, :]
+    sorted_lut_img = img_3dlut[:, sorted_idx, :]
+    tiff_file_write(
+        "./sorted_img_ctl.tiff",
+        np.uint16(np.reshape(sorted_ctl_img, (1080, 1920, 3)) * 0xFFFF))
+    tiff_file_write(
+        "./sorted_img_lut.tiff",
+        np.uint16(np.reshape(sorted_lut_img, (1080, 1920, 3)) * 0xFFFF))
 
     # TOP 65536 の発表
     width = 128
     height = 128
-    ctl_img_top = org_img[sorted_idx, :][:width*height, :]
-    lut_img_top = lut_img[sorted_idx, :][:width*height, :]
-    sorted_img_ctl = np.reshape(ctl_img_top, (height, width, 3))
-    sorted_img_ctl = cv2.resize(sorted_img_ctl, (height*8, width*8),
-                                interpolation=cv2.INTER_NEAREST)
-    sorted_img_lut = np.reshape(lut_img_top, (height, width, 3))
-    sorted_img_lut = cv2.resize(sorted_img_lut, (height*8, width*8),
-                                interpolation=cv2.INTER_NEAREST)
-    tiff_img_write("./sorted_img_top_ctl.tiff",
-                   np.uint16(sorted_img_ctl * 0xFFFF))
-    tiff_img_write("./sorted_img_top_3dlut.tiff",
-                   np.uint16(sorted_img_lut * 0xFFFF))
+    top_xxx_ctl_img = make_top_xxx_diff_img(sorted_ctl_img, width, height)
+    top_xxx_lut_img = make_top_xxx_diff_img(sorted_lut_img, width, height)
+    tiff_file_write("./sorted_img_top_ctl.tiff",
+                    np.uint16(top_xxx_ctl_img * 0xFFFF))
+    tiff_file_write("./sorted_img_top_3dlut.tiff",
+                    np.uint16(top_xxx_lut_img * 0xFFFF))
 
 
 def analyze_error_between_3dlut_and_ctl():
@@ -1164,14 +1188,18 @@ def analyze_error_between_3dlut_and_ctl():
     #             "./ctl/odt/sRGB/ODT.Academy.sRGB_100nits_dim.ctl"]
     # ana_error_ctl_name = apply_ctl_to_exr_image(
     #     img_list, ctl_list, out_ext=".exr")[0]
-    ana_error_ctl_name = "./pattern_3dlut_ctl_diff_ana_RRT_ODT.Academy.sRGB_100nits_dim.exr"
+    # ana_error_ctl_name = apply_ctl_to_exr_image(
+    #     img_list, ctl_list, out_ext=".tiff")[0]
+    # ana_error_ctl_name = "./pattern_3dlut_ctl_diff_ana_RRT_ODT.Academy.sRGB_100nits_dim.exr"
+    ana_error_ctl_name = "./pattern_3dlut_ctl_diff_ana_RRT_ODT.Academy.sRGB_100nits_dim.tiff"
 
     # NUKEで ```test_pattern_name``` の exr ファイルを 3dlut で変換しておく
     # 変換後のファイル名は ```ana_error_3dlut_name = ./ana_error_3dlut.exr```
-    ana_error_3dlut_name = "./ana_error_3dlut.exr"
+    # ana_error_3dlut_name = "./ana_error_3dlut.exr"
+    ana_error_3dlut_name = "./ana_error_3dlut.tiff"
 
-    calc_error_between_3dlut_and_ctl(ana_error_ctl_name,
-                                     ana_error_3dlut_name)
+    calc_error_between_3dlut_and_ctl(ana_error_ctl_name=ana_error_ctl_name,
+                                     ana_error_3dlut_name=ana_error_3dlut_name)
 
 
 def experiment_func():
