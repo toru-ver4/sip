@@ -1132,9 +1132,11 @@ def calc_error_between_3dlut_and_ctl(ana_error_ctl_name, ana_error_3dlut_name):
     img_3dlut = np.float64(tiff_file_read(ana_error_3dlut_name))[:, :, :3]
     img_3dlut = np.reshape(img_3dlut, (1, 1080 * 1920, 3))
     diff = np.zeros_like(img_ctl)
-    ok_idx = (img_ctl > 0)
-    diff[ok_idx] = (img_ctl[ok_idx] - img_3dlut[ok_idx]) / img_ctl[ok_idx]
-    # diff[ok_idx] = (img_ctl[ok_idx] - img_3dlut[ok_idx])
+    # ok_idx = (img_ctl > 0)
+    # diff[ok_idx] = (img_ctl[ok_idx] - img_3dlut[ok_idx]) / img_ctl[ok_idx]
+    diff = (img_ctl - img_3dlut) / img_ctl
+    diff[np.isnan(diff)] = 0
+    # diff = (img_ctl - img_3dlut)
 
     # RMSE算出
     diff_sqrt = calc_root_mean_square_eror(diff)
