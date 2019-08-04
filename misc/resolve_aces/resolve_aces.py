@@ -1126,6 +1126,36 @@ def make_top_xxx_diff_img(sorted_img, width, height):
     return top_xxx_img
 
 
+def plot_sorted_tiff(img, rank_st=0, rank_ed=10000, title="title"):
+    """
+    3DLUTの誤差調査のために、誤差の大きいに並べ替えたデータについて
+    R, G, B をそれぞれプロットし、問題解決につながるヒントが無いか確認する
+    """
+    label_list = ["Red", 'Green', "Blue"]
+
+    plt.rcParams["font.size"] = 14
+    plt.rcParams['axes.grid'] = True
+    fig = plt.figure(figsize=(16, 10))
+    ax1 = fig.add_subplot(311)
+    ax2 = fig.add_subplot(312)
+    ax3 = fig.add_subplot(313)
+    ax = [ax1, ax2, ax3]
+    y_lim = [-0.05, 1.05]
+
+    title_base = "{} (rank is {} ... {})"
+    ax1.set_title(title_base.format(title, rank_st, rank_ed))
+
+    for color_idx in range(3):
+        ax[color_idx].plot(img[:, rank_st:rank_ed:, color_idx].flatten(),
+                           '-', color=RGB_COLOUR_LIST[color_idx],
+                           label=label_list[color_idx], lw=3)
+        ax[color_idx].set_ylim(y_lim)
+        # plt.legend(loc='upper left')
+
+    plt.savefig(title+'.png', bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+
 def calc_error_between_3dlut_and_ctl(ana_error_ctl_name, ana_error_3dlut_name):
     img_ctl = np.float64(tiff_file_read(ana_error_ctl_name))[:, :, :3]
     img_ctl = np.reshape(img_ctl, (1, 1080 * 1920, 3))
@@ -1164,7 +1194,7 @@ def calc_error_between_3dlut_and_ctl(ana_error_ctl_name, ana_error_3dlut_name):
         np.uint16(np.reshape(sorted_lut_img, (1080, 1920, 3)) * 0xFFFF))
 
     # TOP 65536 の発表
-    width = 512
+    width = 192
     height = width
     top_xxx_ctl_img = make_top_xxx_diff_img(sorted_ctl_img, width, height)
     top_xxx_lut_img = make_top_xxx_diff_img(sorted_lut_img, width, height)
@@ -1172,6 +1202,11 @@ def calc_error_between_3dlut_and_ctl(ana_error_ctl_name, ana_error_3dlut_name):
                     np.uint16(top_xxx_ctl_img * 0xFFFF))
     tiff_file_write("./sorted_img_top_3dlut.tiff",
                     np.uint16(top_xxx_lut_img * 0xFFFF))
+
+    plot_sorted_tiff(
+        sorted_ctl_img, rank_st=200000, rank_ed=400000, title="CTL")
+    plot_sorted_tiff(
+        sorted_lut_img, rank_st=200000, rank_ed=400000, title="3DLUT")
 
 
 def analyze_error_between_3dlut_and_ctl():
