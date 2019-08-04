@@ -1131,28 +1131,29 @@ def calc_error_between_3dlut_and_ctl(ana_error_ctl_name, ana_error_3dlut_name):
     img_ctl = np.reshape(img_ctl, (1, 1080 * 1920, 3))
     img_3dlut = np.float64(tiff_file_read(ana_error_3dlut_name))[:, :, :3]
     img_3dlut = np.reshape(img_3dlut, (1, 1080 * 1920, 3))
-    diff = np.zeros_like(img_ctl)
+    # diff = np.zeros_like(img_ctl)
     # ok_idx = (img_ctl > 0)
     # diff[ok_idx] = (img_ctl[ok_idx] - img_3dlut[ok_idx]) / img_ctl[ok_idx]
+    """
+    2次元配列に対する np.where の考え方を何か勘違いしてる気がする
+    """
     diff = (img_ctl - img_3dlut) / img_ctl
     diff[np.isnan(diff)] = 0
-    # diff = (img_ctl - img_3dlut)
+    diff[np.isposinf(diff)] = 0
+    diff[np.isneginf(diff)] = 0
+    diff = (img_ctl - img_3dlut)
 
     # RMSE算出
-    diff_sqrt = calc_root_mean_square_eror(diff)
-    print(diff_sqrt.shape)
+    diff_rmse = calc_root_mean_square_eror(diff)
 
     # 後の作業をやりやすくするため1次元にする
-    diff_sqrt = np.reshape(diff_sqrt, (1080 * 1920))
+    diff_rmse = np.reshape(diff_rmse, (1080 * 1920))
     # org_img = np.reshape(img_ctl.copy(), (1080 * 1920, 3))
     # lut_img = np.reshape(img_3dlut.copy(), (1080 * 1920, 3))
 
     # 全体抽出
-    # sorted_idx = np.argsort(diff_sqrt)[::-1]
-    sorted_idx = np.argsort(diff_sqrt)
-    print(sorted_idx.shape)
-    print(img_ctl.shape)
-    print(img_ctl[0, 1544852, :])
+    sorted_idx = np.argsort(diff_rmse)[::-1]
+    # sorted_idx = np.argsort(diff_rmse)
     sorted_ctl_img = img_ctl[:, sorted_idx, :]
     sorted_lut_img = img_3dlut[:, sorted_idx, :]
     tiff_file_write(
@@ -1163,8 +1164,8 @@ def calc_error_between_3dlut_and_ctl(ana_error_ctl_name, ana_error_3dlut_name):
         np.uint16(np.reshape(sorted_lut_img, (1080, 1920, 3)) * 0xFFFF))
 
     # TOP 65536 の発表
-    width = 128
-    height = 128
+    width = 512
+    height = width
     top_xxx_ctl_img = make_top_xxx_diff_img(sorted_ctl_img, width, height)
     top_xxx_lut_img = make_top_xxx_diff_img(sorted_lut_img, width, height)
     tiff_file_write("./sorted_img_top_ctl.tiff",
@@ -1204,6 +1205,28 @@ def analyze_error_between_3dlut_and_ctl():
                                      ana_error_3dlut_name=ana_error_3dlut_name)
 
 
+def aviod_devided_by_zero():
+    """
+    RGBのチャネルを持つ画像に対しての処理での
+    ゼロ割り回避方法の調査。
+    """
+    sample_num = 5
+    x = np.arange(sample_num)
+    y = x.copy()[::-1]
+    z = x.copy()
+    z[sample_num // 2] = 0
+    a_img = np.float64(np.dstack((x, y, z)))
+    b_img = np.ones_like(a_img)
+    result_z = b_img / a_img
+    print(a_img)
+    print(result_z)
+
+    ok_idx = (a_img != 0)
+    result_y = np.zeros_like(a_img)
+    result_y[ok_idx] = b_img[ok_idx] / a_img[ok_idx]
+    print(result_y)
+
+
 def experiment_func():
     # print(shaper_func_linear_to_log2(x=(0.18*(2**4)), mid_gray=0.18,
     #                                  min_exposure=-6.5, max_exposure=4.0))
@@ -1225,6 +1248,7 @@ def experiment_func():
     analyze_error_between_3dlut_and_ctl()
     # comparison_between_1000nits_and_108nits_primaries(
     #     min_exposure=-6.0, max_exposure=10.0, src_cs=cs.P3_D65)
+    # aviod_devided_by_zero()
 
 
 def main_func():
