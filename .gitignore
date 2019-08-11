@@ -135,3 +135,4 @@ misc/resolve_aces/**/*.png
 share/man/man1/isympy.1
 .venv/pyvenv.cfg
 .venv/share/man/man1/isympy.1
+venv/
