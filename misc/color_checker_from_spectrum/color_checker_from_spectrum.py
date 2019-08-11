@@ -151,9 +151,10 @@ def temperature_convert_test(
 
 def plot_color_checker(cmfs_name=cm.CIE1931, temperature=6500,
                        color_space=BT709_CS, oetf_name=tf.SRGB):
-    rgb_linear = make_color_chekcer_linear_value(
-        cmfs_name=cmfs_name, temperature=6500, color_space=color_space)
-    rgb = np.uint8(np.round(tf.oetf(rgb_linear, oetf_name) * 0xFF))
+    rgb = make_color_chekcer_value(
+        cmfs_name=cmfs_name, temperature=temperature,
+        color_space=color_space, oetf_name=oetf_name)
+    rgb = np.uint8(np.round(rgb * 0xFF))
     tpg.plot_color_checker_image(rgb)
 
 
@@ -172,7 +173,7 @@ def trial_func():
 
 
 def main_func():
-    plot_color_checker(cmfs_name=cm.CIE2015_2, temperature=6500,
+    plot_color_checker(cmfs_name=cm.CIE1931, temperature=6500,
                        color_space=BT709_CS, oetf_name=tf.SRGB)
 
 

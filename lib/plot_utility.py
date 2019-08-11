@@ -251,22 +251,23 @@ if __name__ == '__main__':
     gamma_list = [1.0, 1.2, 1.5, 1.9, 2.4, 3.0]
     label_list = ["gamma " + str(x) for x in gamma_list]
     y_list = [x ** gamma for gamma in gamma_list]
-    ax1 = plot_1_graph(fontsize=20,
-                       figsize=(10, 8),
-                       graph_title="Title",
-                       graph_title_size=None,
-                       xlabel="X Axis Label", ylabel="Y Axis Label",
-                       axis_label_size=None,
-                       legend_size=17,
-                       xlim=None,
-                       ylim=None,
-                       xtick=None,
-                       ytick=None,
-                       xtick_size=None, ytick_size=None,
-                       linewidth=3,
-                       minor_xtick_num=None,
-                       minor_ytick_num=None,
-                       prop_cycle=cycler(color=g_cycle))
+    ax1 = plot_1_graph(
+        fontsize=20,
+        figsize=(10, 8),
+        graph_title="Title",
+        graph_title_size=None,
+        xlabel="X Axis Label", ylabel="Y Axis Label",
+        axis_label_size=None,
+        legend_size=17,
+        xlim=None,
+        ylim=None,
+        xtick=None,
+        ytick=None,
+        xtick_size=None, ytick_size=None,
+        linewidth=3,
+        minor_xtick_num=None,
+        minor_ytick_num=None,
+        prop_cycle=cycler(color=g_cycle))
     for y, label in zip(y_list, label_list):
         ax1.plot(x, y, label=label)
     plt.legend(loc='upper left')
