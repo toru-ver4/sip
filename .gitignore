@@ -4,7 +4,9 @@ __pycache__/matplot_scatter.cpython-34.pyc
 __pycache__/matplot_test.cpython-34.pyc
 aa.flv
 bb.flv
-ffmpeg.exe
+**/ffmpeg.exe
+**/ffprobe.exe
+**/ffplay.exe
 gochiusa.mp4
 hanayamata.mp4
 hiasshuku.tiff
@@ -123,3 +125,13 @@ site-packages/
 Scripts/
 
 sip/share/man/man1/isympy.1
+
+misc/resolve_aces/**/*.exr
+misc/resolve_aces/ctl/**
+misc/resolve_aces/**/*.tiff
+misc/resolve_aces/**/*.tif
+misc/resolve_aces/**/*.png
+.code-workspace.code-workspace
+share/man/man1/isympy.1
+.venv/pyvenv.cfg
+.venv/share/man/man1/isympy.1
