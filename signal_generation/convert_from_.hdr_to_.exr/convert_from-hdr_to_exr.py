@@ -6,6 +6,7 @@
 """
 
 import os
+import sys
 import numpy as np
 import TyImageIO as tyio
 import OpenImageIO as oiio
@@ -28,8 +29,27 @@ def get_out_fname(in_fname):
     return root + ".exr"
 
 
+def show_usage():
+    usage_str = """
+usage:
+    python convert_from_hdr_to_exr.py source_file
+
+options:
+    source_file     A .hdr source file.
+"""
+    print(usage_str)
+
+
+def get_input_file_name():
+    if len(sys.argv) != 2:
+        show_usage()
+        sys.exit(1)
+
+    return sys.argv[1]
+
+
 def main():
-    in_fname = "./outdoor_umbrellas_2k.hdr"
+    in_fname = get_input_file_name()
     out_fname = get_out_fname(in_fname)
     reader = tyio.TyReader(in_fname)
     img = reader.read()
