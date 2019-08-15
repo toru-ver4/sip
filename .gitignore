@@ -112,6 +112,8 @@ signal_generation/test_pattern/img/*.exr
 **/*.otf
 signal_generation/Limited_Range_Checker/**/*.dpx
 signal_generation/**/*.mov
+signal_generation/convert_from_.hdr_to_.exr/*.hdr
+signal_generation/convert_from_.hdr_to_.exr/*.exr
 misc/gamma_research/**/*.tiff
 **/*.mov
 misc/reduced_number_of_colors/img/**/*.tiff
