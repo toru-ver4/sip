@@ -831,6 +831,67 @@ def load_1dlut(filename='./data/lut_sample/hoge.spi1d'):
     return lut
 
 
+def make_3dlut_grid(grid_num=33):
+    """
+    3DLUTの格子点データを作成
+
+    Parameters
+    ----------
+    grid_num : integer
+        A number of grid points.
+
+    Returns
+    -------
+    ndarray
+        An Array of the grid points.
+        The shape is (1, grid_num ** 3, 3).
+
+    Examples
+    --------
+    >>> make_3dlut_grid(grid_num=3)
+    array([[[0. , 0. , 0. ],
+            [0.5, 0. , 0. ],
+            [1. , 0. , 0. ],
+            [0. , 0.5, 0. ],
+            [0.5, 0.5, 0. ],
+            [1. , 0.5, 0. ],
+            [0. , 1. , 0. ],
+            [0.5, 1. , 0. ],
+            [1. , 1. , 0. ],
+            [0. , 0. , 0.5],
+            [0.5, 0. , 0.5],
+            [1. , 0. , 0.5],
+            [0. , 0.5, 0.5],
+            [0.5, 0.5, 0.5],
+            [1. , 0.5, 0.5],
+            [0. , 1. , 0.5],
+            [0.5, 1. , 0.5],
+            [1. , 1. , 0.5],
+            [0. , 0. , 1. ],
+            [0.5, 0. , 1. ],
+            [1. , 0. , 1. ],
+            [0. , 0.5, 1. ],
+            [0.5, 0.5, 1. ],
+            [1. , 0.5, 1. ],
+            [0. , 1. , 1. ],
+            [0.5, 1. , 1. ],
+            [1. , 1. , 1. ]]])
+    """
+    # np.meshgrid を使って 3次元の格子点座標を生成
+    x = np.linspace(0, 1, grid_num)
+    rgb_mesh_array = np.meshgrid(x, x, x)
+
+    # 後の処理を行いやすくするため shape を変える
+    rgb_mesh_array = [x.reshape(1, grid_num ** 3, 1) for x in rgb_mesh_array]
+
+    # 格子点のデータ増加が R, G, B の順となるように配列を並べ替えてから
+    # np.dstack を使って結合する
+    rgb_grid = np.dstack(
+        (rgb_mesh_array[2], rgb_mesh_array[0], rgb_mesh_array[1]))
+
+    return rgb_grid
+
+
 def _test_3dlut():
     g_num = 17
     lut = get_3d_grid_cube_format(grid_num=g_num)
