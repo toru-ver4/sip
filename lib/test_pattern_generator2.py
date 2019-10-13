@@ -21,8 +21,8 @@ from colour import models
 from colour import RGB_COLOURSPACES
 from scipy.spatial import Delaunay
 from scipy.ndimage.filters import convolve
-import common
 import color_space as cs
+import math
 import imp
 imp.reload(pu)
 
@@ -723,7 +723,7 @@ def gen_step_gradation(width=1024, height=128, step_num=17,
 
     # まずは水平1LINEのグラデーションを作る
     # -----------------------------------
-    step_length_list = common.equal_devision(width, step_num)
+    step_length_list = equal_devision(width, step_num)
     step_bar_list = []
     for step_idx, length in enumerate(step_length_list):
         step = [np.ones((length)) * color[c_idx] * val_list[step_idx]
