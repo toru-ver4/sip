@@ -132,7 +132,6 @@ misc/resolve_aces/**/*.exr
 misc/resolve_aces/ctl/**
 misc/resolve_aces/**/*.tiff
 misc/resolve_aces/**/*.tif
-misc/resolve_aces/**/*.png
 .code-workspace.code-workspace
 share/man/man1/isympy.1
 .venv/pyvenv.cfg
